@@ -1,0 +1,14 @@
+# Virtual Environment
+venv/
+
+# Database
+*.sqlite3
+
+# Django specific
+/static_root/
+/media_root/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
