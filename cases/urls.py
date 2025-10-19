@@ -36,4 +36,8 @@ urlpatterns = [
     
     path('document/<int:doc_pk>/view/', views.document_view_and_log, name='document-view'),
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
+
+    # --- NEW: E-Signature URLs ---
+    path('document/<int:doc_pk>/request-signature/', views.signature_request_view, name='signature-request'),
+    path('document/sign/<uuid:token>/', views.signing_page_view, name='signing-page'),
 ]

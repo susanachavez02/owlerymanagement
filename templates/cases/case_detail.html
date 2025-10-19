@@ -125,4 +125,15 @@
     {% endfor %}
   </div>
 
+  <div>
+          <a href="{% url 'cases:signature-request' doc_pk=doc.pk %}" class="btn btn-warning btn-sm">
+            Request Signature
+          </a>
+        </div>
+        </div>
+    {% empty %}
+      <div class="alert alert-info">No documents have been uploaded for this case.</div>
+    {% endfor %}
+  </div>
+
 {% endblock %}

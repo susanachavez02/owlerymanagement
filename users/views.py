@@ -8,6 +8,15 @@ from .models import OnboardingKey, UserProfile, Role
 from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm
 from cases.models import Case
 
+# --- NEW: Homepage View ---
+def homepage_view(request):
+    # If user is already logged in, send them to their dashboard
+    if request.user.is_authenticated:
+        return redirect('users:dashboard')
+    
+    # Otherwise, show the public homepage
+    return render(request, 'users/homepage.html')
+
 # This is a "test function" to check if a user is an admin
 def is_admin(user):
     return user.is_authenticated and user.roles.filter(name='Admin').exists()
@@ -143,3 +152,4 @@ def dashboard_view(request):
         # If user has no roles, send them to the login page with an error.
         messages.error(request, "Your account is not yet configured. Please contact an administrator.")
         return redirect('logout')
+    

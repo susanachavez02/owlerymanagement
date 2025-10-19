@@ -1,13 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-
+from django.contrib.auth.models import User
+from django.urls import reverse
+from django.utils import timezone
 # We need to import the admin test function from our 'users' app
 
 # --- Model Imports ---
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
-    CaseWorkflow, CaseStage, TimeEntry, Template
+    CaseWorkflow, CaseStage, TimeEntry, Template, SignatureRequest
 )
 # --- Form Imports ---
 from .forms import (
@@ -365,3 +367,106 @@ def generate_document_view(request, case_pk):
         'templates': templates
     }
     return render(request, 'cases/generate_document.html', context)
+
+# --- View 12: Signature Request Page (Attorney-facing) ---
+@login_required
+def signature_request_view(request, doc_pk):
+    doc = get_object_or_404(Document, pk=doc_pk)
+    case = doc.case
+
+    # --- Security & Permission Check ---
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    is_assigned = CaseAssignment.objects.filter(case=case, user=request.user).exists()
+    
+    if not (is_admin or is_assigned):
+        messages.error(request, "You do not have permission to access this.")
+        return redirect('users:dashboard')
+
+    is_attorney = request.user.roles.filter(name='Attorney').exists()
+    if not (is_admin or is_attorney):
+        messages.error(request, "Only attorneys can send signature requests.")
+        return redirect('cases:case-detail', pk=case.pk)
+
+    # --- Handle Form POST ---
+    if request.method == 'POST':
+        signer_id = request.POST.get('user_id')
+        if not signer_id:
+            messages.error(request, "Please select a user to send the request to.")
+        else:
+            signer = get_object_or_404(User, pk=signer_id)
+            
+            # Create the SignatureRequest
+            sig_request = SignatureRequest.objects.create(
+                document=doc,
+                signer=signer,
+                requested_by=request.user,
+                status=SignatureRequest.Status.PENDING
+            )
+            
+            # Build the secure signing link
+            sign_link = request.build_absolute_uri(
+                reverse('cases:signing-page', kwargs={'token': sig_request.token})
+            )
+            
+            # TODO: Email this link. For now, we'll show it to the attorney.
+            messages.success(request, f"Signature request sent to {signer.username}.")
+            messages.info(request, f"Signing Link (for demo): {sign_link}")
+            return redirect('cases:case-detail', pk=case.pk)
+
+    # --- Handle GET ---
+    potential_signers = case.assignments.exclude(user=request.user)
+    context = {
+        'doc': doc,
+        'case': case,
+        'potential_signers': potential_signers,
+    }
+    return render(request, 'cases/signature_request.html', context)
+
+
+# --- View 13: Signing Page (Client-facing) ---
+@login_required
+def signing_page_view(request, token):
+    # Find the request by its secure token
+    sig_request = get_object_or_404(SignatureRequest, token=token)
+    doc = sig_request.document
+
+    # --- Security & Validation Checks ---
+    # 1. Check if user is the correct signer
+    if request.user != sig_request.signer:
+        messages.error(request, "You are not authorized to sign this document.")
+        return redirect('users:dashboard')
+    
+    # 2. Check if it's still pending
+    if sig_request.status != SignatureRequest.Status.PENDING:
+        messages.warning(request, "This document has already been signed or the request was cancelled.")
+        return redirect('cases:case-detail', pk=doc.case.pk)
+
+    # --- Handle the POST (signing) action ---
+    if request.method == 'POST':
+        # Check if the "agree" box was ticked
+        if 'agree' not in request.POST:
+            messages.error(request, "You must agree to the terms to sign.")
+        else:
+            # --- SUCCESS ---
+            # 1. Update the request
+            sig_request.status = SignatureRequest.Status.SIGNED
+            sig_request.signed_at = timezone.now()
+            sig_request.save()
+            
+            # 2. Create the permanent audit log
+            DocumentLog.objects.create(
+                document=doc,
+                user=request.user,
+                action="Signed",
+                details=f"Signed via e-signature workflow."
+            )
+            
+            messages.success(request, "Document successfully signed.")
+            return redirect('cases:case-detail', pk=doc.case.pk)
+
+    # --- Handle GET ---
+    context = {
+        'doc': doc,
+        'sig_request': sig_request
+    }
+    return render(request, 'cases/signing_page.html', context)

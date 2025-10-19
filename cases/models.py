@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+import uuid
 
 # --- NEW MODEL: CaseWorkflow ---
 class CaseWorkflow(models.Model):
@@ -117,3 +118,37 @@ class Template(models.Model):
 
     def __str__(self):
         return self.name
+    
+# --- NEW: SignatureRequest Model ---
+class SignatureRequest(models.Model):
+    # Status choices
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        SIGNED = 'SIGNED', 'Signed'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    # Link to the document that needs signing
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='signature_requests')
+    
+    # Link to the user who is asked to sign
+    signer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='signature_requests_to_sign')
+    
+    # Link to the user who SENT the request
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='signature_requests_sent')
+
+    # The current status of the request
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    
+    # A one-time-use, secure token for the signing link (optional but good)
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
+    # Timestamps
+    requested_at = models.DateTimeField(auto_now_add=True)
+    signed_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"Request for {self.signer.username} to sign {self.document.title} ({self.status})"

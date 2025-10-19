@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="text-center">
+    <h1 class="display-4">Welcome to the Legal Portal</h1>
+    <p class="lead">Securely manage your cases, documents, and communication.</p>
+    <hr class="my-4">
+    <p>Please log in to access your dashboard or register with your provided key.</p>
+    <a class="btn btn-primary btn-lg" href="{% url 'users:login' %}" role="button">
+      Log In
+    </a>
+    <a class="btn btn-secondary btn-lg" href="{% url 'users:register' %}" role="button">
+      Register with Key
+    </a>
+  </div>
+{% endblock %}
