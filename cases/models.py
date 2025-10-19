@@ -78,3 +78,14 @@ class DocumentLog(models.Model):
     def __str__(self):
         return f"{self.action} on {self.document.title} by {self.user.username}"
     
+class TimeEntry(models.Model):
+    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name='time_entries')
+    # Link to the main User model (which represents the attorney)
+    attorney = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='time_entries')
+    date = models.DateField()
+    hours = models.DecimalField(max_digits=5, decimal_places=2)
+    description = models.TextField(blank=True, null=True)
+    is_billable = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.hours} hrs on {self.date} for {self.case.case_title}"

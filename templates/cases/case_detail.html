@@ -68,10 +68,43 @@
   <form method="POST" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
     {{ upload_form|crispy }}
-    <button type="submit" class="btn btn-primary mt-2">Upload</button>
+    <button type="submit" name="upload_document" class="btn btn-primary mt-2">Upload</button>
   </form>
   <hr>
 
+  {% if request.user.roles.all|join:","|find:"Attorney" != -1 or request.user.roles.all|join:","|find:"Admin" != -1 %}
+  <div class="row">
+    <div class="col-md-5">
+      <h5>Log Time</h5>
+      <form method="POST" novalidate>
+        {% csrf_token %}
+        {{ time_form|crispy }}
+        <button type="submit" name="log_time" class="btn btn-success mt-2">Log Time</button>
+      </form>
+    </div>
+    
+    <div class="col-md-7">
+      <h5>Time Entries</h5>
+      <ul class="list-group">
+        {% for entry in time_entries %}
+          <li class="list-group-item">
+            <div class="d-flex w-100 justify-content-between">
+              <h6 class.="mb-1">{{ entry.date|date:"N j, Y" }} - {{ entry.attorney.username }}</h6>
+              <span class="badge 
+                {% if entry.is_billable %}bg-success{% else %}bg-secondary{% endif %}">
+                {{ entry.hours }} hrs
+              </span>
+            </div>
+            <p class="mb-1">{{ entry.description }}</p>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted">No time entries logged yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <hr>
+  {% endif %}
   <h5>Case Documents</h5>
   <div class="list-group">
     {% for doc in documents %}

@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Case, Document, CaseWorkflow, CaseStage         # From the current 'cases' app
+from .models import (
+    Case, Document, CaseWorkflow, CaseStage,
+    TimeEntry
+)
 from users.models import Role   # From the 'users' app
 
 class CaseCreateForm(forms.ModelForm):
@@ -43,3 +46,17 @@ class StageCreateForm(forms.ModelForm):
         widgets = {
             'order': forms.NumberInput(attrs={'min': 1})
         }
+
+class TimeEntryForm(forms.ModelForm):
+    class Meta:
+        model = TimeEntry
+        fields = ['date', 'hours', 'description', 'is_billable']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'hours': forms.NumberInput(attrs={'step': '0.25', 'min': '0'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set 'is_billable' to True by default
+        self.fields['is_billable'].initial = True

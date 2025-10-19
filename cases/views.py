@@ -7,12 +7,12 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 # --- Model Imports ---
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
-    CaseWorkflow, CaseStage
+    CaseWorkflow, CaseStage, TimeEntry
 )
 # --- Form Imports ---
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
-    WorkflowCreateForm, StageCreateForm
+    WorkflowCreateForm, StageCreateForm, TimeEntryForm
 )
 
 from users.views import is_admin
@@ -75,36 +75,47 @@ def case_create_view(request):
 def case_detail_view(request, pk):
     case = get_object_or_404(Case, pk=pk)
     
-    # --- Form Logic ---
     if request.method == 'POST':
-        # This block runs ONLY when a form is submitted
-        upload_form = DocumentUploadForm(request.POST, request.FILES)
-        if upload_form.is_valid():
-            # Create the document object in memory
-            doc = upload_form.save(commit=False) 
-            
-            # Set the hidden fields
-            doc.case = case
-            doc.uploaded_by = request.user
-            
-            # Now, save it all to the database
-            doc.save()
-            
-            # This creates the audit trail for the upload
-            DocumentLog.objects.create(document=doc, user=request.user, action="Uploaded")
-            
-            messages.success(request, f"Document '{doc.title}' uploaded successfully.")
-            return redirect('cases:case-detail', pk=case.pk) # Redirect to the same page
+        
+        # --- Check which form was submitted ---
+        
+        # Check if the 'upload_document' button was pressed
+        if 'upload_document' in request.POST:
+            upload_form = DocumentUploadForm(request.POST, request.FILES)
+            if upload_form.is_valid():
+                doc = upload_form.save(commit=False) 
+                doc.case = case
+                doc.uploaded_by = request.user
+                doc.save()
+                DocumentLog.objects.create(document=doc, user=request.user, action="Uploaded")
+                messages.success(request, f"Document '{doc.title}' uploaded successfully.")
+                return redirect('cases:case-detail', pk=case.pk)
+        
+        # Check if the 'log_time' button was pressed
+        elif 'log_time' in request.POST:
+            time_form = TimeEntryForm(request.POST)
+            if time_form.is_valid():
+                entry = time_form.save(commit=False)
+                entry.case = case
+                entry.attorney = request.user
+                entry.save()
+                messages.success(request, "Time entry logged successfully.")
+                return redirect('cases:case-detail', pk=case.pk)
     
-    # --- GET Request Logic (runs on page load) ---
+    # --- GET Request Logic ---
     documents = case.documents.all().order_by('-id')
     assignments = case.assignments.all()
-    upload_form = DocumentUploadForm() # Create a blank form for the template
+    upload_form = DocumentUploadForm() 
     
-    # Get all stages for the case's workflow, if it has one
+    # Get all stages for the case's workflow
     all_stages = None
     if case.workflow:
         all_stages = case.workflow.stages.all()
+
+    # --- NEW: Get time entries ---
+    time_entries = case.time_entries.all().order_by('-date')
+    time_form = TimeEntryForm()
+    # --- END NEW ---
 
     context = {
         'case': case,
@@ -112,6 +123,8 @@ def case_detail_view(request, pk):
         'assignments': assignments,
         'upload_form': upload_form,
         'all_stages': all_stages,
+        'time_entries': time_entries, # <-- Add to context
+        'time_form': time_form,       # <-- Add to context
     }
     return render(request, 'cases/case_detail.html', context)
 
