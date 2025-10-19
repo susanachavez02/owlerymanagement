@@ -7,16 +7,19 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 # --- Model Imports ---
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
-    CaseWorkflow, CaseStage, TimeEntry
+    CaseWorkflow, CaseStage, TimeEntry, Template
 )
 # --- Form Imports ---
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
-    WorkflowCreateForm, StageCreateForm, TimeEntryForm
+    WorkflowCreateForm, StageCreateForm, TimeEntryForm, TemplateUploadForm
 )
 
 from users.views import is_admin
 from .decorators import user_is_assigned_to_case
+
+# --- Django's File handling utilities ---
+from django.core.files.base import ContentFile
 
 # --- View 1: Case List (Admin) ---
 
@@ -261,3 +264,104 @@ def advance_stage_view(request, case_pk):
         
     # Redirect back to the detail page
     return redirect('cases:case-detail', pk=case.pk)
+
+# --- View 10: Template List (Admin) ---
+@login_required
+@user_passes_test(is_admin)
+def template_list_view(request):
+    templates = Template.objects.all().order_by('name')
+    context = {
+        'templates': templates
+    }
+    return render(request, 'cases/template_list.html', context)
+
+# --- View 11: Template Upload (Admin) ---
+@login_required
+@user_passes_test(is_admin)
+def template_upload_view(request):
+    if request.method == 'POST':
+        form = TemplateUploadForm(request.POST, request.FILES)
+        if form.is_valid():
+            template = form.save(commit=False)
+            template.uploaded_by = request.user
+            template.save()
+            messages.success(request, f"Template '{template.name}' uploaded successfully.")
+            return redirect('cases:template-list')
+    else:
+        form = TemplateUploadForm()
+    
+    context = {
+        'form': form
+    }
+    return render(request, 'cases/template_upload.html', context)
+
+# --- STEP 19: DOCUMENT GENERATION VIEW
+# ---
+@login_required
+@user_is_assigned_to_case
+def generate_document_view(request, case_pk):
+    case = get_object_or_404(Case, pk=case_pk)
+    
+    # Get all available templates (public ones or ones uploaded by this user)
+    templates = Template.objects.filter(
+        models.Q(is_public=True) | models.Q(uploaded_by=request.user)
+    ).distinct()
+    
+    if request.method == 'POST':
+        template_id = request.POST.get('template_id')
+        if not template_id:
+            messages.error(request, "Please select a template.")
+        else:
+            template = get_object_or_404(Template, pk=template_id)
+            
+            # --- 1. Build the Context ---
+            # This is where we match the template's fields to the case data.
+            context = {}
+            
+            # Find the client on the case
+            client_assignment = case.assignments.filter(user__roles__name='Client').first()
+            if client_assignment:
+                context['client_name'] = client_assignment.user.get_full_name()
+                context['client_email'] = client_assignment.user.email
+            
+            # Find the attorney on the case
+            attorney_assignment = case.assignments.filter(user__roles__name='Attorney').first()
+            if attorney_assignment:
+                context['attorney_name'] = attorney_assignment.user.get_full_name()
+
+            context['case_title'] = case.case_title
+            context['case_description'] = case.description
+            
+            # --- 2. Generate the (Placeholder) Document ---
+            # This is a simple placeholder. We are NOT using the .docx file yet.
+            # We just create a .txt file with the context data to prove it works.
+            
+            file_content = f"--- GENERATED DOCUMENT ---\n"
+            file_content += f"Template Used: {template.name}\n"
+            file_content += "----------------------------\n\n"
+            
+            for key, value in context.items():
+                file_content += f"{key}: {value}\n"
+            
+            file_name = f"{case.case_title.replace(' ', '_')}_{template.name.replace(' ', '_')}.txt"
+            
+            # --- 3. Save the new Document ---
+            new_doc = Document.objects.create(
+                case=case,
+                title=f"Generated: {template.name}",
+                uploaded_by=request.user,
+                # We save the file content to the FileField
+                file_upload=ContentFile(file_content.encode('utf-8'), name=file_name)
+            )
+            
+            # 4. Log the creation
+            DocumentLog.objects.create(document=new_doc, user=request.user, action="Generated")
+            
+            messages.success(request, f"Document '{new_doc.title}' generated successfully.")
+            return redirect('cases:case-detail', pk=case.pk)
+
+    context = {
+        'case': case,
+        'templates': templates
+    }
+    return render(request, 'cases/generate_document.html', context)

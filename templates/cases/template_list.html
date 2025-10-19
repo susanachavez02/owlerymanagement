@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Document Templates</h2>
+    <div>
+      <a href="{% url 'cases:template-upload' %}" class="btn btn-primary">Upload New Template</a>
+      <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
+    </div>
+  </div>
+  <p>Manage the reusable document templates for generating contracts.</p>
+
+  <div class="list-group">
+    {% for template in templates %}
+      <div class="list-group-item">
+        <h5 class="mb-1">{{ template.name }}</h5>
+        <small class="text-muted">File: {{ template.template_file.name }}</small>
+        <p class="mb-1">Context Fields: {{ template.context_fields|default:"None" }}</p>
+      </div>
+    {% empty %}
+      <div class="alert alert-info" role="alert">
+        No templates have been uploaded yet.
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

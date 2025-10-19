@@ -10,6 +10,10 @@ urlpatterns = [
     path('workflows/<int:pk>/', views.workflow_detail_view, name='workflow-detail'),
     path('workflows/stage/create/<int:workflow_pk>/', views.stage_create_view, name='stage-create'),
 
+    # --- NEW: Admin Template Management ---
+    path('templates/', views.template_list_view, name='template-list'),
+    path('templates/upload/', views.template_upload_view, name='template-upload'),
+
     # --- Admin Case Management ---
     # Admin: Create a new case
     path('create/', views.case_create_view, name='case-create'),
@@ -25,5 +29,11 @@ urlpatterns = [
     path('document/<int:doc_pk>/view/', views.document_view_and_log, name='document-view'),
 
     # --- NEW: Advance Case Stage ---
+    path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
+
+    # --- NEW: Generate Document ---
+    path('<int:case_pk>/generate-document/', views.generate_document_view, name='generate-document'),
+    
+    path('document/<int:doc_pk>/view/', views.document_view_and_log, name='document-view'),
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
 ]

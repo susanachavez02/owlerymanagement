@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import (
     Case, Document, CaseWorkflow, CaseStage,
-    TimeEntry
+    TimeEntry, Template
 )
 from users.models import Role   # From the 'users' app
 
@@ -60,3 +60,11 @@ class TimeEntryForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Set 'is_billable' to True by default
         self.fields['is_billable'].initial = True
+
+class TemplateUploadForm(forms.ModelForm):
+    class Meta:
+        model = Template
+        fields = ['name', 'template_file', 'is_public', 'context_fields']
+        help_texts = {
+            'context_fields': 'Enter as a JSON list, e.g., ["client_name", "case_title"]'
+        }

@@ -64,6 +64,13 @@
   </ul>
   <hr>
 
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5>Case Documents</h5>
+    <a href="{% url 'cases:generate-document' case_pk=case.pk %}" class="btn btn-success">
+      Generate Document from Template
+    </a>
+  </div>
+
   <h5>Upload a New Document</h5>
   <form method="POST" enctype="multipart/form-data" novalidate>
     {% csrf_token %}

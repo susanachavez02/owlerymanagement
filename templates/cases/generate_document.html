@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <a href="{% url 'cases:case-detail' pk=case.pk %}">&larr; Back to Case Details</a>
+  <h2 class="mt-2">Generate Document for: {{ case.case_title }}</h2>
+  <p>Select a template to generate a new document. The system will pre-fill the document with this case's data.</p>
+  
+  <form method="POST">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="template_id_select">Available Templates</label>
+      <select class="form-control" id="template_id_select" name="template_id">
+        <option value="" selected disabled>--- Please select a template ---</option>
+        {% for template in templates %}
+          <option value="{{ template.pk }}">
+            {{ template.name }}
+          </option>
+        {% empty %}
+          <option value="" disabled>No templates are available.</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Generate</button>
+  </form>
+
+{% endblock %}

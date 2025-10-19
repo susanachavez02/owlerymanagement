@@ -89,3 +89,31 @@ class TimeEntry(models.Model):
 
     def __str__(self):
         return f"{self.hours} hrs on {self.date} for {self.case.case_title}"
+    
+class Template(models.Model):
+    name = models.CharField(max_length=255, help_text="e.g., 'Real Estate Closing Contract'")
+    
+    # The actual .docx or .pdf template file
+    template_file = models.FileField(upload_to='document_templates/')
+    
+    # Is this template available to all attorneys or just the one who created it?
+    is_public = models.BooleanField(default=False)
+    
+    # Stores a list of placeholder keys the template expects
+    # e.g., ["client_name", "case_title", "attorney_name"]
+    context_fields = models.JSONField(
+        blank=True, 
+        null=True, 
+        help_text="JSON list of placeholder fields this template uses."
+    )
+    
+    # Optional: Link to the attorney who uploaded it
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
+
+    def __str__(self):
+        return self.name
