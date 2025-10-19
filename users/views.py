@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from .models import OnboardingKey, UserProfile, Role
 from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm
+from cases.models import Case
 
 # This is a "test function" to check if a user is an admin
 def is_admin(user):
@@ -101,3 +102,44 @@ def set_password_view(request, key):
         form = UserSetPasswordForm(user)
         
     return render(request, 'users/set_password.html', {'form': form, 'key': key})
+
+# --- NEW: Dashboard View ---
+
+@login_required
+def dashboard_view(request):
+    user = request.user
+    
+    # --- Check Roles ---
+    
+    # 1. Is the user an Admin?
+    if user.roles.filter(name='Admin').exists():
+        # Admins just see the main case list.
+        return redirect('cases:case-list')
+        
+    # 2. Is the user an Attorney?
+    elif user.roles.filter(name='Attorney').exists():
+        # Get all cases assigned to this attorney
+        assigned_cases = Case.objects.filter(assignments__user=user).order_by('-date_filed')
+        
+        context = {
+            'assigned_cases': assigned_cases,
+            'is_attorney': True
+        }
+        return render(request, 'users/dashboard.html', context)
+        
+    # 3. Is the user a Client?
+    elif user.roles.filter(name='Client').exists():
+        # Get all cases assigned to this client
+        assigned_cases = Case.objects.filter(assignments__user=user).order_by('-date_filed')
+        
+        context = {
+            'assigned_cases': assigned_cases,
+            'is_client': True
+        }
+        return render(request, 'users/dashboard.html', context)
+    
+    # 4. Fallback
+    else:
+        # If user has no roles, send them to the login page with an error.
+        messages.error(request, "Your account is not yet configured. Please contact an administrator.")
+        return redirect('logout')

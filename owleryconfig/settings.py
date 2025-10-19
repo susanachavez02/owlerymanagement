@@ -145,3 +145,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # The public URL prefix for those files
 MEDIA_URL = '/media/'
+
+# URL to redirect to after a successful login
+LOGIN_REDIRECT_URL = '/users/dashboard/'
