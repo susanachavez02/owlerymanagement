@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <a href="{% url 'cases:workflow-detail' pk=workflow.pk %}">&larr; Back to Workflow</a>
+  <h2 class="mt-2">Add Stage to: {{ workflow.name }}</h2>
+  <p>Create a new stage and set its order in the sequence.</p>
+  
+  <form method="POST" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-success mt-3">Save Stage</button>
+  </form>
+{% endblock %}

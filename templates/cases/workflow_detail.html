@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <a href="{% url 'cases:workflow-list' %}">&larr; Back to Workflows</a>
+      <h2 class="mt-2">Workflow: {{ workflow.name }}</h2>
+    </div>
+    <a href="{% url 'cases:stage-create' workflow_pk=workflow.pk %}" class="btn btn-primary">Add New Stage</a>
+  </div>
+  
+  <p>These are the stages for the <strong>{{ workflow.name }}</strong> workflow, in order.</p>
+
+  <ol class="list-group list-group-numbered">
+    {% for stage in stages %}
+      <li class="list-group-item">
+        {{ stage.name }}
+      </li>
+    {% empty %}
+      <div class="alert alert-info" role="alert">
+        This workflow has no stages yet.
+      </div>
+    {% endfor %}
+  </ol>
+{% endblock %}

@@ -3,7 +3,11 @@
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Case Dashboard</h2>
-    <a href="{% url 'cases:case-create' %}" class="btn btn-primary">Create New Case</a>
+    <div>
+      <a href="{% url 'cases:workflow-list' %}" class="btn btn-info">Manage Workflows</a>
+      
+      <a href="{% url 'cases:case-create' %}" class="btn btn-primary">Create New Case</a>
+    </div>
   </div>
 
   <div class="list-group">

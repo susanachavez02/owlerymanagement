@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h2>Create New Workflow</h2>
+  <p>A workflow is a container for a sequence of case stages (e.g., "Litigation").</p>
+  
+  <form method="POST" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-success mt-3">Save Workflow</button>
+  </form>
+{% endblock %}

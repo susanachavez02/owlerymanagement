@@ -4,6 +4,17 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Case, CaseAssignment, Document, DocumentLog
 from .forms import CaseCreateForm, DocumentUploadForm
 # We need to import the admin test function from our 'users' app
+
+--- Import new models and forms ---
+from .models import (
+    Case, CaseAssignment, Document, DocumentLog,
+    CaseWorkflow, CaseStage
+)
+from .forms import (
+    CaseCreateForm, DocumentUploadForm,
+    WorkflowCreateForm, StageCreateForm
+)
+
 from users.views import is_admin
 from .decorators import user_is_assigned_to_case
 
@@ -91,6 +102,7 @@ def case_detail_view(request, pk):
     }
     return render(request, 'cases/case_detail.html', context)
 
+# --- View 4: Document Audit Log ---
 @login_required
 def document_view_and_log(request, doc_pk):
     # Get the document, or show 404
@@ -108,3 +120,76 @@ def document_view_and_log(request, doc_pk):
     
     # Redirect the user to the actual file URL
     return redirect(doc.file_upload.url)
+
+# --- View 5: Workflow List (Admin) ---
+@login_required
+@user_passes_test(is_admin)
+def workflow_list_view(request):
+    workflows = CaseWorkflow.objects.all()
+    context = {
+        'workflows': workflows
+    }
+    return render(request, 'cases/workflow_list.html', context)
+
+# --- View 6: Workflow Create (Admin) ---
+@login_required
+@user_passes_test(is_admin)
+def workflow_create_view(request):
+    if request.method == 'POST':
+        form = WorkflowCreateForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "New workflow created successfully.")
+            return redirect('cases:workflow-list')
+    else:
+        form = WorkflowCreateForm()
+    
+    context = {
+        'form': form
+    }
+    return render(request, 'cases/workflow_create.html', context)
+
+# --- View 7: Workflow Detail (Admin) ---
+@login_required
+@user_passes_test(is_admin)
+def workflow_detail_view(request, pk):
+    # Get the parent workflow
+    workflow = get_object_or_404(CaseWorkflow, pk=pk)
+    
+    # Get all stages for this workflow, which are already ordered
+    # thanks to the 'ordering' Meta option in the model
+    stages = workflow.stages.all()
+    
+    context = {
+        'workflow': workflow,
+        'stages': stages
+    }
+    return render(request, 'cases/workflow_detail.html', context)
+
+# --- View 8: Stage Create (Admin) ---
+@login_required
+@user_passes_test(is_admin)
+def stage_create_view(request, workflow_pk):
+    # Get the parent workflow this stage will belong to
+    workflow = get_object_or_404(CaseWorkflow, pk=workflow_pk)
+    
+    if request.method == 'POST':
+        form = StageCreateForm(request.POST)
+        if form.is_valid():
+            # Create the stage in memory
+            stage = form.save(commit=False)
+            # Assign it to the correct parent workflow
+            stage.workflow = workflow
+            stage.save()
+            
+            messages.success(request, f"New stage '{stage.name}' added to workflow.")
+            # Redirect back to the detail page for that workflow
+            return redirect('cases:workflow-detail', pk=workflow.pk)
+    else:
+        form = StageCreateForm()
+        
+    context = {
+        'form': form,
+        'workflow': workflow
+    }
+    return render(request, 'cases/stage_create.html', context)

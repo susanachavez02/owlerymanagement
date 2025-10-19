@@ -1,14 +1,39 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
 
-# Model 1: Case (MVP Version)
+# --- NEW MODEL: CaseWorkflow ---
+class CaseWorkflow(models.Model):
+    name = models.CharField(max_length=100, unique=True, help_text="e.g., 'Litigation', 'Contract Review'")
+
+    def __str__(self):
+        return self.name
+
+# --- NEW MODEL: CaseStage ---
+class CaseStage(models.Model):
+    workflow = models.ForeignKey(CaseWorkflow, on_delete=models.CASCADE, related_name='stages')
+    name = models.CharField(max_length=100, help_text="e.g., 'Discovery', 'Negotiation'")
+    order = models.PositiveIntegerField(help_text="The step number (1, 2, 3...)")
+
+    class Meta:
+        # Ensures that 'order' is unique FOR EACH workflow
+        unique_together = ('workflow', 'order')
+        # Sorts stages by their order number by default
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.workflow.name} - Step {self.order}: {self.name}"
+
+# --- UPDATED MODEL: Case ---
 class Case(models.Model):
     case_title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     date_filed = models.DateField(auto_now_add=True, help_text="Date the case was created in the system.")
     is_archived = models.BooleanField(default=False)
     
-    # We will link users via the CaseAssignment model
+    # --- ADD THESE TWO LINES ---
+    workflow = models.ForeignKey(CaseWorkflow, on_delete=models.SET_NULL, null=True, blank=True, related_name='cases')
+    current_stage = models.ForeignKey(CaseStage, on_delete=models.SET_NULL, null=True, blank=True, related_name='current_cases')
 
     def __str__(self):
         return self.case_title
@@ -52,3 +77,4 @@ class DocumentLog(models.Model):
 
     def __str__(self):
         return f"{self.action} on {self.document.title} by {self.user.username}"
+    
