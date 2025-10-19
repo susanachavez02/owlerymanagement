@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.utils import timezone
 import uuid
 
 # --- NEW MODEL: CaseWorkflow ---
@@ -152,3 +153,45 @@ class SignatureRequest(models.Model):
     
     def __str__(self):
         return f"Request for {self.signer.username} to sign {self.document.title} ({self.status})"
+    
+# --- NEW: Invoice Model ---
+class Invoice(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        SENT = 'SENT', 'Sent'
+        PAID = 'PAID', 'Paid'
+        VOID = 'VOID', 'Void'
+
+    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name='invoices')
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.DRAFT
+    )
+    issue_date = models.DateField(default=timezone.now)
+    due_date = models.DateField()
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"Invoice #{self.pk} for {self.case.case_title} - {self.status}"
+
+# --- NEW: InvoiceItem Model ---
+class InvoiceItem(models.Model):
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='items')
+    # Link to the billable time
+    time_entry = models.OneToOneField(
+        TimeEntry, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='invoice_item'
+    )
+    
+    # In case of manual line items
+    description = models.CharField(max_length=255)
+    hours = models.DecimalField(max_digits=5, decimal_places=2)
+    rate = models.DecimalField(max_digits=7, decimal_places=2, help_text="Rate at the time of billing")
+    line_total = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"Item for Invoice #{self.invoice.pk}: {self.description}"

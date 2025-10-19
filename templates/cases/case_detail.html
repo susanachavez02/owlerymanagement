@@ -11,6 +11,9 @@
     <a href="{% url 'communication:case-messaging' case_pk=case.pk %}" class="btn btn-info">
       View Case Messages
     </a>
+    <a href="{% url 'cases:billing-dashboard' case_pk=case.pk %}" class="btn btn-primary">
+      View Billing
+    </a>
   </div>
   <p class="lead">{{ case.description }}</p>
 

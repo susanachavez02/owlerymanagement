@@ -19,6 +19,13 @@ urlpatterns = [
     path('create/', views.case_create_view, name='case-create'),
     # Admin: List all cases
     path('', views.case_list_view, name='case-list'),
+
+    # --- NEW: Billing & Invoicing URLs ---
+    path('<int:case_pk>/billing/', views.billing_view, name='billing-dashboard'),
+    path('invoice/<int:pk>/', views.invoice_detail_view, name='invoice-detail'),
+
+    # --- User-Facing Case Views ---
+    path('<int:pk>/', views.case_detail_view, name='case-detail'),
     
     # --- User-Facing Case Views ---
     # NEW: View details for a single case

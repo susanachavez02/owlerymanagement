@@ -20,6 +20,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from users import views as user_views
+from cases import views as case_views
 
 urlpatterns = [
     path('', user_views.homepage_view, name='homepage'),
@@ -31,6 +32,10 @@ urlpatterns = [
     # This forwards any URL starting with 'messages/'
     # to the 'communication' app's urls.py file.
     path('messages/', include('communication.urls')),
+
+    # --- STRIPE URLS ---
+    path('create-checkout-session/<int:pk>/', case_views.create_checkout_session_view, name='create-checkout-session'),
+    path('stripe-webhook/', case_views.stripe_webhook_view, name='stripe-webhook'),
 ]
 
 if settings.DEBUG:
