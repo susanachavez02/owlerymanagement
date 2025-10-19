@@ -24,6 +24,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('users/', include('users.urls')),
     path('cases/', include('cases.urls')),
+    
+    # This forwards any URL starting with 'messages/'
+    # to the 'communication' app's urls.py file.
+    path('messages/', include('communication.urls')),
 ]
 
 if settings.DEBUG:

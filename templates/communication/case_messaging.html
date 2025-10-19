@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  
+  <a href="{% url 'cases:case-detail' pk=case.pk %}">&larr; Back to Case Details</a>
+  <h2 class.="mt-2">Messages for: {{ case.case_title }}</h2>
+  <hr>
+
+  <div id="message-thread" style="max-height: 500px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;">
+    {% for msg in messages_thread %}
+      <div class="message mb-2 {% if msg.sender == request.user %}text-end{% endif %}">
+        <small class="text-muted">
+          <strong>{{ msg.sender.username }}</strong>
+          - {{ msg.sent_at|date:"N j, Y, P" }}
+        </small>
+        <div class="card d-inline-block p-2 {% if msg.sender == request.user %}bg-primary text-white{% else %}bg-light{% endif %}" style="max-width: 75%;">
+          <strong>{{ msg.subject }}</strong>
+          <p class.="mb-0">{{ msg.body|linebreaks }}</p>
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-center text-muted">No messages yet.</p>
+    {% endfor %}
+  </div>
+
+  <hr>
+  <h5>Send a New Message</h5>
+  <form method="POST" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-success mt-2">Send Message</button>
+  </form>
+
+{% endblock %}
