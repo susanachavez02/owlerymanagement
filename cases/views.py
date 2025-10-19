@@ -1,15 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Case, CaseAssignment, Document, DocumentLog
-from .forms import CaseCreateForm, DocumentUploadForm
+
 # We need to import the admin test function from our 'users' app
 
---- Import new models and forms ---
+# --- Model Imports ---
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
     CaseWorkflow, CaseStage
 )
+# --- Form Imports ---
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
     WorkflowCreateForm, StageCreateForm
@@ -75,48 +75,69 @@ def case_create_view(request):
 def case_detail_view(request, pk):
     case = get_object_or_404(Case, pk=pk)
     
+    # --- Form Logic ---
     if request.method == 'POST':
-        # ... (This is your document upload logic) ...
-        # ... (No changes needed here) ...
+        # This block runs ONLY when a form is submitted
+        upload_form = DocumentUploadForm(request.POST, request.FILES)
+        if upload_form.is_valid():
+            # Create the document object in memory
+            doc = upload_form.save(commit=False) 
+            
+            # Set the hidden fields
+            doc.case = case
+            doc.uploaded_by = request.user
+            
+            # Now, save it all to the database
+            doc.save()
+            
+            # This creates the audit trail for the upload
+            DocumentLog.objects.create(document=doc, user=request.user, action="Uploaded")
+            
+            messages.success(request, f"Document '{doc.title}' uploaded successfully.")
+            return redirect('cases:case-detail', pk=case.pk) # Redirect to the same page
     
-    # --- GET Request Logic ---
+    # --- GET Request Logic (runs on page load) ---
     documents = case.documents.all().order_by('-id')
     assignments = case.assignments.all()
-    upload_form = DocumentUploadForm() 
+    upload_form = DocumentUploadForm() # Create a blank form for the template
     
-    # --- ADD THIS LOGIC ---
     # Get all stages for the case's workflow, if it has one
     all_stages = None
     if case.workflow:
         all_stages = case.workflow.stages.all()
-    # --- END ADDED LOGIC ---
 
     context = {
         'case': case,
         'documents': documents,
         'assignments': assignments,
         'upload_form': upload_form,
-        'all_stages': all_stages, # <-- Add this to the context
+        'all_stages': all_stages,
     }
     return render(request, 'cases/case_detail.html', context)
 
-# --- View 4: Document Audit Log ---
+# --- View 4: Document Audit Log (SECURED) ---
 @login_required
 def document_view_and_log(request, doc_pk):
-    # Get the document, or show 404
     doc = get_object_or_404(Document, pk=doc_pk)
+    case = doc.case # Get the case this document belongs to
+
+    # --- Security Check ---
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    is_assigned = CaseAssignment.objects.filter(case=case, user=request.user).exists()
     
-    # TODO: Add security check here
-    # We should check if request.user is assigned to doc.case
+    if not (is_admin or is_assigned):
+        # If not an admin and not assigned, forbid access
+        messages.error(request, "You do not have permission to view that document.")
+        return redirect('users:dashboard') # Send to their dashboard
     
-    # Create the log entry
+    # --- If security passes, log the action ---
     DocumentLog.objects.create(
         document=doc,
         user=request.user,
         action="Viewed"
     )
     
-    # Redirect the user to the actual file URL
+    # And redirect to the file
     return redirect(doc.file_upload.url)
 
 # --- View 5: Workflow List (Admin) ---

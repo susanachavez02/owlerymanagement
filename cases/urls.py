@@ -27,4 +27,3 @@ urlpatterns = [
     # --- NEW: Advance Case Stage ---
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
 ]
-]
