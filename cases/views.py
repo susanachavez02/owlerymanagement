@@ -5,6 +5,7 @@ from .models import Case, CaseAssignment, Document, DocumentLog
 from .forms import CaseCreateForm, DocumentUploadForm
 # We need to import the admin test function from our 'users' app
 from users.views import is_admin
+from .decorators import user_is_assigned_to_case
 
 # --- View 1: Case List (Admin) ---
 
@@ -56,7 +57,7 @@ def case_create_view(request):
 # --- View 3: Case Detail (Updated) ---
 
 @login_required
-@user_passes_test(is_admin) 
+@user_is_assigned_to_case 
 def case_detail_view(request, pk):
     case = get_object_or_404(Case, pk=pk)
     

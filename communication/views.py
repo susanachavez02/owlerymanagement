@@ -5,25 +5,16 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from .models import Message
 from .forms import NewMessageForm
-from cases.models import Case, CaseAssignment, Role # Need to import Case/Assignment
+from cases.models import Case, CaseAssignment # Need to import Case/Assignment
+from users.models import Role
+from cases.decorators import user_is_assigned_to_case
 
 # --- View 1: Case Messaging Thread ---
 
 @login_required
+@user_is_assigned_to_case 
 def case_messaging_view(request, case_pk):
-    # Get the case or show 404
     case = get_object_or_404(Case, pk=case_pk)
-    
-    # --- Security Check ---
-    # Check if the current user is assigned to this case
-    # We also allow admins to view all threads
-    is_admin = request.user.roles.filter(name='Admin').exists()
-    is_assigned = CaseAssignment.objects.filter(case=case, user=request.user).exists()
-    
-    if not (is_admin or is_assigned):
-        # If not an admin and not assigned, forbid access
-        messages.error(request, "You do not have permission to view this message thread.")
-        return redirect('/') # Redirect to homepage
         
     # --- Handle New Message POST ---
     if request.method == 'POST':
