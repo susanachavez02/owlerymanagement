@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Case, CaseAssignment, Document
+from .models import Case, CaseAssignment, Document, DocumentLog
 from .forms import CaseCreateForm, DocumentUploadForm
 # We need to import the admin test function from our 'users' app
 from users.views import is_admin
@@ -56,32 +56,25 @@ def case_create_view(request):
 # --- View 3: Case Detail (Updated) ---
 
 @login_required
-@user_passes_test(is_admin) # We'll still need to fix this security later
+@user_passes_test(is_admin) 
 def case_detail_view(request, pk):
     case = get_object_or_404(Case, pk=pk)
     
-    # --- New Form Logic ---
     if request.method == 'POST':
-        # This block runs ONLY when a form is submitted
         upload_form = DocumentUploadForm(request.POST, request.FILES)
         if upload_form.is_valid():
-            # Create the document object in memory
             doc = upload_form.save(commit=False) 
-            
-            # Set the hidden fields
             doc.case = case
             doc.uploaded_by = request.user
+            doc.save() 
             
-            # Now, save it all to the database
-            doc.save()
-            
-            # Create the audit log entry
-            # (We'll import DocumentLog in the next step)
-            # DocumentLog.objects.create(document=doc, user=request.user, action="Uploaded")
+            # --- ADD THIS LINE ---
+            # This creates the audit trail for the upload
+            DocumentLog.objects.create(document=doc, user=request.user, action="Uploaded")
             
             messages.success(request, f"Document '{doc.title}' uploaded successfully.")
-            return redirect('cases:case-detail', pk=case.pk) # Redirect to the same page
-    
+            return redirect('cases:case-detail', pk=case.pk)
+        
     # --- End New Form Logic ---
 
     # Get all data for the page (this runs on GET or after POST)
@@ -96,3 +89,21 @@ def case_detail_view(request, pk):
         'upload_form': upload_form,  # <-- Add the form to the context
     }
     return render(request, 'cases/case_detail.html', context)
+
+@login_required
+def document_view_and_log(request, doc_pk):
+    # Get the document, or show 404
+    doc = get_object_or_404(Document, pk=doc_pk)
+    
+    # TODO: Add security check here
+    # We should check if request.user is assigned to doc.case
+    
+    # Create the log entry
+    DocumentLog.objects.create(
+        document=doc,
+        user=request.user,
+        action="Viewed"
+    )
+    
+    # Redirect the user to the actual file URL
+    return redirect(doc.file_upload.url)

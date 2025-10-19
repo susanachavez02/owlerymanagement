@@ -30,11 +30,13 @@
   <hr>
 
   <h5>Case Documents</h5>
-  <div class="list-group">
+  <div class.="list-group">
     {% for doc in documents %}
-      <a href="#" class="list-group-item list-group-item-action">
+      <a href="{% url 'cases:document-view' doc_pk=doc.pk %}" class="list-group-item list-group-item-action" target="_blank">
         {{ doc.title }}
         <small class="text-muted d-block">Uploaded by: {{ doc.uploaded_by.username }} (Version: {{ doc.version_number }})</small>
+        
+        <small class="text-info">Viewed {{ doc.logs.count }} time(s)</small>
       </a>
     {% empty %}
       <div class="alert alert-info">No documents have been uploaded for this case.</div>
