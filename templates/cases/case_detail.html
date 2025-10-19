@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  
+  <a href="{% url 'cases:case-list' %}">&larr; Back to Case List</a>
+  <h2 class="mt-2">{{ case.case_title }}</h2>
+  <p class="lead">{{ case.description }}</p>
+  <hr>
+
+  <h5>Assigned Users</h5>
+  <ul>
+    {% for assignment in assignments %}
+      <li>
+        {{ assignment.user.username }} 
+        ({% for role in assignment.user.roles.all %}{{ role.name }}{% endfor %})
+      </li>
+    {% empty %}
+      <li>No users are assigned to this case.</li>
+    {% endfor %}
+  </ul>
+  <hr>
+
+  <h5>Upload a New Document</h5>
+  <form method="POST" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {{ upload_form|crispy }}
+    <button type="submit" class="btn btn-primary mt-2">Upload</button>
+  </form>
+  <hr>
+
+  <h5>Case Documents</h5>
+  <div class="list-group">
+    {% for doc in documents %}
+      <a href="#" class="list-group-item list-group-item-action">
+        {{ doc.title }}
+        <small class="text-muted d-block">Uploaded by: {{ doc.uploaded_by.username }} (Version: {{ doc.version_number }})</small>
+      </a>
+    {% empty %}
+      <div class="alert alert-info">No documents have been uploaded for this case.</div>
+    {% endfor %}
+  </div>
+
+{% endblock %}

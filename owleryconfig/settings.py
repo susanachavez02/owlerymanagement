@@ -69,10 +69,11 @@ ROOT_URLCONF = "owleryconfig.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / 'templates'],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
@@ -135,3 +136,12 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+# --- Media File (User Uploads) Configuration ---
+# The local filesystem path where user files will be stored
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# The public URL prefix for those files
+MEDIA_URL = '/media/'

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h2>Generate Onboarding Key</h2>
+  <p>Select a user to generate a new, one-time setup link.</p>
+  
+  <form method="POST" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary">Generate Key</button>
+  </form>
+{% endblock %}
