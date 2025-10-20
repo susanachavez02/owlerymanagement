@@ -62,12 +62,14 @@
                             </span>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-outline-danger btn-sm" href="{% url 'users:logout' %}">Logout</a>
-                        </li>
-                    {% else %}
+                              <form action="{% url 'users:logout' %}" method="post" class="d-inline">
+                                 {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                                </form>  
+                            {% else %}
                         <li class="nav-item">
-                             <a class="btn btn-outline-success btn-sm" href="{% url 'users:login' %}">Login</a>
-                        </li>
+                            <a class="btn btn-outline-success btn-sm" href="{% url 'users:login' %}">Login</a>
+                            </li>
                     {% endif %}
                 </ul>
             </div>

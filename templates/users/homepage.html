@@ -1,16 +1,229 @@
-{% extends "base.html" %}
+{% comment %} This base template combines the landing page structure with a functional navbar {% endcomment %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Owlery Legal Portal</title>
 
-{% block content %}
-  <div class="text-center">
-    <h1 class="display-4">Welcome to the Legal Portal</h1>
-    <p class="lead">Securely manage your cases, documents, and communication.</p>
-    <hr class="my-4">
-    <p>Please log in to access your dashboard or register with your provided key.</p>
-    <a class="btn btn-primary btn-lg" href="{% url 'users:login' %}" role="button">
-      Log In
-    </a>
-    <a class="btn btn-secondary btn-lg" href="{% url 'users:register' %}" role="button">
-      Register with Key
-    </a>
-  </div>
-{% endblock %}
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light">
+
+    <div class="modal fade" id="roleChoiceModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="roleModalLabel">Get Started</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="lead">Have an onboarding key?</p>
+            <div class="d-grid gap-3 col-8 mx-auto">
+              <a href="{% url 'users:register' %}" class="btn btn-primary btn-lg">Register with Key</a>
+            </div>
+            <p class="mt-3 text-muted small">If you don't have a key, please contact your administrator.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'homepage' %}">🦉 Owlery Portal</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if request.user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:dashboard' %}">Dashboard</a>
+                        </li>
+
+                        {% if is_admin_user %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'cases:case-list' %}">All Cases</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'reporting-dashboard' %}">Reports</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Management
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="adminManageDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'user-list' %}">Manage Users</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'client-reassignment' %}">Reassign Clients</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'cases:workflow-list' %}">Manage Workflows</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'cases:template-list' %}">Manage Templates</a></li>
+                                </ul>
+                            </li>
+                        {% endif %}
+
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                         <li class="nav-item"><a class="nav-link" href="#how">How it works</a></li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    {% if request.user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="navbar-text me-3">
+                                Welcome, {{ request.user.username }}
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-outline-danger btn-sm" href="{% url 'users:logout' %}">Logout</a>
+                        </li>
+                    {% else %}
+                         <li class="nav-item me-2">
+                             <a class="btn btn-outline-success btn-sm" href="{% url 'users:login' %}">Login</a>
+                        </li>
+                         <li class="nav-item">
+                            <a class="btn btn-primary btn-sm" href="#" data-bs-toggle="modal" data-bs-target="#roleChoiceModal">Get Started</a>
+                         </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% if messages %}
+            <div class="row">
+                <div class="col-md-10 offset-md-1">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% block content %}
+          {% if not request.user.is_authenticated %}
+            <header class="py-5 py-lg-6 bg-white border-bottom rounded-3 mb-4">
+              <div class="container">
+                <div class="row align-items-center g-4">
+                  <div class="col-lg-7">
+                    <h1 class="display-5 fw-bold mb-3">
+                      Automate contracts & cases — fast, simple, secure.
+                    </h1>
+                    <p class="lead text-secondary">
+                      A lightweight portal for small to mid-sized law offices: create contracts,
+                      track cases, and streamline client communication.
+                    </p>
+                    <div class="d-flex gap-3 mt-4">
+                      <a href="#" data-bs-toggle="modal" data-bs-target="#roleChoiceModal" class="btn btn-primary btn-lg">Try it now</a>
+                      <a href="#features" class="btn btn-outline-secondary btn-lg">See features</a>
+                    </div>
+                  </div>
+                  <div class="col-lg-5">
+                     <div class="ratio ratio-16x9 bg-secondary bg-opacity-10 rounded-3 border d-flex align-items-center justify-content-center">
+                       <span class="text-muted">[Illustration Placeholder]</span>
+                     </div>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <section id="features" class="py-5">
+              <div class="container">
+                <h2 class="h1 fw-bold text-center mb-4">Built for busy legal teams</h2>
+                <p class="text-center text-secondary mb-5">
+                  Reduce repetitive work, minimize errors, and keep everything organized.
+                </p>
+                <div class="row g-4">
+                  <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                      <div class="card-body">
+                        <h3 class="h5">Contract Templates</h3>
+                        <p class="text-secondary mb-0">
+                          Reusable templates with merge fields for quick, consistent documents.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                      <div class="card-body">
+                        <h3 class="h5">Case Tracking</h3>
+                        <p class="text-secondary mb-0">
+                          Statuses, deadlines, and assignments at a glance.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                      <div class="card-body">
+                        <h3 class="h5">Client Updates</h3>
+                        <p class="text-secondary mb-0">
+                          Keep clients in the loop with clear, centralized messaging.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="how" class="py-5 bg-white border-top border-bottom rounded-3 mb-4">
+              <div class="container">
+                <h2 class="h1 fw-bold text-center mb-5">How it works</h2>
+                <div class="row g-4">
+                  <div class="col-lg-4">
+                    <div class="p-4 h-100 border rounded-3">
+                      <div class="fs-2 fw-bold mb-2">1</div>
+                      <h3 class="h5">Add clients & cases</h3>
+                      <p class="text-secondary mb-0">Start with core details—no clutter.</p>
+                    </div>
+                  </div>
+                  <div class="col-lg-4">
+                    <div class="p-4 h-100 border rounded-3">
+                      <div class="fs-2 fw-bold mb-2">2</div>
+                      <h3 class="h5">Generate documents</h3>
+                      <p class="text-secondary mb-0">Use templates and merge fields to draft quickly.</p>
+                    </div>
+                  </div>
+                  <div class="col-lg-4">
+                    <div class="p-4 h-100 border rounded-3">
+                      <div class="fs-2 fw-bold mb-2">3</div>
+                      <h3 class="h5">Track progress</h3>
+                      <p class="text-secondary mb-0">Monitor statuses, deadlines, and communications.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="cta" class="py-5">
+              <div class="container text-center">
+                <h2 class="h1 fw-bold mb-3">Ready to reduce admin work?</h2>
+                <p class="text-secondary mb-4">Spin up your first case in minutes.</p>
+                <a class="btn btn-primary btn-lg" href="#" data-bs-toggle="modal" data-bs-target="#roleChoiceModal">Get Started</a>
+              </div>
+            </section>
+          {% endif %}
+          {% endblock %}
+        </div>
+    <footer class="py-4 bg-white border-top mt-5">
+      <div class="container d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <span class="text-secondary">&copy; {% now "Y" %} Owlery Legal Portal</span>
+        <div class="d-flex gap-3">
+          <a href="#" class="link-secondary text-decoration-none">Privacy</a>
+          <a href="#" class="link-secondary text-decoration-none">Terms</a>
+          <a href="#" class="link-secondary text-decoration-none">Contact</a>
+        </div>
+      </div>
+    </footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.
