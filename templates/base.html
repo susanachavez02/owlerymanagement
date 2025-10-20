@@ -1,32 +1,100 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-t">
+<head>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" 
-          rel="stylesheet" 
-          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
           crossorigin="anonymous">
 
-    <title>Legal Portal</title>
-  </head>
-  <body>
-    <div class="container mt-4">
-      <div class="row">
-        <div class="col-md-8 offset-md-2">
-          
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-          
-          {% block content %}
-          {% endblock %}
-          
+    <title>Owlery Legal Portal</title>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'homepage' %}">🦉 Owlery Portal</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if request.user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:dashboard' %}">Dashboard</a>
+                        </li>
+                        
+                        {% if is_admin_user %} 
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'cases:case-list' %}">All Cases</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'reporting-dashboard' %}">Reports</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Management
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="adminManageDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'user-list' %}">Manage Users</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'client-reassignment' %}">Reassign Clients</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'cases:workflow-list' %}">Manage Workflows</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'cases:template-list' %}">Manage Templates</a></li>
+                                </ul>
+                            </li>
+                        {% endif %}
+
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:register' %}">Register with Key</a>
+                        </li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    {% if request.user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="navbar-text me-2">
+                                Welcome, {{ request.user.username }}
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-outline-danger btn-sm" href="{% url 'users:logout' %}">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                             <a class="btn btn-outline-success btn-sm" href="{% url 'users:login' %}">Login</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
-      </div>
+    </nav>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-10 offset-md-1"> {/* Wider content area */}
+                
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                {% block content %}
+                {% endblock %}
+                
+            </div>
+        </div>
     </div>
-  </body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+            crossorigin="anonymous"></script>
+
+</body>
 </html>
