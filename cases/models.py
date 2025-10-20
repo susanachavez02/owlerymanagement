@@ -195,3 +195,24 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return f"Item for Invoice #{self.invoice.pk}: {self.description}"
+    
+# --- Case Stage Log Model ---
+class CaseStageLog(models.Model):
+    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name='stage_logs')
+    stage = models.ForeignKey(CaseStage, on_delete=models.CASCADE, related_name='logs')
+    
+    # When the case entered this stage
+    timestamp_entered = models.DateTimeField(default=timezone.now)
+    
+    # When the case left this stage (can be empty if it's the current stage)
+    timestamp_completed = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.case.case_title} in {self.stage.name} (Entered: {self.timestamp_entered})"
+
+    @property
+    def duration_in_stage(self):
+        if self.timestamp_completed:
+            return self.timestamp_completed - self.timestamp_entered
+        # If not completed, return time elapsed so far
+        return timezone.now() - self.timestamp_entered

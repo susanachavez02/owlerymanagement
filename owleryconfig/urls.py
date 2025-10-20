@@ -28,6 +28,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('users/', include('users.urls')),
     path('cases/', include('cases.urls')),
+    
+    # --- NEW: Admin Reporting URL ---
+    path('reports/', case_views.reporting_view, name='reporting-dashboard'),
 
     # This forwards any URL starting with 'messages/'
     # to the 'communication' app's urls.py file.

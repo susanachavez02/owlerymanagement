@@ -4,14 +4,20 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
+import io
+from docx import Document as DocxDocument
+from django.core.files.base import ContentFile
 # We need to import the admin test function from our 'users' app
 
 # --- Model Imports ---
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
     CaseWorkflow, CaseStage, TimeEntry, Template, 
-    SignatureRequest, Invoice, InvoiceItem
+    SignatureRequest, Invoice, InvoiceItem, CaseStageLog
 )
+from django.db.models import Sum, Count, Avg, F
+from users.models import Role
+
 # --- Form Imports ---
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
@@ -33,6 +39,31 @@ from django.views.decorators.csrf import csrf_exempt
 
 # --- Set your Stripe API key ---
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# --- HELPER FUNCTION FOR DOCX ---
+def docx_find_and_replace(doc, context):
+    """
+    Finds and replaces text in a .docx file, preserving formatting.
+    Placeholders must be in the format {{key_name}}.
+    """
+    # Combine paragraphs from the main body and all table cells
+    all_paragraphs = list(doc.paragraphs)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                all_paragraphs.extend(cell.paragraphs)
+    
+    for p in all_paragraphs:
+        for key, value in context.items():
+            placeholder = f"{{{{{key}}}}}" # Creates {{key_name}}
+            
+            # We must iterate over 'runs' to preserve formatting (bold, etc.)
+            # A simple p.text.replace() would wipe all formatting.
+            if placeholder in p.text:
+                for run in p.runs:
+                    if placeholder in run.text:
+                        run.text = run.text.replace(placeholder, str(value))
+    return doc
 
 # --- View 1: Case List (Admin) ---
 
@@ -65,6 +96,8 @@ def case_create_view(request):
                 if first_stage:
                     case.current_stage = first_stage
                     case.save() # Save the change
+
+                    CaseStageLog.objects.create(case=case, stage=first_stage)
 
             # Step 2: Get the attorney and client from the form's data
             attorney = form.cleaned_data['attorney']
@@ -267,9 +300,27 @@ def advance_stage_view(request, case_pk):
     next_stage = case.workflow.stages.filter(order=current_order + 1).first()
     
     if next_stage:
-        # We found a next stage, so update the case
+        now = timezone.now()
+        
+        # 1. Find the current, active log entry (it has no 'completed' timestamp)
+        current_log_entry = CaseStageLog.objects.filter(
+            case=case, 
+            stage=current_stage,
+            timestamp_completed__isnull=True
+        ).first()
+        
+        # 2. Mark the current log entry as completed
+        if current_log_entry:
+            current_log_entry.timestamp_completed = now
+            current_log_entry.save()
+            
+        # 3. Update the case's current stage
         case.current_stage = next_stage
         case.save()
+        
+        # 4. Create a NEW log entry for the stage we are entering
+        CaseStageLog.objects.create(case=case, stage=next_stage, timestamp_entered=now)
+        
         messages.success(request, f"Case stage advanced to: {next_stage.name}")
     else:
         # This was the last stage
@@ -308,14 +359,14 @@ def template_upload_view(request):
     }
     return render(request, 'cases/template_upload.html', context)
 
-# --- STEP 19: DOCUMENT GENERATION VIEW
+# ---
+# --- STEP 19: DOCUMENT GENERATION VIEW (UPGRADED)
 # ---
 @login_required
 @user_is_assigned_to_case
 def generate_document_view(request, case_pk):
     case = get_object_or_404(Case, pk=case_pk)
     
-    # Get all available templates (public ones or ones uploaded by this user)
     templates = Template.objects.filter(
         models.Q(is_public=True) | models.Q(uploaded_by=request.user)
     ).distinct()
@@ -328,16 +379,16 @@ def generate_document_view(request, case_pk):
             template = get_object_or_404(Template, pk=template_id)
             
             # --- 1. Build the Context ---
-            # This is where we match the template's fields to the case data.
+            # This matches placeholders to real data
             context = {}
             
-            # Find the client on the case
+            # Find the client
             client_assignment = case.assignments.filter(user__roles__name='Client').first()
             if client_assignment:
                 context['client_name'] = client_assignment.user.get_full_name()
                 context['client_email'] = client_assignment.user.email
             
-            # Find the attorney on the case
+            # Find the attorney
             attorney_assignment = case.assignments.filter(user__roles__name='Attorney').first()
             if attorney_assignment:
                 context['attorney_name'] = attorney_assignment.user.get_full_name()
@@ -345,33 +396,45 @@ def generate_document_view(request, case_pk):
             context['case_title'] = case.case_title
             context['case_description'] = case.description
             
-            # --- 2. Generate the (Placeholder) Document ---
-            # This is a simple placeholder. We are NOT using the .docx file yet.
-            # We just create a .txt file with the context data to prove it works.
+            # You can add any other fields from your Template.context_fields here
+            # For example, if you stored {"client_address": "..."} in the case model.
             
-            file_content = f"--- GENERATED DOCUMENT ---\n"
-            file_content += f"Template Used: {template.name}\n"
-            file_content += "----------------------------\n\n"
+            # --- 2. Generate the .docx Document ---
+            try:
+                # Open the template file (.docx)
+                doc = DocxDocument(template.template_file.open())
+                
+                # Run our find-and-replace function
+                doc = docx_find_and_replace(doc, context)
+                
+                # --- 3. Save the new file in memory ---
+                file_buffer = io.BytesIO()
+                doc.save(file_buffer)
+                
+                # Create a new file name
+                file_name = f"Generated_{template.name.replace(' ', '_')}.docx"
+                
+                # Get the file content from the buffer
+                file_content = file_buffer.getvalue()
+
+                # --- 4. Save the new Document to the Case ---
+                new_doc = Document.objects.create(
+                    case=case,
+                    title=f"Generated: {template.name}",
+                    uploaded_by=request.user,
+                    # Create a Django ContentFile from the buffer
+                    file_upload=ContentFile(file_content, name=file_name)
+                )
+                
+                # 5. Log the creation
+                DocumentLog.objects.create(document=new_doc, user=request.user, action="Generated")
+                
+                messages.success(request, f"Document '{new_doc.title}' generated successfully.")
+                return redirect('cases:case-detail', pk=case.pk)
             
-            for key, value in context.items():
-                file_content += f"{key}: {value}\n"
-            
-            file_name = f"{case.case_title.replace(' ', '_')}_{template.name.replace(' ', '_')}.txt"
-            
-            # --- 3. Save the new Document ---
-            new_doc = Document.objects.create(
-                case=case,
-                title=f"Generated: {template.name}",
-                uploaded_by=request.user,
-                # We save the file content to the FileField
-                file_upload=ContentFile(file_content.encode('utf-8'), name=file_name)
-            )
-            
-            # 4. Log the creation
-            DocumentLog.objects.create(document=new_doc, user=request.user, action="Generated")
-            
-            messages.success(request, f"Document '{new_doc.title}' generated successfully.")
-            return redirect('cases:case-detail', pk=case.pk)
+            except Exception as e:
+                print(f"!!! Error generating document: {e}")
+                messages.error(request, f"Error generating document. Is the template file a valid .docx? Error: {e}")
 
     context = {
         'case': case,
@@ -630,3 +693,80 @@ def stripe_webhook_view(request):
     print("--- WEBHOOK CALLED ---")
     
     return HttpResponse(status=200)
+
+
+# --- STEP 30: REPORTING VIEW
+# ---
+@login_required
+@user_passes_test(is_admin)
+def reporting_view(request):
+    
+    # --- 1. Financial Summary ---
+    total_billed = Invoice.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_paid = Invoice.objects.filter(status=Invoice.Status.PAID).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    outstanding = total_billed - total_paid
+    total_hours_logged = TimeEntry.objects.aggregate(Sum('hours'))['hours__sum'] or 0
+
+    # --- 2. Attorney Caseloads ---
+    # Get all users with the 'Attorney' role
+    attorneys = User.objects.filter(roles__name='Attorney')
+    
+    # Get a count of active cases for each attorney
+    attorney_caseloads = attorneys.annotate(
+        active_case_count=Count('case_assignments', filter=models.Q(case_assignments__case__is_archived=False))
+    ).order_by('-active_case_count')
+
+    context = {
+        'total_billed': total_billed,
+        'total_paid': total_paid,
+        'outstanding_balance': outstanding,
+        'total_hours_logged': total_hours_logged,
+        'attorney_caseloads': attorney_caseloads,
+    }
+    
+    return render(request, 'cases/reporting_dashboard.html', context)
+
+# --- STEP 30: REPORTING VIEW (UPDATED)
+# ---
+@login_required
+@user_passes_test(is_admin)
+def reporting_view(request):
+    
+    # --- 1. Financial Summary (No changes) ---
+    total_billed = Invoice.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_paid = Invoice.objects.filter(status=Invoice.Status.PAID).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    outstanding = total_billed - total_paid
+    total_hours_logged = TimeEntry.objects.aggregate(Sum('hours'))['hours__sum'] or 0
+
+    # --- 2. Attorney Caseloads (No changes) ---
+    attorneys = User.objects.filter(roles__name='Attorney')
+    attorney_caseloads = attorneys.annotate(
+        active_case_count=Count('case_assignments', filter=models.Q(case_assignments__case__is_archived=False))
+    ).order_by('-active_case_count')
+
+    # --- 3. NEW: Case Stage Bottlenecks ---
+    # We calculate the average duration for each stage
+    stage_bottlenecks = CaseStageLog.objects.filter(
+        # Only look at stages that have been completed
+        timestamp_completed__isnull=False
+    ).annotate(
+        # Calculate the duration for each individual log entry
+        duration=F('timestamp_completed') - F('timestamp_entered')
+    ).values(
+        # Group by the stage's name
+        'stage__name'
+    ).annotate(
+        # Calculate the average of the durations we just found
+        avg_duration=Avg('duration')
+    ).order_by('-avg_duration') # Show longest average time first
+
+    context = {
+        'total_billed': total_billed,
+        'total_paid': total_paid,
+        'outstanding_balance': outstanding,
+        'total_hours_logged': total_hours_logged,
+        'attorney_caseloads': attorney_caseloads,
+        'stage_bottlenecks': stage_bottlenecks, # <-- Add this to context
+    }
+    
+    return render(request, 'cases/reporting_dashboard.html', context)
