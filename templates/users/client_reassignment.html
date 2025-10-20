@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Client / Case Reassignment</h2>
+    <a href="{% url 'user-list' %}" class="btn btn-secondary">Back to User List</a>
+  </div>
+
+  {% if cases_to_reassign %}
+    <p class="lead">Please confirm the cases to reassign from <strong>{{ from_attorney.username }}</strong> to <strong>{{ to_attorney.username }}</strong>.</p>
+    
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="from_attorney_id" value="{{ from_attorney.pk }}">
+      <input type="hidden" name="to_attorney_id" value="{{ to_attorney.pk }}">
+      <input type="hidden" name="confirm_reassignment" value="true">
+      
+      <table class="table table-striped">
+        <thead class="table-light">
+          <tr>
+            <th scope="col"><input type="checkbox" id="select-all-cases" checked></th>
+            <th scope="col">Case Title</th>
+            <th scope="col">Current Stage</th>
+            <th scope="col">Date Filed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for case in cases_to_reassign %}
+          <tr>
+            <td>
+              <input type="checkbox" name="case_ids" value="{{ case.pk }}" checked>
+            </td>
+            <td>{{ case.case_title }}</td>
+            <td>{{ case.current_stage.name|default:"N/A" }}</td>
+            <td>{{ case.date_filed }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <button type="submit" class="btn btn-danger mt-3" 
+              onclick="return confirm('Are you sure you want to reassign the selected cases? This action cannot be undone.');">
+        Confirm Reassignment
+      </button>
+      <a href="{% url 'client-reassignment' %}" class="btn btn-link mt-3">Cancel</a>
+    </form>
+
+    <script>
+      document.getElementById('select-all-cases').addEventListener('change', function(event) {
+        var checkboxes = document.querySelectorAll('input[name="case_ids"]');
+        checkboxes.forEach(function(checkbox) {
+          checkbox.checked = event.target.checked;
+        });
+      });
+    </script>
+
+  {% else %}
+    <p class="lead">Select the attorneys to transfer active cases between.</p>
+    <form method="POST">
+      {% csrf_token %}
+      {{ form|crispy }}
+      <button type="submit" class="btn btn-primary mt-3">Find Cases to Reassign</button>
+    </form>
+  {% endif %}
+
+{% endblock %}

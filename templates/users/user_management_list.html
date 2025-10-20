@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>User Management</h2>
+    <a href="{% url 'client-reassignment' %}" class="btn btn-warning">Reassign Clients</a>
+    <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
+  </div>
+  <p>View all users in the system and manage their accounts.</p>
+  
+  <table class="table table-striped">
+    <thead class="table-light">
+      <tr>
+        <th scope="col">Username</th>
+        <th scope="col">Full Name</th>
+        <th scope="col">Email</th>
+        <th scope="col">Roles</th>
+        <th scope="col">Status</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td><strong>{{ user.username }}</strong></td>
+        <td>{{ user.get_full_name|default:"-" }}</td>
+        <td>{{ user.email }}</td>
+        <td>
+          {% for role in user.roles.all %}
+            {{ role.name }}{% if not forloop.last %}, {% endif %}
+          {% empty %}
+            None
+          {% endfor %}
+        </td>
+        <td>
+          {% if user.is_active %}
+            <span class="badge bg-success">Active</span>
+          {% else %}
+            <span class="badge bg-danger">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="btn-group" role="group">
+            
+            <form action="{% url 'user-reset-password' user_pk=user.pk %}" method="POST" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-info" 
+                      onclick="return confirm('Are you sure you want to generate a new password reset link for this user?');">
+                Reset Pass
+              </button>
+            </form>
+            
+            {% if user != request.user %}
+              <form action="{% url 'user-toggle-active' user_pk=user.pk %}" method="POST" class="d-inline">
+                {% csrf_token %}
+                {% if user.is_active %}
+                  <button type="submit" class="btn btn-sm btn-danger" 
+                          onclick="return confirm('Are you sure you want to DEACTIVATE this user?');">
+                    Deactivate
+                  </button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm btn-success"
+                          onclick="return confirm('Are you sure you want to ACTIVATE this user?');">
+                    Activate
+                  </button>
+                {% endif %}
+              </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="text-center">No users found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+{% endblock %}

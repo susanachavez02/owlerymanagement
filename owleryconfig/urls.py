@@ -28,10 +28,21 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('users/', include('users.urls')),
     path('cases/', include('cases.urls')),
-    
-    # --- NEW: Admin Reporting URL ---
+
+    # --- Admin Reporting URL ---
     path('reports/', case_views.reporting_view, name='reporting-dashboard'),
 
+    # --- User Management URL ---
+    path('management/users/', user_views.user_management_list_view, name='user-list'),
+    # Toggle a user's active status (deactivate/reactivate)
+    path('management/users/<int:user_pk>/toggle-active/', user_views.toggle_user_active_view, name='user-toggle-active'),
+    # Admin generates a password reset link
+    path('management/users/<int:user_pk>/reset-password/', user_views.admin_reset_password_view, name='user-reset-password'),
+
+    # --- Client Reassignment URL ---
+    path('management/reassign/', user_views.client_reassignment_view, name='client-reassignment'),
+
+    # --- MESSAGES URLS ---
     # This forwards any URL starting with 'messages/'
     # to the 'communication' app's urls.py file.
     path('messages/', include('communication.urls')),

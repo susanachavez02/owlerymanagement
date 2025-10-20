@@ -4,9 +4,12 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db import transaction
 from .models import OnboardingKey, UserProfile, Role
-from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm
-from cases.models import Case
+from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm
+from cases.models import Case, CaseAssignment
+from django.urls import reverse
 
 # --- NEW: Homepage View ---
 def homepage_view(request):
@@ -153,3 +156,143 @@ def dashboard_view(request):
         messages.error(request, "Your account is not yet configured. Please contact an administrator.")
         return redirect('logout')
     
+# --- STEP 33: USER MANAGEMENT VIEW
+# ---
+@login_required
+@user_passes_test(is_admin)
+def user_management_list_view(request):
+    # Get all users, and pre-fetch their related roles and profiles
+    # This is more efficient than looking them up one-by-one in the template
+    users = User.objects.all().prefetch_related(
+        'roles', 'profile'
+    ).order_by('username')
+    
+    context = {
+        'users': users
+    }
+    return render(request, 'users/user_management_list.html', context)
+
+# --- Toggle User Active Status ---
+@login_required
+@user_passes_test(is_admin)
+def toggle_user_active_view(request, user_pk):
+    user_to_toggle = get_object_or_404(User, pk=user_pk)
+    
+    # Prevent admin from deactivating themselves
+    if user_to_toggle == request.user:
+        messages.error(request, "You cannot deactivate your own account.")
+        return redirect('user-list')
+
+    # Flip the is_active status
+    user_to_toggle.is_active = not user_to_toggle.is_active
+    user_to_toggle.save()
+    
+    status = "activated" if user_to_toggle.is_active else "deactivated"
+    messages.success(request, f"User '{user_to_toggle.username}' has been {status}.")
+    return redirect('user-list')
+
+# --- Admin-Forced Password Reset ---
+@login_required
+@user_passes_test(is_admin)
+def admin_reset_password_view(request, user_pk):
+    user_to_reset = get_object_or_404(User, pk=user_pk)
+    
+    # We will re-use your OnboardingKey system
+    
+    # 1. Delete any old, unused keys for this user
+    OnboardingKey.objects.filter(user_to_be_assigned=user_to_reset, is_used=False).delete()
+    
+    # 2. Create a new key that expires in 24 hours
+    key_instance = OnboardingKey.objects.create(
+        user_to_be_assigned=user_to_reset,
+        expires_at=timezone.now() + timezone.timedelta(hours=24)
+    )
+    
+    # 3. Build the reset link
+    reset_link = request.build_absolute_uri(
+        reverse('users:set-password', kwargs={'key': key_instance.key})
+    )
+    
+    messages.success(request, f"New password reset link generated for {user_to_reset.username}.")
+    messages.info(request, f"Please send this link to the user: {reset_link}")
+    return redirect('user-list')
+
+# --- STEP 35: CLIENT REASSIGNMENT VIEW
+# ---
+@login_required
+@user_passes_test(is_admin)
+def client_reassignment_view(request):
+    cases_to_reassign = None
+    from_attorney = None
+    to_attorney = None
+
+    if request.method == 'POST':
+        # --- Handle the SECOND POST (Confirmation) ---
+        if 'confirm_reassignment' in request.POST:
+            from_attorney_id = request.POST.get('from_attorney_id')
+            to_attorney_id = request.POST.get('to_attorney_id')
+            case_ids_to_move = request.POST.getlist('case_ids') # Get list of checked case IDs
+
+            if not from_attorney_id or not to_attorney_id or not case_ids_to_move:
+                messages.error(request, "Missing information for reassignment.")
+                return redirect('client-reassignment')
+
+            try:
+                from_attorney = User.objects.get(pk=from_attorney_id)
+                to_attorney = User.objects.get(pk=to_attorney_id)
+
+                with transaction.atomic():
+                    updated_count = 0
+                    for case_id in case_ids_to_move:
+                        # Find the assignment linking the case to the FROM attorney
+                        assignment = CaseAssignment.objects.filter(
+                            case__pk=case_id,
+                            user=from_attorney
+                        ).first()
+
+                        if assignment:
+                            # Update the user field to the TO attorney
+                            assignment.user = to_attorney
+                            assignment.save()
+                            updated_count += 1
+
+                messages.success(request, f"Successfully reassigned {updated_count} case(s) from {from_attorney.username} to {to_attorney.username}.")
+                return redirect('user-list')
+
+            except User.DoesNotExist:
+                messages.error(request, "Invalid attorney ID provided.")
+                return redirect('client-reassignment')
+            except Exception as e:
+                messages.error(request, f"An error occurred during reassignment: {e}")
+                return redirect('client-reassignment')
+
+        # --- Handle the FIRST POST (Attorney Selection) ---
+        else:
+            form = ClientReassignmentForm(request.POST)
+            if form.is_valid():
+                from_attorney = form.cleaned_data['from_attorney']
+                to_attorney = form.cleaned_data['to_attorney']
+
+                # Find all active cases assigned to the 'from_attorney'
+                cases_to_reassign = Case.objects.filter(
+                    assignments__user=from_attorney,
+                    is_archived=False
+                ).distinct() # Use distinct to avoid duplicates if multiple assignments exist
+
+                if not cases_to_reassign.exists():
+                    messages.warning(request, f"{from_attorney.username} has no active cases to reassign.")
+                    # Show the form again, blank
+                    form = ClientReassignmentForm()
+            # If form is invalid, it will fall through and render again with errors
+    
+    # --- Handle GET request (or if form validation failed) ---
+    if not cases_to_reassign: # Only create a blank form if we aren't showing the confirmation step
+        form = ClientReassignmentForm()
+
+    context = {
+        'form': form if not cases_to_reassign else None, # Only show form on first step
+        'cases_to_reassign': cases_to_reassign,
+        'from_attorney': from_attorney,
+        'to_attorney': to_attorney,
+    }
+    return render(request, 'users/client_reassignment.html', context)

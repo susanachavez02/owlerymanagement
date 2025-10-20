@@ -3,6 +3,9 @@
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Firm Reports Dashboard</h2>
+    <div>
+      <a href="{% url 'user-list' %}" class="btn btn-info">Manage Users</a>
+    </div>
     <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
   </div>
   

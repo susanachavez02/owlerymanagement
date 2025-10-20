@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import SetPasswordForm
-from .models import OnboardingKey
+from .models import OnboardingKey, Role
 import uuid
 
 class AdminCreateKeyForm(forms.Form):
@@ -53,3 +53,32 @@ class UserSetPasswordForm(SetPasswordForm):
     password fields match.
     """
     pass
+
+# --- NEW: Client Reassignment Form ---
+class ClientReassignmentForm(forms.Form):
+    from_attorney = forms.ModelChoiceField(
+        queryset=User.objects.filter(roles__name='Attorney'),
+        label="Reassign Cases FROM this Attorney",
+        required=True
+    )
+    to_attorney = forms.ModelChoiceField(
+        queryset=User.objects.filter(roles__name='Attorney'),
+        label="Reassign Cases TO this Attorney",
+        required=True
+    )
+
+    def clean(self):
+        """
+        Custom validation to ensure the 'from' and 'to'
+        attorneys are not the same person.
+        """
+        cleaned_data = super().clean()
+        from_attorney = cleaned_data.get("from_attorney")
+        to_attorney = cleaned_data.get("to_attorney")
+
+        if from_attorney and to_attorney:
+            if from_attorney == to_attorney:
+                raise forms.ValidationError(
+                    "The 'From' and 'To' attorneys cannot be the same person."
+                )
+        return cleaned_data
