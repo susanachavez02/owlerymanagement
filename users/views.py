@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db import transaction
 from .models import OnboardingKey, UserProfile, Role
-from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm
+from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm, UserCreationAdminForm, UserEditAdminForm
 from cases.models import Case, CaseAssignment
 from django.urls import reverse
 
@@ -154,7 +154,7 @@ def dashboard_view(request):
     else:
         # If user has no roles, send them to the login page with an error.
         messages.error(request, "Your account is not yet configured. Please contact an administrator.")
-        return redirect('logout')
+        return redirect('users:logout')
     
 # --- STEP 33: USER MANAGEMENT VIEW
 # ---
@@ -296,3 +296,90 @@ def client_reassignment_view(request):
         'to_attorney': to_attorney,
     }
     return render(request, 'users/client_reassignment.html', context)
+
+# --- NEW: Admin User Creation View ---
+@login_required
+@user_passes_test(is_admin)
+def user_create_view(request):
+    if request.method == 'POST':
+        form = UserCreationAdminForm(request.POST)
+        if form.is_valid():
+            # The form's save method handles setting is_active=False
+            # and setting an unusable password
+            new_user = form.save()
+            
+            messages.success(request, f"User '{new_user.username}' created successfully. Now generate an onboarding key for them.")
+            # Redirect to the key generation page
+            return redirect('users:create-key')
+    else:
+        # Show a blank form on GET request
+        form = UserCreationAdminForm()
+
+    context = {
+        'form': form
+    }
+    return render(request, 'users/user_create.html', context)
+
+# --- Admin User Edit View ---
+@login_required
+@user_passes_test(is_admin)
+def user_edit_view(request, user_pk):
+    user_to_edit = get_object_or_404(User, pk=user_pk)
+
+    if request.method == 'POST':
+        form = UserEditAdminForm(request.POST, instance=user_to_edit)
+        if form.is_valid():
+            form.save() # The form's save method handles updating roles
+            messages.success(request, f"User '{user_to_edit.username}' updated successfully.")
+            return redirect('user-list')
+    else:
+        # Populate the form with the user's current data on GET
+        form = UserEditAdminForm(instance=user_to_edit)
+
+    context = {
+        'form': form,
+        'user_to_edit': user_to_edit # Pass user for context in template
+    }
+    return render(request, 'users/user_edit.html', context)
+
+@login_required
+def profile_view(request, user_pk):
+    # Get the user whose profile is being viewed
+    profile_user = get_object_or_404(User.objects.prefetch_related('roles', 'profile'), pk=user_pk)
+    
+    # Get the user who is doing the viewing
+    viewer = request.user
+    
+    # Get roles for easier checking (using the context processor logic here is fine too)
+    viewer_roles = set(viewer.roles.values_list('name', flat=True))
+    profile_roles = set(profile_user.roles.values_list('name', flat=True))
+    
+    # --- Permission Logic ---
+    can_view = False
+    
+    if 'Admin' in viewer_roles:
+        # Admins can see everyone
+        can_view = True
+    elif 'Attorney' in viewer_roles:
+        # Attorneys can see Admins and Clients
+        if 'Admin' in profile_roles or 'Client' in profile_roles:
+            can_view = True
+    elif 'Client' in viewer_roles:
+        # Clients can see Attorneys
+        if 'Attorney' in profile_roles:
+            can_view = True
+            
+    # Also allow users to view their own profile
+    if viewer == profile_user:
+        can_view = True
+        
+    # --- Render or Deny ---
+    if can_view:
+        context = {
+            'profile_user': profile_user,
+        }
+        return render(request, 'users/profile_detail.html', context)
+    else:
+        messages.error(request, "You do not have permission to view this profile.")
+        # Redirect to the viewer's own dashboard
+        return redirect('users:dashboard')

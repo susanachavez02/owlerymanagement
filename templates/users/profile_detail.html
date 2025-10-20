@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>User Profile: {{ profile_user.username }}</h2>
+    {# Optional: Add a back button, maybe conditional based on where user came from #}
+<a href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'users:dashboard' %}{% endif %}" class="btn btn-secondary">Back</a></div>
+
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">{{ profile_user.get_full_name|default:"-" }}</h5>
+      <h6 class="card-subtitle mb-2 text-muted">{{ profile_user.username }}</h6>
+      
+      <p class="card-text">
+        <strong>Email:</strong> {{ profile_user.email|default:"Not provided" }}<br>
+        <strong>Roles:</strong> {{ profile_user.roles.all|join:", "|default:"None" }}<br>
+        
+        {# Display phone from UserProfile if it exists #}
+        {% if profile_user.profile.phone %}
+          <strong>Phone:</strong> {{ profile_user.profile.phone }}<br>
+        {% endif %}
+        
+        {# Display firm role from UserProfile if it exists #}
+        {% if profile_user.profile.firm_role %}
+          <strong>Firm Role:</strong> {{ profile_user.profile.firm_role }}<br>
+        {% endif %}
+        
+        <strong>Status:</strong> 
+        {% if profile_user.is_active %}
+          <span class="badge bg-success">Active</span>
+        {% else %}
+          <span class="badge bg-danger">Inactive</span>
+        {% endif %}
+      </p>
+      
+      {# Optional: Link to edit profile IF viewer is admin AND viewing someone else #}
+      {% if is_admin_user and request.user != profile_user %}
+        <a href="{% url 'user-edit' user_pk=profile_user.pk %}" class="btn btn-primary btn-sm">Edit User (Admin)</a>
+      {% endif %}
+      {# Optional: Link for user to edit their OWN profile (needs new view/form) #}
+      {% if request.user == profile_user %}
+         {# <a href="#" class="btn btn-secondary btn-sm">Edit My Profile</a> #}
+      {% endif %}
+      
+    </div>
+  </div>
+
+{% endblock %}

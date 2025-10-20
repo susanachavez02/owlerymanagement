@@ -3,12 +3,16 @@
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>User Management</h2>
-    <a href="{% url 'client-reassignment' %}" class="btn btn-warning">Reassign Clients</a>
-    <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
+    {# Group buttons together on the right for better alignment #}
+    <div>
+      <a href="{% url 'user-create' %}" class="btn btn-primary">Create New User</a>
+      <a href="{% url 'client-reassignment' %}" class="btn btn-warning">Reassign Clients</a>
+      <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
+    </div>
   </div>
   <p>View all users in the system and manage their accounts.</p>
-  
-  <table class="table table-striped">
+
+  <table class="table table-striped table-hover"> {# Added table-hover for better UX #}
     <thead class="table-light">
       <tr>
         <th scope="col">Username</th>
@@ -22,15 +26,16 @@
     <tbody>
       {% for user in users %}
       <tr>
-        <td><strong>{{ user.username }}</strong></td>
-        <td>{{ user.get_full_name|default:"-" }}</td>
-        <td>{{ user.email }}</td>
         <td>
-          {% for role in user.roles.all %}
-            {{ role.name }}{% if not forloop.last %}, {% endif %}
-          {% empty %}
-            None
-          {% endfor %}
+  <strong>
+    <a href="{% url 'profile-view' user_pk=user.pk %}">{{ user.username }}</a>
+  </strong>
+</td>
+        <td>{{ user.get_full_name|default:"-" }}</td>
+        <td>{{ user.email|default:"-" }}</td> {# Added default filter #}
+        <td>
+          {# More efficient way to display roles #}
+          {{ user.roles.all|join:", " | default:"None" }}
         </td>
         <td>
           {% if user.is_active %}
@@ -40,27 +45,29 @@
           {% endif %}
         </td>
         <td>
-          <div class="btn-group" role="group">
-            
+          <div class="btn-group btn-group-sm" role="group" aria-label="User Actions"> {# Use btn-group-sm #}
+
+            <a href="{% url 'user-edit' user_pk=user.pk %}" class="btn btn-primary">Edit</a>
+
             <form action="{% url 'user-reset-password' user_pk=user.pk %}" method="POST" class="d-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-info" 
-                      onclick="return confirm('Are you sure you want to generate a new password reset link for this user?');">
+              <button type="submit" class="btn btn-info"
+                      onclick="return confirm('Generate a new password reset link for {{ user.username }}?');">
                 Reset Pass
               </button>
             </form>
-            
-            {% if user != request.user %}
+
+            {% if user != request.user %} {# Prevent self-deactivation #}
               <form action="{% url 'user-toggle-active' user_pk=user.pk %}" method="POST" class="d-inline">
                 {% csrf_token %}
                 {% if user.is_active %}
-                  <button type="submit" class="btn btn-sm btn-danger" 
-                          onclick="return confirm('Are you sure you want to DEACTIVATE this user?');">
+                  <button type="submit" class="btn btn-danger"
+                          onclick="return confirm('DEACTIVATE user {{ user.username }}?');">
                     Deactivate
                   </button>
                 {% else %}
-                  <button type="submit" class="btn btn-sm btn-success"
-                          onclick="return confirm('Are you sure you want to ACTIVATE this user?');">
+                  <button type="submit" class="btn btn-success"
+                          onclick="return confirm('ACTIVATE user {{ user.username }}?');">
                     Activate
                   </button>
                 {% endif %}
@@ -71,7 +78,7 @@
       </tr>
       {% empty %}
       <tr>
-        <td colspan="6" class="text-center">No users found.</td>
+        <td colspan="6" class="text-center text-muted fst-italic">No users found.</td> {# Added styling for empty state #}
       </tr>
       {% endfor %}
     </tbody>

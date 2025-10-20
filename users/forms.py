@@ -82,3 +82,66 @@ class ClientReassignmentForm(forms.Form):
                     "The 'From' and 'To' attorneys cannot be the same person."
                 )
         return cleaned_data
+    
+# --- Admin User Creation Form ---
+class UserCreationAdminForm(forms.ModelForm):
+    # Field to select roles for the new user
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Assign Roles"
+    )
+
+    class Meta:
+        model = User
+        # Fields admin needs to fill in
+        fields = ['username', 'email', 'first_name', 'last_name']
+        help_texts = {
+            'username': 'Required. Letters, digits and @/./+/-/_ only.',
+        }
+
+    def save(self, commit=True):
+        # Override save to ensure user is inactive and has no password initially
+        user = super().save(commit=False)
+        user.is_active = False
+        user.set_unusable_password() # Important: Don't set a password here
+        if commit:
+            user.save()
+            # Save the many-to-many relationship for roles
+            self.save_m2m()
+        return user
+    
+# --- Admin User Edit Form ---
+class UserEditAdminForm(forms.ModelForm):
+    # Field to select/change roles for the user
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Assign Roles"
+    )
+
+    class Meta:
+        model = User
+        # Fields admin can edit
+        fields = ['username', 'email', 'first_name', 'last_name']
+        help_texts = {
+            'username': 'Required. Letters, digits and @/./+/-/_ only.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        # Need to pre-populate roles checkbox correctly
+        super().__init__(*args, **kwargs)
+        if self.instance.pk: # Check if we are editing an existing user
+            self.fields['roles'].initial = self.instance.roles.all()
+
+    def save(self, commit=True):
+        # We need to save the user first, then update roles
+        user = super().save(commit=False)
+        if commit:
+            user.save()
+            # Manually update the many-to-many relationship for roles
+            user.roles.set(self.cleaned_data['roles'])
+            self.save_m2m() # Although maybe redundant now
+        return user

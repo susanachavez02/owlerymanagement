@@ -34,10 +34,13 @@ urlpatterns = [
 
     # --- User Management URL ---
     path('management/users/', user_views.user_management_list_view, name='user-list'),
+    path('management/users/create/', user_views.user_create_view, name='user-create'),
+    path('management/users/<int:user_pk>/edit/', user_views.user_edit_view, name='user-edit'), 
     # Toggle a user's active status (deactivate/reactivate)
     path('management/users/<int:user_pk>/toggle-active/', user_views.toggle_user_active_view, name='user-toggle-active'),
     # Admin generates a password reset link
     path('management/users/<int:user_pk>/reset-password/', user_views.admin_reset_password_view, name='user-reset-password'),
+    path('profile/<int:user_pk>/', user_views.profile_view, name='profile-view'), 
 
     # --- Client Reassignment URL ---
     path('management/reassign/', user_views.client_reassignment_view, name='client-reassignment'),

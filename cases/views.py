@@ -123,6 +123,7 @@ def case_create_view(request):
 @user_is_assigned_to_case
 def case_detail_view(request, pk):
     case = get_object_or_404(Case, pk=pk)
+    next_stage = None
     
     if request.method == 'POST':
         
@@ -154,26 +155,28 @@ def case_detail_view(request, pk):
     # --- GET Request Logic ---
     documents = case.documents.all().order_by('-id')
     assignments = case.assignments.all()
-    upload_form = DocumentUploadForm() 
+    upload_form = DocumentUploadForm()
+    time_form = TimeEntryForm()
+    time_entries = case.time_entries.all().order_by('-date') 
     
     # Get all stages for the case's workflow
     all_stages = None
-    if case.workflow:
+    if case.workflow and case.current_stage: # Check both exist
         all_stages = case.workflow.stages.all()
+        # --- Calculate next_stage HERE ---
+        current_order = case.current_stage.order
+        next_stage = all_stages.filter(order=current_order + 1).first()
 
-    # --- NEW: Get time entries ---
-    time_entries = case.time_entries.all().order_by('-date')
-    time_form = TimeEntryForm()
-    # --- END NEW ---
 
     context = {
         'case': case,
         'documents': documents,
         'assignments': assignments,
         'upload_form': upload_form,
-        'all_stages': all_stages,
         'time_entries': time_entries, # <-- Add to context
         'time_form': time_form,       # <-- Add to context
+        'all_stages': all_stages,
+        'next_stage': next_stage,
     }
     return render(request, 'cases/case_detail.html', context)
 
