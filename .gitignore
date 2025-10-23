@@ -1,21 +1,21 @@
-Virtual Environment
+# Virtual Environment
 venv/
 
-Environment variables
+# Environment variables
 .env
 
-SQLite database
+# SQLite database
 db.sqlite3
 
-Python cache
+# Python cache
 pycache/
 *.pyc
 
-Django specific
+# Django specific
 /static_root/
 /media_root/
 
-IDE and OS files
+# IDE and OS files
 .vscode/
 .idea/
 .DS_Store
