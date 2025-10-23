@@ -145,3 +145,20 @@ class UserEditAdminForm(forms.ModelForm):
             user.roles.set(self.cleaned_data['roles'])
             self.save_m2m() # Although maybe redundant now
         return user
+    
+# --- Admin User Delete Form ---
+class UserDeleteAdminForm(forms.Form):
+    confirm_username = forms.CharField(
+        label="Type the username to confirm deletion",
+        help_text="This action cannot be undone."
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user_instance = kwargs.pop('user_instance', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_confirm_username(self):
+        entered_username = self.cleaned_data['confirm_username']
+        if self.user_instance and entered_username != self.user_instance.username:
+            raise forms.ValidationError("The username does not match.")
+        return entered_username

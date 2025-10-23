@@ -109,7 +109,7 @@ def set_password_view(request, key):
             messages.success(request, "Your password has been set and you are now logged in.")
             
             # TODO: Redirect to the correct dashboard (client or attorney)
-            return redirect('/') # Redirect to the homepage for now
+            return redirect('users/dashboard.html') # Redirect to the homepage for now
     else:
         form = UserSetPasswordForm(user)
         
@@ -341,6 +341,8 @@ def user_edit_view(request, user_pk):
         'user_to_edit': user_to_edit # Pass user for context in template
     }
     return render(request, 'users/user_edit.html', context)
+
+
 
 @login_required
 def profile_view(request, user_pk):

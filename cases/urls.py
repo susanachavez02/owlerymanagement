@@ -18,33 +18,30 @@ urlpatterns = [
     # Admin: Create a new case
     path('create/', views.case_create_view, name='case-create'),
     # Admin: List all cases
-    path('', views.case_list_view, name='case-list'),
+    path('/', views.case_list_view, name='case-list'),
 
-    # --- NEW: Billing & Invoicing URLs ---
+    # --- Billing & Invoicing URLs ---
     path('<int:case_pk>/billing/', views.billing_view, name='billing-dashboard'),
     path('invoice/<int:pk>/', views.invoice_detail_view, name='invoice-detail'),
-
-    # --- User-Facing Case Views ---
-    path('<int:pk>/', views.case_detail_view, name='case-detail'),
     
     # --- User-Facing Case Views ---
-    # NEW: View details for a single case
+    # View details for a single case
     # <int:pk> captures the ID from the URL (e.g., /cases/1/)
     path('<int:pk>/', views.case_detail_view, name='case-detail'),
-    # NEW: View/Download a document and log it
+    # View/Download a document and log it
     # e.g., /cases/document/5/view/
     path('document/<int:doc_pk>/view/', views.document_view_and_log, name='document-view'),
 
-    # --- NEW: Advance Case Stage ---
+    # --- Advance Case Stage ---
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
 
-    # --- NEW: Generate Document ---
+    # --- Generate Document ---
     path('<int:case_pk>/generate-document/', views.generate_document_view, name='generate-document'),
     
     path('document/<int:doc_pk>/view/', views.document_view_and_log, name='document-view'),
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
 
-    # --- NEW: E-Signature URLs ---
+    # --- E-Signature URLs ---
     path('document/<int:doc_pk>/request-signature/', views.signature_request_view, name='signature-request'),
     path('document/sign/<uuid:token>/', views.signing_page_view, name='signing-page'),
 ]
