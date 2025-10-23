@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
+from django.db import models
 import io
 from docx import Document as DocxDocument
 from django.core.files.base import ContentFile
