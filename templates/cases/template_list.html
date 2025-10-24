@@ -57,10 +57,18 @@
           <label for="contract" class="form-label" id="contractLabel">Select Contract</label>
           <select id="contract" class="form-select" required>
             <option value="">Choose...</option>
-            <option value="promise_PurchaseandSell_contract.html">Promise to Purchase and Sell</option>
-            <option value="vehicle_PurchaseandSale_contract.html">Vehicle Purchase and Sale</option>
-            <option value="agricultural_LandLease_contract.html">Agricultural Land Lease</option>
+            {% for pair in contract_choices %}
+              <option value="{{ pair.0 }}">{{ pair.1 }}</option>
+            {% endfor %}
           </select>
+        </div>
+
+        <!-- Inline Preview (shows when a contract is selected) -->
+        <div id="inlinePreview" class="card my-3" style="display:none;">
+          <div class="card-body">
+            <h5 class="card-title">Selected Contract Preview</h5>
+            <div id="inlinePreviewContent" style="white-space: pre-wrap;"></div>
+          </div>
         </div>
 
         <!-- Buttons -->
@@ -104,6 +112,7 @@ const previewBtn = document.getElementById('previewBtn');
 const downloadPDFBtn = document.getElementById('downloadPDFBtn');
 const previewContent = document.getElementById('previewContent');
 let selectedContractHTML = "";
+let currentlyLoadedFile = "";
 
 // Translations
 const translations = {
@@ -119,9 +128,7 @@ const translations = {
     regions: { texas: "Texas", mexico: "Mexico" },
     courts: { local: "Local", county: "County", state: "State", federal: "Federal", supreme: "Supreme Court" },
     contracts: {
-      "promise_PurchaseandSell_contract.html": "Promise to Purchase and Sell",
-      "vehicle_PurchaseandSale_contract.html": "Vehicle Purchase and Sale",
-      "agricultural_LandLease_contract.html": "Agricultural Land Lease"
+      // dynamically populated below
     },
     preview: "Preview Contract",
     download: "Download as PDF",
@@ -140,9 +147,7 @@ const translations = {
     regions: { texas: "Texas", mexico: "México" },
     courts: { local: "Local", county: "Condado", state: "Estatal", federal: "Federal", supreme: "Corte Suprema" },
     contracts: {
-      "promise_PurchaseandSell_contract.html": "Contrato de Promesa de Compra y Venta",
-      "vehicle_PurchaseandSale_contract.html": "Contrato de Compra y Venta de Vehículo",
-      "agricultural_LandLease_contract.html": "Contrato de Arrendamiento de Terreno Agrícola"
+      // dynamically populated below
     },
     preview: "Vista Previa del Contrato",
     download: "Descargar como PDF",
@@ -150,6 +155,21 @@ const translations = {
     modalTitle: "Vista Previa del Contrato"
   }
 };
+
+// Build contract labels dynamically from server-provided list
+const contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
+const contractFetchUrl = "{% url 'cases:contract-template' %}";
+
+function prettyLabel(name) {
+  return name.replace('_contract.html','').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+translations.english.contracts = {};
+translations.spanish.contracts = {};
+contractFiles.forEach(f => {
+  translations.english.contracts[f] = prettyLabel(f);
+  translations.spanish.contracts[f] = prettyLabel(f);
+});
 
 // Update language function
 function updateLanguage(forceLang = null) {
@@ -212,11 +232,12 @@ regionSelect.addEventListener("change", () => {
 // Fetch Contract Template
 async function loadContractTemplate(fileName) {
   try {
-    const response = await fetch(`/static/contracts/${fileName}`);
+    const response = await fetch(`${contractFetchUrl}?file=${encodeURIComponent(fileName)}`);
     if (!response.ok) throw new Error("File not found");
     return await response.text();
-  } catch {
-    return "Error loading contract template. Ensure it's placed under /static/contracts/";
+  } catch (err) {
+    console.error(err);
+    return "Error loading contract template. Ensure the template exists under templates/cases/ and the server endpoint is reachable.";
   }
 }
 
@@ -249,6 +270,51 @@ downloadPDFBtn.addEventListener("click", () => {
   const lines = doc.splitTextToSize(text, 180);
   doc.text(lines, 15, 20);
   doc.save('Generated_Contract.pdf');
+});
+
+// Load selected contract into the inline preview when selection changes
+const inlinePreview = document.getElementById('inlinePreview');
+const inlinePreviewContent = document.getElementById('inlinePreviewContent');
+
+contractSelect.addEventListener('change', async () => {
+  const file = contractSelect.value;
+  if (!file) {
+    selectedContractHTML = "";
+    currentlyLoadedFile = "";
+    inlinePreview.style.display = 'none';
+    inlinePreviewContent.innerHTML = '';
+    return;
+  }
+
+  // If the currently loaded file differs, fetch it
+  if (file !== currentlyLoadedFile) {
+    selectedContractHTML = await loadContractTemplate(file);
+    currentlyLoadedFile = file;
+  }
+
+  inlinePreviewContent.innerHTML = selectedContractHTML;
+  inlinePreview.style.display = 'block';
+});
+
+// Make Preview button reuse already-fetched content when possible
+previewBtn.addEventListener("click", async () => {
+  const lang = languageSelect.value;
+  const contractFile = contractSelect.value;
+
+  if (!lang || !contractFile) {
+    alert(lang === "spanish" ? "Seleccione un idioma y un contrato." : "Please select a language and a contract.");
+    return;
+  }
+
+  if (!selectedContractHTML || currentlyLoadedFile !== contractFile) {
+    selectedContractHTML = await loadContractTemplate(contractFile);
+    currentlyLoadedFile = contractFile;
+  }
+
+  previewContent.innerHTML = selectedContractHTML;
+
+  const modal = new bootstrap.Modal(document.getElementById("previewModal"));
+  modal.show();
 });
 </script>
 {% endblock %}

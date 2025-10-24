@@ -37,6 +37,9 @@ import stripe # <-- Import Stripe
 from django.conf import settings # <-- Import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+import os
+import json
+from django.conf import settings
 
 # --- Set your Stripe API key ---
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -335,13 +338,73 @@ def advance_stage_view(request, case_pk):
 
 # --- View 10: Template List (Admin) ---
 @login_required
-@user_passes_test(is_admin)
 def template_list_view(request):
     templates = Template.objects.all().order_by('name')
+
+    # Discover any contract templates placed under the project's
+    # `templates/cases/` directory that end with `_contract.html`.
+    contract_files = []
+    templates_dir = os.path.join(settings.BASE_DIR, 'templates', 'cases')
+    if os.path.isdir(templates_dir):
+        for fn in sorted(os.listdir(templates_dir)):
+            if fn.endswith('_contract.html'):
+                contract_files.append(fn)
+
+    # Build prettier labels server-side to avoid using template filters
+    contract_choices = []
+    for fn in contract_files:
+        # remove suffix and replace underscores with spaces, title-case
+        label = fn.replace('_contract.html', '').replace('_', ' ').title()
+        contract_choices.append((fn, label))
+
     context = {
-        'templates': templates
+        'templates': templates,
+        # a list like ["vehicle_PurchaseandSale_contract.html", ...]
+        'contract_files': contract_files,
+        # choices list of (filename, pretty label) for template rendering
+        'contract_choices': contract_choices,
+        # json-encoded version to inject safely into JS
+        'contract_files_json': json.dumps(contract_files)
     }
     return render(request, 'cases/template_list.html', context)
+
+
+@login_required
+def contract_template_view(request):
+    """Return the raw HTML of a contract template located under
+    `templates/cases/` given a `file` GET parameter. This endpoint
+    validates the filename to avoid path traversal and ensures only
+    files ending with `_contract.html` are returned.
+    """
+    file_name = request.GET.get('file')
+    if not file_name or '/' in file_name or '..' in file_name:
+        return JsonResponse({'error': 'Invalid file parameter.'}, status=400)
+
+    if not file_name.endswith('_contract.html'):
+        return JsonResponse({'error': 'Not a contract template.'}, status=400)
+
+    templates_dir = os.path.join(settings.BASE_DIR, 'templates', 'cases')
+    file_path = os.path.join(templates_dir, file_name)
+    # Ensure the resolved path is actually inside the templates_dir
+    try:
+        real_templates_dir = os.path.realpath(templates_dir)
+        real_file_path = os.path.realpath(file_path)
+    except Exception:
+        return JsonResponse({'error': 'Invalid path resolution.'}, status=400)
+
+    if not real_file_path.startswith(real_templates_dir):
+        return JsonResponse({'error': 'Invalid file path.'}, status=400)
+
+    if not os.path.exists(real_file_path):
+        return JsonResponse({'error': 'File not found.'}, status=404)
+
+    try:
+        with open(real_file_path, 'r', encoding='utf-8') as fh:
+            content = fh.read()
+    except Exception:
+        return JsonResponse({'error': 'Unable to read file.'}, status=500)
+
+    return HttpResponse(content, content_type='text/html')
 
 # --- View 11: Template Upload (Admin) ---
 @login_required

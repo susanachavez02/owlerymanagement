@@ -13,6 +13,7 @@ urlpatterns = [
     # --- NEW: Admin Template Management ---
     path('templates/', views.template_list_view, name='template-list'),
     path('templates/upload/', views.template_upload_view, name='template-upload'),
+    path('contract-template/', views.contract_template_view, name='contract-template'),
 
     # --- Admin Case Management ---
     # Admin: Create a new case
