@@ -5,41 +5,70 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <a href="{% url 'cases:case-list' %}" class="btn btn-outline-secondary">&larr; Back</a>
-    <h2>Contract Generator</h2>
+    <h2 id="pageTitle">Contract Generator</h2>
     <div></div>
   </div>
 
-  <p class="text-muted">Create custom bilingual contracts easily by filling in the details below.</p>
+  <p id="pageSubtitle" class="text-muted">
+    Create custom bilingual contracts easily by filling in the details below.
+  </p>
 
   <!-- Contract Form -->
   <div class="card shadow-sm mb-5">
     <div class="card-body">
-      <h4 class="card-title mb-3">Generate a New Contract</h4>
+      <h4 id="formTitle" class="card-title mb-3">Generate a New Contract</h4>
       <form id="contractForm">
+        
+        <!-- Language -->
         <div class="mb-3">
-          <label for="language" class="form-label">Select Language</label>
+          <label for="language" class="form-label" id="languageLabel">Select Language</label>
           <select id="language" class="form-select" required>
             <option value="">Choose...</option>
             <option value="english">English</option>
-            <option value="spanish">Spanish</option>
+            <option value="spanish">Español</option>
           </select>
         </div>
 
+        <!-- Jurisdiction Section -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="region" class="form-label" id="regionLabel">Select Region</label>
+            <select id="region" class="form-select" required>
+              <option value="">Choose...</option>
+              <option value="texas">Texas</option>
+              <option value="mexico">Mexico</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="court" class="form-label" id="courtLabel">Select Court Type</label>
+            <select id="court" class="form-select" required>
+              <option value="">Choose...</option>
+              <option value="local">Local</option>
+              <option value="county">County</option>
+              <option value="state">State</option>
+              <option value="federal">Federal</option>
+              <option value="supreme">Supreme Court</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Contract Selection -->
         <div class="mb-3">
-          <label for="jurisdiction" class="form-label">Select Jurisdiction Type</label>
-          <select id="jurisdiction" class="form-select" required>
+          <label for="contract" class="form-label" id="contractLabel">Select Contract</label>
+          <select id="contract" class="form-select" required>
             <option value="">Choose...</option>
-            <option value="state">State Level</option>
-            <option value="federal">Federal Level</option>
+            <option value="promise_PurchaseandSell_contract.html">Promise to Purchase and Sell</option>
+            <option value="vehicle_PurchaseandSale_contract.html">Vehicle Purchase and Sale</option>
+            <option value="agricultural_LandLease_contract.html">Agricultural Land Lease</option>
           </select>
         </div>
 
-        <div id="formFields"></div>
-
+        <!-- Buttons -->
         <div class="text-center mt-4">
           <button type="button" id="previewBtn" class="btn btn-primary me-2">Preview Contract</button>
           <button type="button" id="downloadPDFBtn" class="btn btn-success">Download as PDF</button>
         </div>
+
       </form>
     </div>
   </div>
@@ -55,123 +84,169 @@
       </div>
       <div class="modal-body" id="previewContent" style="white-space: pre-wrap;"></div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeBtn">Close</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Script -->
+<!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const { jsPDF } = window.jspdf;
-const form = document.getElementById('contractForm');
-const formFields = document.getElementById('formFields');
+
+// Elements
+const languageSelect = document.getElementById('language');
+const regionSelect = document.getElementById('region');
+const courtSelect = document.getElementById('court');
+const contractSelect = document.getElementById('contract');
 const previewBtn = document.getElementById('previewBtn');
 const downloadPDFBtn = document.getElementById('downloadPDFBtn');
-let generatedContract = '';
+const previewContent = document.getElementById('previewContent');
+let selectedContractHTML = "";
 
-function buildForm(language, jurisdiction) {
-  let fieldsHTML = `
-    <div class="mb-3">
-      <label class="form-label">${language === 'english' ? 'Client Name' : 'Nombre del Cliente'}</label>
-      <input type="text" id="clientName" class="form-control" required>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">${language === 'english' ? 'Service Description' : 'Descripción del Servicio'}</label>
-      <textarea id="serviceDescription" class="form-control" rows="3" required></textarea>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">${language === 'english' ? 'Effective Date' : 'Fecha de Vigencia'}</label>
-      <input type="date" id="effectiveDate" class="form-control" required>
-    </div>
-  `;
+// Translations
+const translations = {
+  english: {
+    pageTitle: "Contract Generator",
+    pageSubtitle: "Create custom bilingual contracts easily by filling in the details below.",
+    formTitle: "Generate a New Contract",
+    languageLabel: "Select Language",
+    regionLabel: "Select Region",
+    courtLabel: "Select Court Type",
+    contractLabel: "Select Contract",
+    choose: "Choose...",
+    regions: { texas: "Texas", mexico: "Mexico" },
+    courts: { local: "Local", county: "County", state: "State", federal: "Federal", supreme: "Supreme Court" },
+    contracts: {
+      "promise_PurchaseandSell_contract.html": "Promise to Purchase and Sell",
+      "vehicle_PurchaseandSale_contract.html": "Vehicle Purchase and Sale",
+      "agricultural_LandLease_contract.html": "Agricultural Land Lease"
+    },
+    preview: "Preview Contract",
+    download: "Download as PDF",
+    close: "Close",
+    modalTitle: "Contract Preview"
+  },
+  spanish: {
+    pageTitle: "Generador de Contratos",
+    pageSubtitle: "Cree contratos bilingües personalizados llenando los detalles a continuación.",
+    formTitle: "Generar un Nuevo Contrato",
+    languageLabel: "Seleccionar Idioma",
+    regionLabel: "Seleccionar Región",
+    courtLabel: "Seleccionar Tipo de Corte",
+    contractLabel: "Seleccionar Contrato",
+    choose: "Elegir...",
+    regions: { texas: "Texas", mexico: "México" },
+    courts: { local: "Local", county: "Condado", state: "Estatal", federal: "Federal", supreme: "Corte Suprema" },
+    contracts: {
+      "promise_PurchaseandSell_contract.html": "Contrato de Promesa de Compra y Venta",
+      "vehicle_PurchaseandSale_contract.html": "Contrato de Compra y Venta de Vehículo",
+      "agricultural_LandLease_contract.html": "Contrato de Arrendamiento de Terreno Agrícola"
+    },
+    preview: "Vista Previa del Contrato",
+    download: "Descargar como PDF",
+    close: "Cerrar",
+    modalTitle: "Vista Previa del Contrato"
+  }
+};
 
-  if (jurisdiction === 'state') {
-    fieldsHTML += `
-      <div class="mb-3">
-        <label class="form-label">${language === 'english' ? 'State Name' : 'Nombre del Estado'}</label>
-        <input type="text" id="stateName" class="form-control" required>
-      </div>
-    `;
-  } else if (jurisdiction === 'federal') {
-    fieldsHTML += `
-      <div class="mb-3">
-        <label class="form-label">${language === 'english' ? 'Federal District Name' : 'Nombre del Distrito Federal'}</label>
-        <input type="text" id="districtName" class="form-control" required>
-      </div>
-    `;
+// Update language function
+function updateLanguage(forceLang = null) {
+  const lang = forceLang || languageSelect.value;
+  if (!lang) return;
+  const t = translations[lang];
+
+  document.getElementById('pageTitle').textContent = t.pageTitle;
+  document.getElementById('pageSubtitle').textContent = t.pageSubtitle;
+  document.getElementById('formTitle').textContent = t.formTitle;
+  document.getElementById('languageLabel').textContent = t.languageLabel;
+  document.getElementById('regionLabel').textContent = t.regionLabel;
+  document.getElementById('courtLabel').textContent = t.courtLabel;
+  document.getElementById('contractLabel').textContent = t.contractLabel;
+  document.getElementById('previewBtn').textContent = t.preview;
+  document.getElementById('downloadPDFBtn').textContent = t.download;
+  document.getElementById('closeBtn').textContent = t.close;
+  document.getElementById('previewModalLabel').textContent = t.modalTitle;
+
+  // Rebuild dropdowns dynamically
+  regionSelect.innerHTML = `<option value="">${t.choose}</option>`;
+  for (const [key, val] of Object.entries(t.regions)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = val;
+    regionSelect.appendChild(opt);
   }
 
-  formFields.innerHTML = fieldsHTML;
-}
-
-document.getElementById('language').addEventListener('change', updateForm);
-document.getElementById('jurisdiction').addEventListener('change', updateForm);
-
-function updateForm() {
-  const language = document.getElementById('language').value;
-  const jurisdiction = document.getElementById('jurisdiction').value;
-  if (language && jurisdiction) buildForm(language, jurisdiction);
-}
-
-function generateContract() {
-  const language = document.getElementById('language').value;
-  const jurisdiction = document.getElementById('jurisdiction').value;
-  const clientName = document.getElementById('clientName')?.value || '';
-  const serviceDescription = document.getElementById('serviceDescription')?.value || '';
-  const effectiveDate = document.getElementById('effectiveDate')?.value || '';
-  const locationField = jurisdiction === 'state'
-    ? document.getElementById('stateName')?.value
-    : document.getElementById('districtName')?.value;
-
-  if (!language || !jurisdiction || !clientName || !serviceDescription || !effectiveDate || !locationField) {
-    alert("Please fill in all required fields before continuing.");
-    return '';
+  courtSelect.innerHTML = `<option value="">${t.choose}</option>`;
+  for (const [key, val] of Object.entries(t.courts)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = val;
+    courtSelect.appendChild(opt);
   }
 
-  if (language === 'english') {
-    return `
-CONTRACT AGREEMENT
-
-This agreement is made between ${clientName} and the service provider for the following service: ${serviceDescription}.
-
-Effective Date: ${effectiveDate}
-
-Jurisdiction: ${jurisdiction === 'state' ? 'State of ' + locationField : 'Federal District of ' + locationField}
-
-Both parties agree to abide by the laws and regulations applicable to this jurisdiction.
-    `;
-  } else {
-    return `
-CONTRATO DE ACUERDO
-
-Este acuerdo se celebra entre ${clientName} y el proveedor de servicios para lo siguiente: ${serviceDescription}.
-
-Fecha de Vigencia: ${effectiveDate}
-
-Jurisdicción: ${jurisdiction === 'state' ? 'Estado de ' + locationField : 'Distrito Federal de ' + locationField}
-
-Ambas partes acuerdan cumplir con las leyes y regulaciones aplicables a esta jurisdicción.
-    `;
+  contractSelect.innerHTML = `<option value="">${t.choose}</option>`;
+  for (const [file, label] of Object.entries(t.contracts)) {
+    const opt = document.createElement("option");
+    opt.value = file;
+    opt.textContent = label;
+    contractSelect.appendChild(opt);
   }
+
+  // Keep selection after language change
+  languageSelect.value = lang;
 }
 
-previewBtn.addEventListener('click', () => {
-  generatedContract = generateContract();
-  if (generatedContract) {
-    document.getElementById('previewContent').textContent = generatedContract.trim();
-    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-    modal.show();
+languageSelect.addEventListener("change", () => updateLanguage());
+regionSelect.addEventListener("change", () => {
+  if (regionSelect.value === "mexico") {
+    updateLanguage("spanish");
+    languageSelect.value = "spanish";
+  } else if (regionSelect.value === "texas") {
+    updateLanguage("english");
+    languageSelect.value = "english";
   }
 });
 
-downloadPDFBtn.addEventListener('click', () => {
-  generatedContract = generateContract();
-  if (!generatedContract) return;
+// Fetch Contract Template
+async function loadContractTemplate(fileName) {
+  try {
+    const response = await fetch(`/static/contracts/${fileName}`);
+    if (!response.ok) throw new Error("File not found");
+    return await response.text();
+  } catch {
+    return "Error loading contract template. Ensure it's placed under /static/contracts/";
+  }
+}
+
+// Preview
+previewBtn.addEventListener("click", async () => {
+  const lang = languageSelect.value;
+  const contractFile = contractSelect.value;
+
+  if (!lang || !contractFile) {
+    alert(lang === "spanish" ? "Seleccione un idioma y un contrato." : "Please select a language and a contract.");
+    return;
+  }
+
+  selectedContractHTML = await loadContractTemplate(contractFile);
+  previewContent.innerHTML = selectedContractHTML;
+
+  const modal = new bootstrap.Modal(document.getElementById("previewModal"));
+  modal.show();
+});
+
+// Download PDF
+downloadPDFBtn.addEventListener("click", () => {
+  if (!selectedContractHTML) {
+    alert(languageSelect.value === "spanish" ? "Primero genere una vista previa del contrato." : "Please preview the contract first.");
+    return;
+  }
 
   const doc = new jsPDF();
-  const lines = doc.splitTextToSize(generatedContract, 180);
+  const text = selectedContractHTML.replace(/<[^>]*>/g, '');
+  const lines = doc.splitTextToSize(text, 180);
   doc.text(lines, 15, 20);
   doc.save('Generated_Contract.pdf');
 });
