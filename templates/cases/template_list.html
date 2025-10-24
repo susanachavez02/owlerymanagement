@@ -63,11 +63,12 @@
           </select>
         </div>
 
-        <!-- Inline Preview (shows when a contract is selected) -->
+        <!-- Inline Preview -->
         <div id="inlinePreview" class="card my-3" style="display:none;">
           <div class="card-body">
             <h5 class="card-title">Selected Contract Preview</h5>
-            <div id="inlinePreviewContent" style="white-space: pre-wrap;"></div>
+            <!-- Use a CSS class so HTML renders normally (not forced pre-wrap) -->
+            <div id="inlinePreviewContent" class="template-preview"></div>
           </div>
         </div>
 
@@ -100,6 +101,43 @@
 
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  /* Inline contract preview styling to improve spacing and scrolling.
+     Aim: keep content reasonably compact but visually clear and professional. */
+  #inlinePreview .card-body {
+    max-height: 52vh; /* slightly taller */
+    overflow: auto;
+    padding: 1rem 1.25rem;
+    background: #ffffff;
+  }
+
+  /* Shared preview typography */
+  .template-preview {
+    white-space: normal;
+    line-height: 1.7;
+    font-size: 0.98rem;
+    color: #222;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    word-break: break-word;
+  }
+
+  .template-preview > * { margin-top: 0; }
+  .template-preview p { margin: 0 0 1rem 0; }
+  .template-preview h1, .template-preview h2, .template-preview h3 {
+    margin: 1.25rem 0 0.5rem 0;
+    line-height: 1.25;
+  }
+  .template-preview ul, .template-preview ol { margin: 0 0 0.9rem 1.25rem; }
+  .template-preview img { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; }
+
+  /* Subtle card polish */
+  #inlinePreview { border-radius: 0.35rem; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .template-preview code, .template-preview pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; }
+
+  /* Modal preview should mimic inline spacing but allow more vertical room */
+  .modal-preview { white-space: normal !important; line-height: 1.7; font-size: 1rem; }
+  .modal-body.modal-preview { max-height: 75vh; overflow: auto; }
+</style>
 <script>
 const { jsPDF } = window.jspdf;
 
@@ -127,9 +165,7 @@ const translations = {
     choose: "Choose...",
     regions: { texas: "Texas", mexico: "Mexico" },
     courts: { local: "Local", county: "County", state: "State", federal: "Federal", supreme: "Supreme Court" },
-    contracts: {
-      // dynamically populated below
-    },
+    contracts: {},
     preview: "Preview Contract",
     download: "Download as PDF",
     close: "Close",
@@ -146,9 +182,7 @@ const translations = {
     choose: "Elegir...",
     regions: { texas: "Texas", mexico: "México" },
     courts: { local: "Local", county: "Condado", state: "Estatal", federal: "Federal", supreme: "Corte Suprema" },
-    contracts: {
-      // dynamically populated below
-    },
+    contracts: {},
     preview: "Vista Previa del Contrato",
     download: "Descargar como PDF",
     close: "Cerrar",
@@ -156,7 +190,7 @@ const translations = {
   }
 };
 
-// Build contract labels dynamically from server-provided list
+// Build contract labels dynamically
 const contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
 const contractFetchUrl = "{% url 'cases:contract-template' %}";
 
@@ -171,12 +205,18 @@ contractFiles.forEach(f => {
   translations.spanish.contracts[f] = prettyLabel(f);
 });
 
-// Update language function
+// ✅ Updated function that keeps selections
 function updateLanguage(forceLang = null) {
   const lang = forceLang || languageSelect.value;
   if (!lang) return;
   const t = translations[lang];
 
+  // Save current selections
+  const prevRegion = regionSelect.value;
+  const prevCourt = courtSelect.value;
+  const prevContract = contractSelect.value;
+
+  // Update text
   document.getElementById('pageTitle').textContent = t.pageTitle;
   document.getElementById('pageSubtitle').textContent = t.pageSubtitle;
   document.getElementById('formTitle').textContent = t.formTitle;
@@ -189,7 +229,7 @@ function updateLanguage(forceLang = null) {
   document.getElementById('closeBtn').textContent = t.close;
   document.getElementById('previewModalLabel').textContent = t.modalTitle;
 
-  // Rebuild dropdowns dynamically
+  // Rebuild dropdowns
   regionSelect.innerHTML = `<option value="">${t.choose}</option>`;
   for (const [key, val] of Object.entries(t.regions)) {
     const opt = document.createElement("option");
@@ -214,11 +254,23 @@ function updateLanguage(forceLang = null) {
     contractSelect.appendChild(opt);
   }
 
-  // Keep selection after language change
+  // Restore selections
+  if (prevRegion && regionSelect.querySelector(`option[value="${prevRegion}"]`)) {
+    regionSelect.value = prevRegion;
+  }
+  if (prevCourt && courtSelect.querySelector(`option[value="${prevCourt}"]`)) {
+    courtSelect.value = prevCourt;
+  }
+  if (prevContract && contractSelect.querySelector(`option[value="${prevContract}"]`)) {
+    contractSelect.value = prevContract;
+  }
+
   languageSelect.value = lang;
 }
 
+// Event listeners
 languageSelect.addEventListener("change", () => updateLanguage());
+
 regionSelect.addEventListener("change", () => {
   if (regionSelect.value === "mexico") {
     updateLanguage("spanish");
@@ -229,7 +281,7 @@ regionSelect.addEventListener("change", () => {
   }
 });
 
-// Fetch Contract Template
+// Fetch contract file
 async function loadContractTemplate(fileName) {
   try {
     const response = await fetch(`${contractFetchUrl}?file=${encodeURIComponent(fileName)}`);
@@ -272,7 +324,7 @@ downloadPDFBtn.addEventListener("click", () => {
   doc.save('Generated_Contract.pdf');
 });
 
-// Load selected contract into the inline preview when selection changes
+// Inline preview update
 const inlinePreview = document.getElementById('inlinePreview');
 const inlinePreviewContent = document.getElementById('inlinePreviewContent');
 
@@ -286,7 +338,6 @@ contractSelect.addEventListener('change', async () => {
     return;
   }
 
-  // If the currently loaded file differs, fetch it
   if (file !== currentlyLoadedFile) {
     selectedContractHTML = await loadContractTemplate(file);
     currentlyLoadedFile = file;
@@ -294,27 +345,6 @@ contractSelect.addEventListener('change', async () => {
 
   inlinePreviewContent.innerHTML = selectedContractHTML;
   inlinePreview.style.display = 'block';
-});
-
-// Make Preview button reuse already-fetched content when possible
-previewBtn.addEventListener("click", async () => {
-  const lang = languageSelect.value;
-  const contractFile = contractSelect.value;
-
-  if (!lang || !contractFile) {
-    alert(lang === "spanish" ? "Seleccione un idioma y un contrato." : "Please select a language and a contract.");
-    return;
-  }
-
-  if (!selectedContractHTML || currentlyLoadedFile !== contractFile) {
-    selectedContractHTML = await loadContractTemplate(contractFile);
-    currentlyLoadedFile = contractFile;
-  }
-
-  previewContent.innerHTML = selectedContractHTML;
-
-  const modal = new bootstrap.Modal(document.getElementById("previewModal"));
-  modal.show();
 });
 </script>
 {% endblock %}
