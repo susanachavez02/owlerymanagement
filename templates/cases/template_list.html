@@ -1,26 +1,179 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="container py-4">
+  <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Document Templates</h2>
-    <div>
-      <a href="{% url 'cases:template-upload' %}" class="btn btn-primary">Upload New Template</a>
-      <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
+    <a href="{% url 'cases:case-list' %}" class="btn btn-outline-secondary">&larr; Back</a>
+    <h2>Contract Generator</h2>
+    <div></div>
+  </div>
+
+  <p class="text-muted">Create custom bilingual contracts easily by filling in the details below.</p>
+
+  <!-- Contract Form -->
+  <div class="card shadow-sm mb-5">
+    <div class="card-body">
+      <h4 class="card-title mb-3">Generate a New Contract</h4>
+      <form id="contractForm">
+        <div class="mb-3">
+          <label for="language" class="form-label">Select Language</label>
+          <select id="language" class="form-select" required>
+            <option value="">Choose...</option>
+            <option value="english">English</option>
+            <option value="spanish">Spanish</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="jurisdiction" class="form-label">Select Jurisdiction Type</label>
+          <select id="jurisdiction" class="form-select" required>
+            <option value="">Choose...</option>
+            <option value="state">State Level</option>
+            <option value="federal">Federal Level</option>
+          </select>
+        </div>
+
+        <div id="formFields"></div>
+
+        <div class="text-center mt-4">
+          <button type="button" id="previewBtn" class="btn btn-primary me-2">Preview Contract</button>
+          <button type="button" id="downloadPDFBtn" class="btn btn-success">Download as PDF</button>
+        </div>
+      </form>
     </div>
   </div>
-  <p>Manage the reusable document templates for generating contracts.</p>
+</div>
 
-  <div class="list-group">
-    {% for template in templates %}
-      <div class="list-group-item">
-        <h5 class="mb-1">{{ template.name }}</h5>
-        <small class="text-muted">File: {{ template.template_file.name }}</small>
-        <p class="mb-1">Context Fields: {{ template.context_fields|default:"None" }}</p>
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">Contract Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-    {% empty %}
-      <div class="alert alert-info" role="alert">
-        No templates have been uploaded yet.
+      <div class="modal-body" id="previewContent" style="white-space: pre-wrap;"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
-    {% endfor %}
+    </div>
   </div>
+</div>
+
+<!-- Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const { jsPDF } = window.jspdf;
+const form = document.getElementById('contractForm');
+const formFields = document.getElementById('formFields');
+const previewBtn = document.getElementById('previewBtn');
+const downloadPDFBtn = document.getElementById('downloadPDFBtn');
+let generatedContract = '';
+
+function buildForm(language, jurisdiction) {
+  let fieldsHTML = `
+    <div class="mb-3">
+      <label class="form-label">${language === 'english' ? 'Client Name' : 'Nombre del Cliente'}</label>
+      <input type="text" id="clientName" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">${language === 'english' ? 'Service Description' : 'Descripción del Servicio'}</label>
+      <textarea id="serviceDescription" class="form-control" rows="3" required></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">${language === 'english' ? 'Effective Date' : 'Fecha de Vigencia'}</label>
+      <input type="date" id="effectiveDate" class="form-control" required>
+    </div>
+  `;
+
+  if (jurisdiction === 'state') {
+    fieldsHTML += `
+      <div class="mb-3">
+        <label class="form-label">${language === 'english' ? 'State Name' : 'Nombre del Estado'}</label>
+        <input type="text" id="stateName" class="form-control" required>
+      </div>
+    `;
+  } else if (jurisdiction === 'federal') {
+    fieldsHTML += `
+      <div class="mb-3">
+        <label class="form-label">${language === 'english' ? 'Federal District Name' : 'Nombre del Distrito Federal'}</label>
+        <input type="text" id="districtName" class="form-control" required>
+      </div>
+    `;
+  }
+
+  formFields.innerHTML = fieldsHTML;
+}
+
+document.getElementById('language').addEventListener('change', updateForm);
+document.getElementById('jurisdiction').addEventListener('change', updateForm);
+
+function updateForm() {
+  const language = document.getElementById('language').value;
+  const jurisdiction = document.getElementById('jurisdiction').value;
+  if (language && jurisdiction) buildForm(language, jurisdiction);
+}
+
+function generateContract() {
+  const language = document.getElementById('language').value;
+  const jurisdiction = document.getElementById('jurisdiction').value;
+  const clientName = document.getElementById('clientName')?.value || '';
+  const serviceDescription = document.getElementById('serviceDescription')?.value || '';
+  const effectiveDate = document.getElementById('effectiveDate')?.value || '';
+  const locationField = jurisdiction === 'state'
+    ? document.getElementById('stateName')?.value
+    : document.getElementById('districtName')?.value;
+
+  if (!language || !jurisdiction || !clientName || !serviceDescription || !effectiveDate || !locationField) {
+    alert("Please fill in all required fields before continuing.");
+    return '';
+  }
+
+  if (language === 'english') {
+    return `
+CONTRACT AGREEMENT
+
+This agreement is made between ${clientName} and the service provider for the following service: ${serviceDescription}.
+
+Effective Date: ${effectiveDate}
+
+Jurisdiction: ${jurisdiction === 'state' ? 'State of ' + locationField : 'Federal District of ' + locationField}
+
+Both parties agree to abide by the laws and regulations applicable to this jurisdiction.
+    `;
+  } else {
+    return `
+CONTRATO DE ACUERDO
+
+Este acuerdo se celebra entre ${clientName} y el proveedor de servicios para lo siguiente: ${serviceDescription}.
+
+Fecha de Vigencia: ${effectiveDate}
+
+Jurisdicción: ${jurisdiction === 'state' ? 'Estado de ' + locationField : 'Distrito Federal de ' + locationField}
+
+Ambas partes acuerdan cumplir con las leyes y regulaciones aplicables a esta jurisdicción.
+    `;
+  }
+}
+
+previewBtn.addEventListener('click', () => {
+  generatedContract = generateContract();
+  if (generatedContract) {
+    document.getElementById('previewContent').textContent = generatedContract.trim();
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
+  }
+});
+
+downloadPDFBtn.addEventListener('click', () => {
+  generatedContract = generateContract();
+  if (!generatedContract) return;
+
+  const doc = new jsPDF();
+  const lines = doc.splitTextToSize(generatedContract, 180);
+  doc.text(lines, 15, 20);
+  doc.save('Generated_Contract.pdf');
+});
+</script>
 {% endblock %}
