@@ -9,6 +9,21 @@
           integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
           crossorigin="anonymous">
 
+    <style>
+    .btn-outline-gold {
+        color:#c4a24c;
+        border:1px solid #c4a24c;
+        background:transparent;
+    }
+    .btn-outline-gold:hover,
+    .btn-outline-gold:focus {
+        background:#c4a24c;
+        color:#0c0f19;
+        border-color:#c4a24c;
+    }
+    </style>
+
+
     <title>Owlery Legal Portal</title>
 </head>
 <body>
@@ -68,7 +83,7 @@
                             </form>
                             {% else %}
                         <li class="nav-item">
-                            <a class="btn btn-outline-success btn-sm" href="{% url 'users:login' %}">Login</a>
+                            <a class="btn btn-outline-gold btn-sm" href="{% url 'users:login' %}">Login</a>
                             </li>
                     {% endif %}
                 </ul>
