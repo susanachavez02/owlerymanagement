@@ -191,7 +191,7 @@ const translations = {
 };
 
 // Build contract labels dynamically
-const contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
+let contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
 const contractFetchUrl = "{% url 'cases:contract-template' %}";
 
 function prettyLabel(name) {
