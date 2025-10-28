@@ -195,8 +195,63 @@ const contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
 const contractFetchUrl = "{% url 'cases:contract-template' %}";
 
 function prettyLabel(name) {
-  return name.replace('_contract.html','').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+  if (!name) return '';
+  let s = String(name);
+
+  // strip known filename suffixes
+  s = s.replace(/_contract\.html$/i, '')
+       .replace(/_contract$/i, '')
+       .replace(/\.html$/i, '');
+
+  // normalize separators
+  s = s.replace(/[_\-]+/g, ' ');
+
+  // break camelCase / PascalCase boundaries (lower->Upper)
+  s = s.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+
+  // split runs like "XMLParser" -> "XML Parser"
+  s = s.replace(/([A-Z]+)([A-Z][a-z0-9]+)/g, '$1 $2');
+
+  // Normalize common verbs: prefer "sell" over "sale"
+  s = s.replace(/\bsale\b/gi, 'sell');
+
+  // Specifically fix glued purchase+and+sell/sale variants (covers PurchaseandSell, purchaseandSale, purchaseandsell)
+  s = s.replace(/purchase\s*and\s*(sell|sale)/gi, 'purchase and sell');
+  s = s.replace(/purchaseand(sell|sale)/gi, 'purchase and sell');
+
+  // collapse whitespace and trim
+  s = s.replace(/\s+/g, ' ').trim();
+
+  // Title case each word (keeps "And" capitalized per request)
+  s = s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+  return s;
 }
+
+// Normalize any server-rendered <option> labels so every option shows the prettified name.
+// Prefer option.value (filename) but fall back to option.textContent if needed.
+function normalizeExistingContractOptions() {
+  if (!contractSelect || !contractSelect.options) return;
+  for (let i = 0; i < contractSelect.options.length; i++) {
+    const opt = contractSelect.options[i];
+    if (!opt.value) continue; // keep placeholder alone
+    // use canonical filename (value) first
+    const source = (opt.value || opt.textContent || '').trim();
+    const pretty = prettyLabel(source);
+    if (pretty && opt.textContent.trim() !== pretty) {
+      opt.textContent = pretty;
+    }
+  }
+}
+
+// Ensure server-rendered options are normalized on initial load
+document.addEventListener('DOMContentLoaded', () => {
+  normalizeExistingContractOptions();
+  // prefer explicit language, fall back to region, then English
+  const defaultLang = languageSelect.value || (regionSelect.value === 'mexico' ? 'spanish' : 'english') || 'english';
+  updateLanguage(defaultLang);
+  languageSelect.value = defaultLang;
+});
 
 translations.english.contracts = {};
 translations.spanish.contracts = {};
