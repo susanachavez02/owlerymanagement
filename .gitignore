@@ -1,5 +1,5 @@
 # Virtual Environment
-venv/
+.venv/
 
 # Environment variables
 .env
@@ -8,7 +8,7 @@ venv/
 db.sqlite3
 
 # Python cache
-pycache/
+__pycache__/
 *.pyc
 
 # Django specific
