@@ -1,115 +1,150 @@
 {% extends "base.html" %}
 
 {% block content %}
-  {# This content is already placed inside the base.html's #}
-  {# {% block content %} and wrapped in {% if not request.user.is_authenticated %} #}
-  {# So, this specific file might not be strictly necessary if base.html contains everything. #}
-  {# However, if you want a separate file specifically for the homepage content: #}
 
-  <header class="py-5 py-lg-6 bg-white border-bottom rounded-3 mb-4">
+<style>
+    body {
+        font-family: "Georgia", serif;
+        background-color: #f8f8f8;
+        color: #1b1d29;
+    }
+    .hero {
+        background-color: #0c0f19;
+        color: #ffffff;
+        padding: 100px 20px;
+        border-bottom: 5px solid #c4a24c;
+    }
+    .hero-title {
+        font-size: 3rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+    .hero-text {
+        font-size: 1.15rem;
+        color: #d7d3c1;
+    }
+    .btn-gold {
+        background-color: #c4a24c;
+        color: #0c0f19;
+        font-weight: 600;
+        border: none;
+        padding: 12px 30px;
+    }
+    .btn-gold:hover {
+        background-color: #e2b857;
+    }
+    .section-title {
+        font-size: 2rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        border-left: 5px solid #c4a24c;
+        padding-left: 12px;
+        margin-bottom: 30px;
+        color: #0c0f19;
+    }
+    .card {
+        border-radius: 10px;
+        border: none;
+        background-color: #ffffff;
+        box-shadow: 0 0 12px rgba(0,0,0,0.08);
+    }
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #0c0f19;
+    }
+    .process-box {
+        border: 1px solid #c4a24c;
+        background-color: #ffffff;
+        border-radius: 12px;
+        color: #0c0f19;
+    }
+</style>
+
+
+<header class="hero text-center">
+    <div class="container py-5">
+        <h1 class="hero-title">Premium Legal Technology for Elite Firms</h1>
+        <p class="hero-text mt-3">
+            Secure case management and intelligent contract automation built with precision and confidentiality.
+        </p>
+        <a href="#features" class="btn btn-gold mt-4">Explore Solutions</a>
+    </div>
+</header>
+
+
+<section id="features" class="py-5">
     <div class="container">
-      <div class="row align-items-center g-4">
-        <div class="col-lg-7">
-          <h1 class="display-5 fw-bold mb-3">
-            Automate contracts & cases — fast, simple, secure.
-          </h1>
-          <p class="lead text-secondary">
-            A lightweight portal for small to mid-sized law offices: create contracts,
-            track cases, and streamline client communication.
-          </p>
-          <div class="d-flex gap-3 mt-4">
-            {# Button now opens the modal defined in base.html #}
-            <a href="#features" class="btn btn-outline-secondary btn-lg">See features</a>
-          </div>
+        <h2 class="section-title">Strategic Capabilities</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card p-4 h-100">
+                    <h5 class="card-title">Contract Automation</h5>
+                    <p>Draft watertight agreements in seconds with advanced merge-field logic and version control.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 h-100">
+                    <h5 class="card-title">Case Oversight</h5>
+                    <p>Every matter tracked with precision: deadlines, compliance tasks, and communication logs.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 h-100">
+                    <h5 class="card-title">Client Portal</h5>
+                    <p>Confidential access to documents and updates for VIP clients and corporate partners.</p>
+                </div>
+            </div>
         </div>
-        <div class="col-lg-5">
-           <div class="ratio ratio-16x9 bg-secondary bg-opacity-10 rounded-3 border d-flex align-items-center justify-content-center">
-             <img src="logo_owlery.png" alt="Italian Trulli">
-           </div>
-        </div>
-      </div>
     </div>
-  </header>
+</section>
 
-  <section id="features" class="py-5">
+
+<section id="how" class="py-5 bg-white border-top border-bottom">
     <div class="container">
-      <h2 class="h1 fw-bold text-center mb-4">Built for busy legal teams</h2>
-      <p class="text-center text-secondary mb-5">
-        Reduce repetitive work, minimize errors, and keep everything organized.
-      </p>
-      <div class="row g-4">
-        <div class="col-md-4">
-          <div class="card h-100 shadow-sm">
-            <div class="card-body">
-              <h3 class="h5">Contract Templates</h3>
-              <p class="text-secondary mb-0">
-                Reusable templates with merge fields for quick, consistent documents.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card h-100 shadow-sm">
-            <div class="card-body">
-              <h3 class="h5">Case Tracking</h3>
-              <p class="text-secondary mb-0">
-                Statuses, deadlines, and assignments at a glance.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card h-100 shadow-sm">
-            <div class="card-body">
-              <h3 class="h5">Client Updates</h3>
-              <p class="text-secondary mb-0">
-                Keep clients in the loop with clear, centralized messaging.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+        <h2 class="section-title text-center mb-5">Refined Legal Workflow</h2>
 
-  <section id="how" class="py-5 bg-white border-top border-bottom rounded-3 mb-4">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="p-4 h-100 process-box">
+                    <div class="fs-2 fw-bold mb-2" style="color:#c4a24c;">1</div>
+                    <h5 class="card-title">Engage Clients Securely</h5>
+                    <p>Begin with core data collection in a protected environment that respects privacy.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="p-4 h-100 process-box">
+                    <div class="fs-2 fw-bold mb-2" style="color:#c4a24c;">2</div>
+                    <h5 class="card-title">Generate Legal Documents</h5>
+                    <p>Produce refined contracts and motions using professional templates.</p>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="p-4 h-100 process-box">
+                    <div class="fs-2 fw-bold mb-2" style="color:#c4a24c;">3</div>
+                    <h5 class="card-title">Monitor Every Detail</h5>
+                    <p>Achieve total visibility over case progress, client messaging, and compliance tasks.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<section id="cta" class="py-5 text-center">
     <div class="container">
-      <h2 class="h1 fw-bold text-center mb-5">How it works</h2>
-      <div class="row g-4">
-        <div class="col-lg-4">
-          <div class="p-4 h-100 border rounded-3">
-            <div class="fs-2 fw-bold mb-2">1</div>
-            <h3 class="h5">Add clients & cases</h3>
-            <p class="text-secondary mb-0">Start with core details—no clutter.</p>
-          </div>
-        </div>
-        <div class="col-lg-4">
-          <div class="p-4 h-100 border rounded-3">
-            <div class="fs-2 fw-bold mb-2">2</div>
-            <h3 class="h5">Generate documents</h3>
-            <p class="text-secondary mb-0">Use templates and merge fields to draft quickly.</p>
-          </div>
-        </div>
-        <div class="col-lg-4">
-          <div class="p-4 h-100 border rounded-3">
-            <div class="fs-2 fw-bold mb-2">3</div>
-            <h3 class="h5">Track progress</h3>
-            <p class="text-secondary mb-0">Monitor statuses, deadlines, and communications.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+        <h2 class="h1 fw-bold mb-3">Confident. Efficient. Secure.</h2>
+        <p class="text-secondary mb-4">
+            Step into the next generation of legal operations.
+        </p>
 
-  <section id="cta" class="py-5">
-    <div class="container text-center">
-      <h2 class="h1 fw-bold mb-3">Ready to reduce admin work?</h2>
-      <p class="text-secondary mb-4">Spin up your first case in minutes.</p>
-      {# Button now opens the modal defined in base.html #}
-      <li class="nav-item">
-        <a class="btn btn-outline-success btn-sm" href="{% url 'users:login' %}">Login</a>
-        </li>
+        <a class="btn btn-gold btn-lg" href="{% url 'users:login' %}">
+            Login to Your Portal
+        </a>
     </div>
-  </section>
+</section>
+
 
 {% endblock %}
