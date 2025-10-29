@@ -347,7 +347,8 @@ def template_list_view(request):
     templates_dir = os.path.join(settings.BASE_DIR, 'templates', 'cases')
     if os.path.isdir(templates_dir):
         for fn in sorted(os.listdir(templates_dir)):
-            if fn.endswith('_contract.html'):
+            # include both English and Spanish variants (e.g. _contract.html and _contract_es.html)
+            if fn.endswith('_contract.html') or fn.endswith('_contract_es.html'):
                 contract_files.append(fn)
 
     # Build prettier labels server-side to avoid using template filters
@@ -364,7 +365,9 @@ def template_list_view(request):
         # choices list of (filename, pretty label) for template rendering
         'contract_choices': contract_choices,
         # json-encoded version to inject safely into JS
-        'contract_files_json': json.dumps(contract_files)
+        'contract_files_json': json.dumps(contract_files),
+        # lightweight placeholder map for client-side autofill (no case context here)
+        'placeholder_map_json': json.dumps({})
     }
     return render(request, 'cases/template_list.html', context)
 
@@ -380,7 +383,11 @@ def contract_template_view(request):
     if not file_name or '/' in file_name or '..' in file_name:
         return JsonResponse({'error': 'Invalid file parameter.'}, status=400)
 
-    if not file_name.endswith('_contract.html'):
+    # Allow both English and Spanish contract filenames. Accepted patterns:
+    # - something_contract.html
+    # - something_contract_es.html
+    import re
+    if not re.search(r'_contract(_es)?\.html$', file_name, re.IGNORECASE):
         return JsonResponse({'error': 'Not a contract template.'}, status=400)
 
     templates_dir = os.path.join(settings.BASE_DIR, 'templates', 'cases')
@@ -433,28 +440,28 @@ def template_upload_view(request):
 @user_is_assigned_to_case
 def generate_document_view(request, case_pk):
     case = get_object_or_404(Case, pk=case_pk)
-    
+
     templates = Template.objects.filter(
         models.Q(is_public=True) | models.Q(uploaded_by=request.user)
     ).distinct()
-    
+
     if request.method == 'POST':
         template_id = request.POST.get('template_id')
         if not template_id:
             messages.error(request, "Please select a template.")
         else:
             template = get_object_or_404(Template, pk=template_id)
-            
+
             # --- 1. Build the Context ---
             # This matches placeholders to real data
             context = {}
-            
+
             # Find the client
             client_assignment = case.assignments.filter(user__roles__name='Client').first()
             if client_assignment:
                 context['client_name'] = client_assignment.user.get_full_name()
                 context['client_email'] = client_assignment.user.email
-            
+
             # Find the attorney
             attorney_assignment = case.assignments.filter(user__roles__name='Attorney').first()
             if attorney_assignment:
@@ -462,25 +469,25 @@ def generate_document_view(request, case_pk):
 
             context['case_title'] = case.case_title
             context['case_description'] = case.description
-            
+
             # You can add any other fields from your Template.context_fields here
             # For example, if you stored {"client_address": "..."} in the case model.
-            
+
             # --- 2. Generate the .docx Document ---
             try:
                 # Open the template file (.docx)
                 doc = DocxDocument(template.template_file.open())
-                
+
                 # Run our find-and-replace function
                 doc = docx_find_and_replace(doc, context)
-                
+
                 # --- 3. Save the new file in memory ---
                 file_buffer = io.BytesIO()
                 doc.save(file_buffer)
-                
+
                 # Create a new file name
                 file_name = f"Generated_{template.name.replace(' ', '_')}.docx"
-                
+
                 # Get the file content from the buffer
                 file_content = file_buffer.getvalue()
 
@@ -492,21 +499,81 @@ def generate_document_view(request, case_pk):
                     # Create a Django ContentFile from the buffer
                     file_upload=ContentFile(file_content, name=file_name)
                 )
-                
+
                 # 5. Log the creation
                 DocumentLog.objects.create(document=new_doc, user=request.user, action="Generated")
-                
+
                 messages.success(request, f"Document '{new_doc.title}' generated successfully.")
                 return redirect('cases:case-detail', pk=case.pk)
-            
+
             except Exception as e:
                 print(f"!!! Error generating document: {e}")
                 messages.error(request, f"Error generating document. Is the template file a valid .docx? Error: {e}")
 
+    # Discover any HTML contract templates placed under the project's
+    # `templates/cases/` directory that end with `_contract.html`.
+    templates_dir = os.path.join(settings.BASE_DIR, 'templates', 'cases')
+    contract_files = []
+    if os.path.isdir(templates_dir):
+        for fn in sorted(os.listdir(templates_dir)):
+            # include both English and Spanish variants (e.g. _contract.html and _contract_es.html)
+            if fn.endswith('_contract.html') or fn.endswith('_contract_es.html'):
+                contract_files.append(fn)
+
     context = {
         'case': case,
-        'templates': templates
+        'templates': templates,
+        'contract_files': contract_files,
+        'contract_files_json': json.dumps(contract_files)
     }
+    # Build a small, opinionated placeholder mapping so the frontend can autofill common keys
+    placeholder_map = {}
+    # Client and attorney
+    if client_assignment:
+        placeholder_map.update({
+            'CLIENT': client_assignment.user.get_full_name(),
+            'CLIENT_NAME': client_assignment.user.get_full_name(),
+            'CLIENT_EMAIL': client_assignment.user.email or ''
+        })
+    if attorney_assignment:
+        placeholder_map.update({
+            'ATTORNEY': attorney_assignment.user.get_full_name(),
+            'ATTORNEY_NAME': attorney_assignment.user.get_full_name()
+        })
+
+    # Case-related
+    placeholder_map.update({
+        'CASE_TITLE': case.case_title or '',
+        'CASE_DESCRIPTION': case.description or ''
+    })
+
+    # Date/time defaults
+    now = timezone.now()
+    try:
+        month_name = now.strftime('%B')
+    except Exception:
+        month_name = ''
+    placeholder_map.update({
+        'DAY': str(now.day),
+        'MONTH': month_name,
+        'YEAR': str(now.year),
+        'TIME': now.strftime('%H:%M')
+    })
+
+    # Helpful aliases for common roles found in templates
+    # Map a few role-like placeholders to the client (best-effort)
+    if client_assignment:
+        placeholder_map.setdefault('LESSOR', client_assignment.user.get_full_name())
+        placeholder_map.setdefault('LESSEE', client_assignment.user.get_full_name())
+        placeholder_map.setdefault('SELLER', client_assignment.user.get_full_name())
+        placeholder_map.setdefault('BUYERS', client_assignment.user.get_full_name())
+
+    context['placeholder_map_json'] = json.dumps(placeholder_map)
+    # Provide case participants for role dropdowns (id + display name)
+    participants = []
+    for a in case.assignments.select_related('user').all():
+        participants.append({'id': a.user.pk, 'name': a.user.get_full_name() or a.user.username})
+    context['participants_json'] = json.dumps(participants)
     return render(request, 'cases/generate_document.html', context)
 
 # --- View 12: Signature Request Page (Attorney-facing) ---

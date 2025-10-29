@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <a href="{% url 'cases:case-detail' pk=case.pk %}">&larr; Back to Case Details</a>
-  <h2 class="mt-2">Generate Document for: {{ case.case_title }}</h2>
-  <p>Select a template to generate a new document. The system will pre-fill the document with this case's data.</p>
+  <a id="back_link" href="{% url 'cases:case-detail' pk=case.pk %}">&larr; Back to Case Details</a>
+  <h2 id="page_heading" class="mt-2">Generate Document for: {{ case.case_title }}</h2>
+  <p id="page_instructions">Select a template to generate a new document. The system will pre-fill the document with this case's data.</p>
   
   <form method="POST">
     {% csrf_token %}
-    <div class="form-group">
-      <label for="template_id_select">Available Templates</label>
+      <div class="form-group">
+      <label id="availableTemplatesLabel" for="template_id_select">Available Templates</label>
       <select class="form-control" id="template_id_select" name="template_id">
         <option value="" selected disabled>--- Please select a template ---</option>
         {% for template in templates %}
@@ -20,7 +20,583 @@
         {% endfor %}
       </select>
     </div>
-    <button type="submit" class="btn btn-success mt-3">Generate</button>
+  <button id="generate_btn" type="submit" class="btn btn-success mt-3">Generate</button>
   </form>
 
+    <hr />
+
+  <h3 id="html_section_title" class="mt-4">HTML Contract Templates (preview & fill)</h3>
+  <p id="html_section_instructions">Select an HTML contract template to preview and fill placeholders inline.</p>
+  <div class="row contract-row">
+    <div class="col-md-5">
+      <div class="card mb-3">
+        <div class="card-body">
+          <div class="mb-3">
+            <label id="html_contract_label" for="html_contract_select">Choose a contract</label>
+            <select class="form-control" id="html_contract_select">
+              <option value="" selected disabled>--- Select an HTML contract ---</option>
+              {% for fn in contract_files %}
+                <option value="{{ fn }}">{{ fn|replace:'_contract.html',''|replace:'_',' '|title }}</option>
+              {% empty %}
+                <option value="" disabled>No HTML contract templates found.</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label id="lang_select_label" for="lang_select">Language</label>
+            <select class="form-control" id="lang_select">
+              <option value="en" selected>English</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
+
+          <hr />
+          <h5 id="fill_fields_heading" class="mb-3">Fill Contract Fields</h5>
+          <div id="fields_container"></div>
+          <div class="d-flex" style="gap:.5rem; margin-top:12px;">
+            <!-- Controls removed per request: Preview and Open modal/tab removed. Keep Download for export if needed. -->
+            <button id="download_pdf" type="button" class="btn btn-secondary">Download PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-7">
+      <div class="card mb-3 preview-card">
+        <div class="card-body">
+          <div id="inline_preview_area" style="display:none;">
+            <h5 id="preview_heading">Preview</h5>
+            <iframe id="preview_iframe" style="width:100%; border:1px solid #ccc;"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* Equal-height two-column layout for the generate page.
+       Align tops, make cards fill height, and let card bodies scroll.
+       Increase preview height so users scroll less. */
+    .contract-row { align-items: stretch; }
+    .contract-row > .col-md-5, .contract-row > .col-md-7 { display:flex; flex-direction:column; }
+    .contract-row .card { display:flex; flex-direction:column; height:100%; margin-top:0; }
+    .contract-row .card .card-body { flex:1 1 auto; min-height:0; overflow:auto; }
+    /* Leave room for headers/controls (~100px) and use the rest of the viewport */
+    .contract-row .card .card-body { max-height: calc(100vh - 100px); }
+
+    /* Make the preview iframe stretch to fill the right card body */
+    .preview-card .card-body { display:flex; flex-direction:column; min-height:0; }
+    #inline_preview_area { display:block; flex:1 1 auto; min-height:0; }
+    #preview_iframe { flex:1 1 auto; min-height:0; height:100%; }
+  </style>
+  <script>
+    // Data injected from the server
+    const contractTemplateUrl = "{% url 'cases:contract-template' %}";
+  const contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
+    const caseTitle = "{{ case.case_title|escapejs|default:'' }}";
+    const placeholderMap = JSON.parse('{{ placeholder_map_json|escapejs }}') || {};
+    const participants = JSON.parse('{{ participants_json|escapejs }}') || [];
+  // Translations
+  const translations = {
+    en: {
+      back: '\u2190 Back to Case Details',
+      pageHeadingPrefix: 'Generate Document for',
+      pageInstructions: 'Select a template to generate a new document. The system will pre-fill the document with this case\'s data.',
+      availableTemplates: 'Available Templates',
+      generate: 'Generate',
+      htmlSectionTitle: 'HTML Contract Templates (preview & fill)',
+      htmlSectionInstructions: 'Select an HTML contract template to preview and fill placeholders inline.',
+      chooseContract: 'Choose a contract',
+      languageLabel: 'Language',
+      fillFieldsHeading: 'Fill Contract Fields',
+      downloadPdf: 'Download PDF',
+      previewHeading: 'Preview',
+      selectHtmlPlaceholder: '--- Select an HTML contract ---',
+      noTemplatesFound: 'No HTML contract templates found.'
+    },
+    es: {
+      back: '\u2190 Volver a detalles del caso',
+      pageHeadingPrefix: 'Generar documento para',
+      pageInstructions: 'Seleccione una plantilla para generar un nuevo documento. El sistema completará automáticamente los datos del caso.',
+      availableTemplates: 'Plantillas disponibles',
+      generate: 'Generar',
+      htmlSectionTitle: 'Plantillas HTML de Contrato (vista previa y completar)',
+      htmlSectionInstructions: 'Seleccione una plantilla HTML para ver y completar los campos en línea.',
+      chooseContract: 'Elegir un contrato',
+      languageLabel: 'Idioma',
+      fillFieldsHeading: 'Complete los campos del contrato',
+      downloadPdf: 'Descargar PDF',
+      previewHeading: 'Vista previa',
+      selectHtmlPlaceholder: '--- Seleccione una plantilla HTML ---',
+      noTemplatesFound: 'No se encontraron plantillas HTML.'
+    }
+  };
+
+  function applyTranslations(){
+    const lang = currentLang();
+    const t = translations[lang] || translations.en;
+    const back = document.getElementById('back_link'); if(back) back.textContent = t.back;
+    const heading = document.getElementById('page_heading'); if(heading) heading.textContent = t.pageHeadingPrefix + ': ' + ("{{ case.case_title|escapejs|default:'' }}");
+    const pinfo = document.getElementById('page_instructions'); if(pinfo) pinfo.textContent = t.pageInstructions;
+    const avail = document.getElementById('availableTemplatesLabel'); if(avail) avail.textContent = t.availableTemplates;
+    const genBtn = document.getElementById('generate_btn'); if(genBtn) genBtn.textContent = t.generate;
+    const sectionTitle = document.getElementById('html_section_title'); if(sectionTitle) sectionTitle.textContent = t.htmlSectionTitle;
+    const sectionInstr = document.getElementById('html_section_instructions'); if(sectionInstr) sectionInstr.textContent = t.htmlSectionInstructions;
+    const htmlLabel = document.getElementById('html_contract_label'); if(htmlLabel) htmlLabel.textContent = t.chooseContract;
+    const langLabel = document.getElementById('lang_select_label'); if(langLabel) langLabel.textContent = t.languageLabel;
+    const fillHeading = document.getElementById('fill_fields_heading'); if(fillHeading) fillHeading.textContent = t.fillFieldsHeading;
+    const downloadBtn = document.getElementById('download_pdf'); if(downloadBtn) downloadBtn.textContent = t.downloadPdf;
+    const previewH = document.getElementById('preview_heading'); if(previewH) previewH.textContent = t.previewHeading;
+    // update html select placeholder
+    if(htmlSelect && htmlSelect.options && htmlSelect.options.length>0){
+      htmlSelect.options[0].text = t.selectHtmlPlaceholder;
+    }
+    // update any disabled 'no templates' option
+    for(let i=0;i<htmlSelect.options.length;i++){ const opt = htmlSelect.options[i]; if(opt.disabled && opt.value==='') opt.text = t.noTemplatesFound; }
+  }
+  // language control: prefer global site language if present
+  let langSelectEl = document.getElementById('lang_select');
+  const globalLangEl = document.getElementById('language');
+  if(globalLangEl){
+    // hide the local control if site-wide exists
+    if(langSelectEl) langSelectEl.style.display = 'none';
+    langSelectEl = globalLangEl;
+  }
+  const currentLang = () => {
+    if(!langSelectEl) return 'en';
+    const v = (langSelectEl.value || '').toString().toLowerCase();
+    if(v === 'es' || v === 'spanish') return 'es';
+    return 'en';
+  };
+
+  // State lists
+  const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'];
+  const MX_STATES = ['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua','Coahuila','Colima','Durango','Guanajuato','Guerrero','Hidalgo','Jalisco','México','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco','Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas','Ciudad de México'];
+
+    // DOM refs
+    const htmlSelect = document.getElementById('html_contract_select');
+    const fieldsContainer = document.getElementById('fields_container');
+    const downloadPdfBtn = document.getElementById('download_pdf');
+    const inlinePreviewArea = document.getElementById('inline_preview_area');
+    const previewIframe = document.getElementById('preview_iframe');
+
+    let currentTemplateText = null;
+    let currentPlaceholders = [];
+
+    function extractPlaceholders(text){
+      const re = /<<([A-Z0-9_]+)>>/gi;
+      const set = new Set();
+      let m;
+      while((m = re.exec(text)) !== null){
+        set.add(m[1]);
+      }
+      return Array.from(set);
+    }
+
+    function updatePreview(){
+      if(!currentTemplateText) return;
+      const filled = fillTemplateFromFields(currentTemplateText);
+      inlinePreviewArea.style.display = 'block';
+      const doc = previewIframe.contentDocument || previewIframe.contentWindow.document;
+      doc.open(); doc.write(filled); doc.close();
+    }
+
+    function buildFields(placeholders){
+      fieldsContainer.innerHTML = '';
+      if(placeholders.length === 0){
+        fieldsContainer.innerHTML = '<p class="text-muted">No placeholders detected for this template.</p>';
+        return;
+      }
+      const ROLE_KEYS = ['LESSOR','LESSEE','SELLER','BUYERS','BUYER','BUYER1','BUYER2'];
+      // translations for common placeholder keys
+      const placeholderTranslations = {
+        CITY: { en: 'CITY', es: 'CIUDAD' },
+        STATE: { en: 'STATE', es: 'ESTADO' },
+        DAY: { en: 'DAY', es: 'DÍA' },
+        MONTH: { en: 'MONTH', es: 'MES' },
+        YEAR: { en: 'YEAR', es: 'AÑO' },
+        AGE: { en: 'AGE', es: 'EDAD' },
+        LESSOR: { en: 'LESSOR', es: 'ARRENDADOR' },
+        LESSEE: { en: 'LESSEE', es: 'ARRENDATARIO' },
+        LEASE_AMOUNT: { en: 'LEASE AMOUNT', es: 'MONTO DEL ARRENDAMIENTO' },
+        LEASE_AMOUNT_WORDS: { en: 'LEASE AMOUNT (WORDS)', es: 'MONTO EN LETRAS' }
+      };
+      placeholders.forEach(key => {
+        const id = 'field_' + key;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'form-group mb-2';
+        const upperKey = key.toUpperCase();
+
+        // Decide input type
+        let inputHtml = '';
+        // LEASE_AMOUNT_WORDS should be read-only and auto-filled
+        if(upperKey === 'LEASE_AMOUNT_WORDS'){
+          inputHtml = `<input type="text" class="form-control" id="${id}" readonly>`;
+        } else if(upperKey.includes('AGE')){
+          // age selector 18-100
+          inputHtml = `<select class="form-select" id="${id}"></select>`;
+        } else if(ROLE_KEYS.includes(upperKey)){
+          // role dropdown populated from participants
+          inputHtml = `<select class="form-select" id="${id}"></select>`;
+        } else if(upperKey === 'DAY'){
+          // day dropdown 1-31
+          inputHtml = `<select class="form-select" id="${id}"></select>`;
+        } else if(upperKey === 'MONTH'){
+          // month name dropdown
+          inputHtml = `<select class="form-select" id="${id}"></select>`;
+        } else if(upperKey === 'YEAR'){
+          // year dropdown (currentYear-5 .. currentYear+10)
+          inputHtml = `<select class="form-select" id="${id}"></select>`;
+        } else if(upperKey.includes('STATE') || upperKey === 'STATE'){
+          // US states dropdown
+          inputHtml = `<select class="form-select" id="${id}"></select>`;
+        } else if(upperKey.includes('START') || upperKey.includes('END') || upperKey.includes('DATE')){
+          // date picker for start/end dates or any DATE-like placeholder
+          inputHtml = `<input type="date" class="form-control" id="${id}">`;
+        } else if(upperKey.includes('AMOUNT') || upperKey.includes('PRICE') || upperKey.includes('TOTAL') || upperKey.includes('LEASE') || upperKey.includes('FEE') || upperKey.includes('COST')){
+          // Use a text input so we can format the display but keep numeric parsing
+          inputHtml = `<div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control currency" id="${id}"></div>`;
+        } else {
+          inputHtml = `<input type="text" class="form-control" id="${id}">`;
+        }
+
+  // use translated label when available
+  const labelText = (placeholderTranslations[upperKey] && placeholderTranslations[upperKey][currentLang()]) ? placeholderTranslations[upperKey][currentLang()] : key.replace(/_/g,' ');
+  wrapper.innerHTML = `<label for="${id}">${labelText}</label>` + inputHtml;
+
+        // insert into DOM, then populate/select prefills
+        fieldsContainer.appendChild(wrapper);
+
+        const el = document.getElementById(id);
+        // Prefill logic: first check placeholderMap
+        if(placeholderMap && Object.prototype.hasOwnProperty.call(placeholderMap, upperKey)){
+          if(el && el.tagName === 'SELECT'){
+            // populate options and select matching
+            populateParticipantSelect(el, placeholderMap[upperKey]);
+          } else if(el){
+            el.value = placeholderMap[upperKey] || '';
+          }
+        } else if(el && el.tagName === 'SELECT'){
+          if(upperKey === 'DAY') populateDaySelect(el, currentLang());
+          else if(upperKey === 'MONTH') populateMonthSelect(el, currentLang());
+          else if(upperKey === 'YEAR') populateYearSelect(el, currentLang());
+          else if(upperKey.includes('AGE')) populateAgeSelect(el, currentLang());
+          else if(upperKey.includes('STATE') || upperKey === 'STATE') populateStateSelect(el, currentLang());
+          else populateParticipantSelect(el, null);
+        } else if(el && (key.toLowerCase().includes('case') || key.toLowerCase().includes('title'))){
+          el.value = caseTitle || '';
+        }
+
+        // Live-update and special wiring
+        if(el){
+          // When amounts change, update the words field if present
+          if(upperKey.includes('AMOUNT') || upperKey.includes('LEASE') || upperKey.includes('PRICE') || upperKey.includes('TOTAL')){
+            el.addEventListener('input', ()=>{
+              // format display but keep numeric value parseable
+              const cleaned = parseNumberFromString(el.value);
+              el.value = cleaned === '' ? '' : formatNumberForDisplay(cleaned);
+              // update words
+              const wordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
+              if(wordsEl){
+                const num = parseFloat(cleaned || 0);
+                if(!isNaN(num) && num !== 0){
+                  wordsEl.value = numberToWords(num);
+                } else {
+                  wordsEl.value = '';
+                }
+              }
+              updatePreview();
+            });
+          } else {
+            el.addEventListener('input', updatePreview);
+          }
+          el.addEventListener('change', updatePreview);
+        }
+      });
+    }
+
+    function populateDaySelect(selectEl, lang='en'){
+      selectEl.innerHTML = '';
+      const empty = document.createElement('option'); empty.value = ''; empty.textContent = (lang==='es') ? '-- Día --' : '-- Day --'; selectEl.appendChild(empty);
+      for(let d=1; d<=31; d++){ const o=document.createElement('option'); o.value = String(d); o.textContent = String(d); selectEl.appendChild(o);}    
+    }
+
+    function populateMonthSelect(selectEl, lang='en'){
+      const months_en = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const months_es = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      const months = (lang === 'es') ? months_es : months_en;
+      selectEl.innerHTML = '';
+      const empty = document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')? '-- Mes --' : '-- Month --'; selectEl.appendChild(empty);
+      months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; selectEl.appendChild(o); });
+    }
+
+    function populateYearSelect(selectEl, lang='en'){
+      const nowYear = new Date().getFullYear();
+      const start = nowYear - 5; const end = nowYear + 10;
+      selectEl.innerHTML = '';
+      const empty = document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')? '-- Año --' : '-- Year --'; selectEl.appendChild(empty);
+      for(let y=start;y<=end;y++){ const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); selectEl.appendChild(o); }
+    }
+
+    function populateAgeSelect(selectEl, lang='en'){
+      selectEl.innerHTML = '';
+      const empty = document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')? '-- Edad --' : '-- Age --'; selectEl.appendChild(empty);
+      for(let a=18; a<=100; a++){ const o=document.createElement('option'); o.value=String(a); o.textContent=String(a); selectEl.appendChild(o); }
+    }
+
+    function populateStateSelect(selectEl, lang='en'){
+      selectEl.innerHTML = '';
+      const empty = document.createElement('option'); empty.value=''; empty.textContent = (lang==='es')? '-- Seleccione Estado --' : '-- Select State --'; selectEl.appendChild(empty);
+      const list = (lang === 'es') ? MX_STATES : US_STATES;
+      list.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; selectEl.appendChild(o); });
+    }
+
+    function populateParticipantSelect(selectEl, prefillName){
+      // clear
+      selectEl.innerHTML = '';
+      const emptyOpt = document.createElement('option');
+      emptyOpt.value = '';
+      emptyOpt.textContent = (currentLang()==='es')? '-- Seleccione participante --' : '-- Select Participant --';
+      selectEl.appendChild(emptyOpt);
+      participants.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.name;
+        o.textContent = p.name;
+        selectEl.appendChild(o);
+      });
+      if(prefillName){
+        selectEl.value = prefillName;
+      }
+    }
+
+    // When language changes, repopulate any existing STATE selects
+    if(langSelectEl){
+      langSelectEl.addEventListener('change', ()=>{
+        const allSelects = fieldsContainer.querySelectorAll('select');
+        allSelects.forEach(s => {
+          if(s.id && s.id.toUpperCase().includes('STATE')){
+            populateStateSelect(s, currentLang());
+          }
+          // update day/month/year/age labels too
+          const idUp = (s.id||'').toUpperCase();
+          if(idUp.includes('DAY')) populateDaySelect(s, currentLang());
+          if(idUp.includes('MONTH')) populateMonthSelect(s, currentLang());
+          if(idUp.includes('YEAR')) populateYearSelect(s, currentLang());
+          if(idUp.includes('AGE')) populateAgeSelect(s, currentLang());
+        });
+        updatePreview();
+      });
+    }
+
+    // Parse a user-entered currency string into a plain numeric string (e.g. "1,234.50" -> "1234.50")
+    function parseNumberFromString(s){
+      if(s === null || s === undefined) return '';
+      const cleaned = String(s).replace(/[^0-9.\-]/g, '');
+      // If multiple dots, keep only the first
+      const parts = cleaned.split('.');
+      if(parts.length <= 1) return cleaned;
+      return parts[0] + '.' + parts.slice(1).join('').slice(0,2);
+    }
+
+    // Format a numeric string or number into human readable currency with two decimals and commas
+    function formatNumberForDisplay(n){
+      if(n === null || n === undefined || n === '') return '';
+      const num = typeof n === 'number' ? n : parseFloat(String(n));
+      if(isNaN(num)) return '';
+      return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    async function fetchTemplate(fileName){
+      const lang = currentLang();
+      if(lang === 'es'){
+        // try spanish variants first
+        const tryNames = [];
+        if(fileName.endsWith('.html')){
+          const base = fileName.replace(/\.html$/,'');
+          tryNames.push(base + '_es.html');
+          tryNames.push(base.replace('_contract','_contract_es') + '.html');
+        }
+        for(const fn of tryNames){
+          try{
+            const r = await fetch(contractTemplateUrl + '?file=' + encodeURIComponent(fn), {credentials: 'same-origin'});
+            if(r.ok) return await r.text();
+          }catch(e){ /* ignore */ }
+        }
+        // fall through to original
+      }
+      const resp = await fetch(contractTemplateUrl + '?file=' + encodeURIComponent(fileName), {credentials: 'same-origin'});
+      if(!resp.ok) throw new Error('Unable to fetch template: ' + resp.status);
+        const original = await resp.text();
+        // If Spanish requested but no Spanish variant was found, attempt simple auto-translation
+        if(lang === 'es'){
+          try{
+            return autoTranslateHtml(original, 'es');
+          }catch(e){
+            console.warn('Auto-translate failed', e);
+            return original;
+          }
+        }
+        return original;
+    }
+
+      // Lightweight rule-based HTML translator (convenience fallback). Not for production/legal use.
+      function autoTranslateHtml(html, target){
+        if(!html || target !== 'es') return html;
+        let out = html;
+        const monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const monthsEs = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        monthsEn.forEach((m,i)=>{ const re = new RegExp('\\b'+m+'\\b','gi'); out = out.replace(re, monthsEs[i]); });
+        const dict = {
+          'Contract': 'Contrato',
+          'Agreement': 'Acuerdo',
+          'Lessor': 'Arrendador',
+          'Lessee': 'Arrendatario',
+          'Buyer': 'Comprador',
+          'Seller': 'Vendedor',
+          'Start Date': 'Fecha de inicio',
+          'End Date': 'Fecha de término',
+          'Term': 'Plazo',
+          'Signature': 'Firma',
+          'Witness': 'Testigo',
+          'County': 'Condado',
+          'State': 'Estado',
+          'City': 'Ciudad',
+          'Day': 'Día',
+          'Month': 'Mes',
+          'Year': 'Año',
+          'Amount': 'Cantidad'
+        };
+        Object.keys(dict).sort((a,b)=>b.length-a.length).forEach(k=>{ const re = new RegExp('\\b'+k+'\\b','gi'); out = out.replace(re, dict[k]); });
+        out = out.replace(/\bof the\b/gi, 'del');
+        out = out.replace(/\bthe\b/gi, 'el');
+        out = out.replace(/\band\b/gi, 'y');
+        return out;
+      }
+
+    htmlSelect.addEventListener('change', async (e) =>{
+      const file = e.target.value;
+      if(!file) return;
+      try{
+        currentTemplateText = await fetchTemplate(file);
+        currentPlaceholders = extractPlaceholders(currentTemplateText);
+        buildFields(currentPlaceholders);
+        // immediately render preview with current (prefilled) values
+        updatePreview();
+      }catch(err){
+        console.error(err);
+        alert('Error loading template. See console for details.');
+      }
+    });
+
+    // re-apply translations and rebuild fields when language changes and on load
+    if(langSelectEl){
+      langSelectEl.addEventListener('change', ()=>{
+        try{ applyTranslations(); }catch(e){}
+        try{
+          if(currentPlaceholders && currentPlaceholders.length>0){
+            buildFields(currentPlaceholders);
+            updatePreview();
+          }
+        }catch(e){ /* ignore */ }
+      });
+    }
+
+    downloadPdfBtn.addEventListener('click', ()=>{
+      if(!currentTemplateText) return alert('No template loaded.');
+      const filled = fillTemplateFromFields(currentTemplateText);
+      // strip tags for simple PDF rendering
+      const text = filled.replace(/<[^>]*>/g, '\n').replace(/&nbsp;/g, ' ');
+      try{
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const lines = doc.splitTextToSize(text, 180);
+        doc.text(lines, 15, 20);
+        const name = `Generated_${(caseTitle||'contract').replace(/\s+/g,'_')}.pdf`;
+        doc.save(name);
+      }catch(e){
+        console.error('PDF generation failed', e);
+        alert('PDF generation failed in this browser. Opening in new tab instead.');
+        const win = window.open(); win.document.open(); win.document.write(filled); win.document.close();
+      }
+    });
+
+    function fillTemplateFromFields(text){
+      let out = text;
+      currentPlaceholders.forEach(key =>{
+        const id = 'field_' + key;
+        const el = document.getElementById(id);
+        let value = '';
+        if(!el){
+          value = '';
+        } else {
+          value = el.value || '';
+        }
+        // replace all occurrences of <<KEY>> (case-sensitive)
+        const re = new RegExp('<<' + key + '>>', 'g');
+        out = out.replace(re, value);
+      });
+
+      // Special handling: if lease amount provided, also replace LEASE_AMOUNT_WORDS if present
+      try{
+        const amtEl = document.getElementById('field_LEASE_AMOUNT');
+        const wordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
+        if(amtEl){
+          const raw = amtEl.value || '';
+          const cleaned = parseNumberFromString(raw);
+          const num = parseFloat(cleaned || 0);
+          if(wordsEl){
+            if(!isNaN(num) && num !== 0){
+              wordsEl.value = numberToWords(num);
+            } else {
+              wordsEl.value = '';
+            }
+            out = out.replace(new RegExp('<<LEASE_AMOUNT_WORDS>>','g'), wordsEl.value || '');
+          }
+        }
+      }catch(e){ /* ignore */ }
+      return out;
+    }
+
+    // simple number to words (handles up to millions, with cents)
+    function numberToWords(amount){
+      if(amount === null || amount === undefined) return '';
+      const integer = Math.floor(amount);
+      const cents = Math.round((amount - integer) * 100);
+      const smallNumbers = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+      const tens = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+      function intToWords(n){
+        if(n < 20) return smallNumbers[n];
+        if(n < 100) return tens[Math.floor(n/10)] + (n%10 ? '-' + smallNumbers[n%10] : '');
+        if(n < 1000) return intToWords(Math.floor(n/100)) + ' hundred' + (n%100 ? ' ' + intToWords(n%100) : '');
+        if(n < 1000000) return intToWords(Math.floor(n/1000)) + ' thousand' + (n%1000 ? ' ' + intToWords(n%1000) : '');
+        return intToWords(Math.floor(n/1000000)) + ' million' + (n%1000000 ? ' ' + intToWords(n%1000000) : '');
+      }
+      const dollars = integer === 0 ? 'zero' : intToWords(integer);
+      if(cents){
+        return (dollars + ' dollars and ' + (cents<10? '0'+cents : cents) + '/100').toUpperCase();
+      }
+      return (dollars + ' dollars').toUpperCase();
+    }
+
+    // If there's at least one HTML contract available, auto-select it so users
+    // immediately see the fields (helps when there's a single template).
+    document.addEventListener('DOMContentLoaded', async () => {
+      try{
+        if(contractFiles && contractFiles.length > 0){
+          htmlSelect.value = contractFiles[0];
+          const ev = new Event('change');
+          htmlSelect.dispatchEvent(ev);
+          // Focus the first field when it appears
+          setTimeout(()=>{
+            const firstInput = fieldsContainer.querySelector('input, select');
+            if(firstInput) firstInput.focus();
+          }, 250);
+        }
+      }catch(e){
+        console.warn('Auto-select contract failed', e);
+      }
+      // apply translations initially
+      applyTranslations();
+    });
+  </script>
 {% endblock %}
