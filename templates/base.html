@@ -10,18 +10,120 @@
           crossorigin="anonymous">
 
     <style>
-    .btn-outline-gold {
-        color:#c4a24c;
-        border:1px solid #c4a24c;
-        background:transparent;
-    }
-    .btn-outline-gold:hover,
-    .btn-outline-gold:focus {
-        background:#c4a24c;
-        color:#0c0f19;
-        border-color:#c4a24c;
-    }
-    </style>
+  /* Theme tokens */
+  :root { 
+    --owl-dark:#0c0f19; 
+    --owl-gold:#c4a24c; 
+    --owl-gold-hover:#e2b857; 
+  }
+
+  /* Buttons that match the landing page */
+  .btn-gold {
+    background:var(--owl-gold);
+    color:var(--owl-dark);
+    border:none;
+  }
+  .btn-gold:hover { 
+    background:var(--owl-gold-hover); 
+    color:var(--owl-dark); 
+  }
+  
+  .btn-outline-gold {
+    color:var(--owl-gold);
+    border:1px solid var(--owl-gold);
+    background:transparent;
+  }
+  .btn-outline-gold:hover,
+  .btn-outline-gold:focus {
+    background:var(--owl-gold);
+    color:var(--owl-dark);
+    border-color:var(--owl-gold);
+  }
+
+  /* Global page utilities */
+  .page-title {
+    font-family: "Georgia", serif;
+    font-weight: 700;
+    letter-spacing:.2px;
+    margin-bottom:.25rem;
+  }
+  .page-subtitle { 
+    color:#6c757d; 
+  }
+
+  /* Badges—more pill-like */
+  .badge { 
+    border-radius: 999px; 
+    padding:.4rem .6rem; 
+    font-weight:600; 
+  }
+
+  .btn-management {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  .btn-management:hover {
+    background: #5a6268;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+  }
+
+  /* Reports Button - Brand Gold */
+  .btn-reports {
+    background: var(--owl-gold);
+    color: var(--owl-dark);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  .btn-reports:hover {
+    background: var(--owl-gold-hover);
+    color: var(--owl-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(196, 162, 76, 0.4);
+  }
+
+  /* Primary Action Button - Deep Blue (Create New Case) */
+  .btn-primary-action {
+    background: #1e40af;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  .btn-primary-action:hover {
+    background: #1e3a8a;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
+  }
+</style>
+
 
 
     <title>Owlery Legal Portal</title>

@@ -1,87 +1,306 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>User Management</h2>
-    {# Group buttons together on the right for better alignment #}
-    <div>
-      <a href="{% url 'user-create' %}" class="btn btn-primary">Create New User</a>
-      <a href="{% url 'client-reassignment' %}" class="btn btn-warning">Reassign Clients</a>
-      <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
-    </div>
+
+<style>
+  /* ===== USER MANAGEMENT PAGE STYLES ===== */
+  
+  /* Card Grid Layout */
+  .users-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  /* User Card Styles */
+  .user-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .user-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    border-color: var(--owl-gold);
+  }
+
+  .user-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--owl-gold) 0%, var(--owl-gold-hover) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--owl-dark);
+    font-weight: bold;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .user-card-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-card-username {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .user-card-username a {
+    color: var(--owl-dark);
+    text-decoration: none;
+  }
+
+  .user-card-username a:hover {
+    color: var(--owl-gold);
+  }
+
+  .user-card-role {
+    color: #6c757d;
+    font-size: 0.875rem;
+  }
+
+  .user-card-details {
+    margin-bottom: 1rem;
+  }
+
+  .user-card-detail {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+  }
+
+  .user-card-label {
+    color: #6c757d;
+    font-weight: 500;
+  }
+
+  .user-card-value {
+    color: #333;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .user-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .user-card-actions .btn {
+    width: 100%;
+    font-size: 0.875rem;
+  }
+
+  /* Make forms take full width */
+  .user-card-actions form {
+    width: 100%;
+    margin: 0;
+  }
+
+  /* ===== LEGAL PROFESSIONAL BUTTON COLORS ===== */
+  
+  /* Edit User Button - Deep Blue (Trust & Authority) */
+  .btn-edit-user {
+    background: #1e40af;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    display: block;
+    text-align: center;
+    text-decoration: none;
+  }
+  
+  .btn-edit-user:hover {
+    background: #1e3a8a;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
+  }
+
+  /* Reset Password Button - Teal (Informational Action) */
+  .btn-reset-password {
+    background: #0891b2;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    display: block;
+  }
+  
+  .btn-reset-password:hover {
+    background: #0e7490;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3);
+  }
+
+  /* Deactivate Button - Red (Warning/Danger) */
+  .btn-deactivate-user {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    display: block;
+  }
+  
+  .btn-deactivate-user:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+  }
+
+  /* Activate Button - Green (Positive Action) */
+  .btn-activate-user {
+    background: #16a34a;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    display: block;
+  }
+  
+  .btn-activate-user:hover {
+    background: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+    font-style: italic;
+  }
+</style>
+
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="page-title">User Management</h2>
+  <div>
+    <a href="{% url 'user-create' %}" class="btn btn-gold">Create New User</a>
+    <a href="{% url 'client-reassignment' %}" class="btn btn-outline-gold">Reassign Clients</a>
+    <a href="{% url 'cases:case-list' %}" class="btn btn-secondary">Back to Case List</a>
   </div>
-  <p>View all users in the system and manage their accounts.</p>
+</div>
+<p class="page-subtitle mb-0">View all users in the system and manage their accounts.</p>
 
-  <table class="table table-striped table-hover"> {# Added table-hover for better UX #}
-    <thead class="table-light">
-      <tr>
-        <th scope="col">Username</th>
-        <th scope="col">Full Name</th>
-        <th scope="col">Email</th>
-        <th scope="col">Roles</th>
-        <th scope="col">Status</th>
-        <th scope="col">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for user in users %}
-      <tr>
-        <td>
-  <strong>
-    <a href="{% url 'profile-view' user_pk=user.pk %}">{{ user.username }}</a>
-  </strong>
-</td>
-        <td>{{ user.get_full_name|default:"-" }}</td>
-        <td>{{ user.email|default:"-" }}</td> {# Added default filter #}
-        <td>
-          {# More efficient way to display roles #}
-          {{ user.roles.all|join:", " | default:"None" }}
-        </td>
-        <td>
-          {% if user.is_active %}
-            <span class="badge bg-success">Active</span>
-          {% else %}
-            <span class="badge bg-danger">Inactive</span>
-          {% endif %}
-        </td>
-        <td>
-          <div class="btn-group btn-group-sm" role="group" aria-label="User Actions"> {# Use btn-group-sm #}
-
-            <a href="{% url 'user-edit' user_pk=user.pk %}" class="btn btn-primary">Edit</a>
-
-            <form action="{% url 'user-reset-password' user_pk=user.pk %}" method="POST" class="d-inline">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-info"
-                      onclick="return confirm('Generate a new password reset link for {{ user.username }}?');">
-                Reset Pass
-              </button>
-            </form>
-
-            {% if user != request.user %} {# Prevent self-deactivation #}
-              <form action="{% url 'user-toggle-active' user_pk=user.pk %}" method="POST" class="d-inline">
-                {% csrf_token %}
-                {% if user.is_active %}
-                  <button type="submit" class="btn btn-danger"
-                          onclick="return confirm('DEACTIVATE user {{ user.username }}?');">
-                    Deactivate
-                  </button>
-                {% else %}
-                  <button type="submit" class="btn btn-success"
-                          onclick="return confirm('ACTIVATE user {{ user.username }}?');">
-                    Activate
-                  </button>
-                {% endif %}
-              </form>
-            {% endif %}
+{% if users %}
+  <div class="users-grid">
+    {% for user in users %}
+      <div class="user-card">
+        {# Card Header with Avatar #}
+        <div class="user-card-header">
+          <div class="user-avatar">
+            {{ user.username|first|upper }}
           </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="6" class="text-center text-muted fst-italic">No users found.</td> {# Added styling for empty state #}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          <div class="user-card-info">
+            <div class="user-card-username">
+              <a href="{% url 'profile-view' user_pk=user.pk %}">{{ user.username }}</a>
+            </div>
+            <div class="user-card-role">
+              {{ user.roles.all|join:", "|default:"No Role" }}
+            </div>
+          </div>
+        </div>
+
+        {# Card Details #}
+        <div class="user-card-details">
+          <div class="user-card-detail">
+            <span class="user-card-label">Full Name:</span>
+            <span class="user-card-value">{{ user.get_full_name|default:"-" }}</span>
+          </div>
+          <div class="user-card-detail">
+            <span class="user-card-label">Email:</span>
+            <span class="user-card-value">{{ user.email|default:"-" }}</span>
+          </div>
+          <div class="user-card-detail">
+            <span class="user-card-label">Status:</span>
+            <span class="user-card-value">
+              {% if user.is_active %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-danger">Inactive</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+
+        {# Card Actions with Legal Professional Colors #}
+        <div class="user-card-actions">
+          <a href="{% url 'user-edit' user_pk=user.pk %}" class="btn-edit-user">
+            Edit User
+          </a>
+
+          <form action="{% url 'user-reset-password' user_pk=user.pk %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn-reset-password"
+                    onclick="return confirm('Generate a new password reset link for {{ user.username }}?');">
+              Reset Password
+            </button>
+          </form>
+
+          {% if user != request.user %} {# Prevent self-deactivation #}
+            <form action="{% url 'user-toggle-active' user_pk=user.pk %}" method="POST">
+              {% csrf_token %}
+              {% if user.is_active %}
+                <button type="submit" class="btn-deactivate-user"
+                        onclick="return confirm('DEACTIVATE user {{ user.username }}?');">
+                  Deactivate
+                </button>
+              {% else %}
+                <button type="submit" class="btn-activate-user"
+                        onclick="return confirm('ACTIVATE user {{ user.username }}?');">
+                  Activate
+                </button>
+              {% endif %}
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    No users found.
+  </div>
+{% endif %}
 
 {% endblock %}
