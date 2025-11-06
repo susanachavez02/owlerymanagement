@@ -20,10 +20,6 @@ urlpatterns = [
     path('create/', views.case_create_view, name='case-create'),
     # Admin: List all cases
     path('/', views.case_list_view, name='case-list'),
-
-    # --- Billing & Invoicing URLs ---
-    path('<int:case_pk>/billing/', views.billing_view, name='billing-dashboard'),
-    path('invoice/<int:pk>/', views.invoice_detail_view, name='invoice-detail'),
     
     # --- User-Facing Case Views ---
     # View details for a single case
@@ -39,7 +35,6 @@ urlpatterns = [
     # --- Generate Document ---
     path('<int:case_pk>/generate-document/', views.generate_document_view, name='generate-document'),
     
-    path('document/<int:doc_pk>/view/', views.document_view_and_log, name='document-view'),
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
 
     # --- E-Signature URLs ---

@@ -29,9 +29,6 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('cases/', include('cases.urls')),
 
-    # --- Admin Reporting URL ---
-    path('reports/', case_views.reporting_view, name='reporting-dashboard'),
-
     # --- User Management URL ---
     path('management/users/', user_views.user_management_list_view, name='user-list'),
     path('management/users/create/', user_views.user_create_view, name='user-create'),
@@ -50,9 +47,6 @@ urlpatterns = [
     # to the 'communication' app's urls.py file.
     path('messages/', include('communication.urls')),
 
-    # --- STRIPE URLS ---
-    path('create-checkout-session/<int:pk>/', case_views.create_checkout_session_view, name='create-checkout-session'),
-    path('stripe-webhook/', case_views.stripe_webhook_view, name='stripe-webhook'),
 ]
 
 if settings.DEBUG:

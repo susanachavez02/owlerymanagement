@@ -13,8 +13,8 @@ from django.core.files.base import ContentFile
 # --- Model Imports ---
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
-    CaseWorkflow, CaseStage, TimeEntry, Template, 
-    SignatureRequest, Invoice, InvoiceItem, CaseStageLog
+    CaseWorkflow, CaseStage, Template, 
+    SignatureRequest, CaseStageLog
 )
 from django.db.models import Sum, Count, Avg, F
 from users.models import Role
@@ -22,27 +22,21 @@ from users.models import Role
 # --- Form Imports ---
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
-    WorkflowCreateForm, StageCreateForm, TimeEntryForm, 
-    TemplateUploadForm, InvoiceCreateForm
+    WorkflowCreateForm, StageCreateForm, 
+    TemplateUploadForm
 )
-from django.db import transaction
 
 from users.views import is_admin
 from .decorators import user_is_assigned_to_case
 
 # --- Django's File handling utilities ---
 from django.core.files.base import ContentFile
-
-import stripe # <-- Import Stripe
 from django.conf import settings # <-- Import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import os
 import json
 from django.conf import settings
-
-# --- Set your Stripe API key ---
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 # --- HELPER FUNCTION FOR DOCX ---
 def docx_find_and_replace(doc, context):
@@ -679,228 +673,4 @@ def signing_page_view(request, token):
     }
     return render(request, 'cases/signing_page.html', context)
 
-# --- View 14: Billing Dashboard (Create/List Invoices) ---
-@login_required
-@user_is_assigned_to_case
-def billing_view(request, case_pk):
-    case = get_object_or_404(Case, pk=case_pk)
-    
-    # --- Security: Only Attorneys/Admins ---
-    is_admin = request.user.roles.filter(name='Admin').exists()
-    is_attorney = request.user.roles.filter(name='Attorney').exists()
-    if not (is_admin or is_attorney):
-        messages.error(request, "Access denied.")
-        return redirect('cases:case-detail', pk=case.pk)
 
-    # --- Handle Invoice Creation ---
-    if request.method == 'POST':
-        form = InvoiceCreateForm(request.POST, case_pk=case.pk)
-        if form.is_valid():
-            selected_entries = form.cleaned_data['time_entries']
-            
-            # Use a database transaction so if anything fails, it all rolls back
-            try:
-                with transaction.atomic():
-                    # 1. Create the parent Invoice
-                    invoice = form.save(commit=False)
-                    invoice.case = case
-                    invoice.status = Invoice.Status.DRAFT
-                    invoice.save() # Save to get an ID
-                    
-                    # 2. Create InvoiceItems from the selected time entries
-                    total = 0
-                    for entry in selected_entries:
-                        # TODO: Get rate from attorney's profile. Hardcode for now.
-                        rate = 150.00 
-                        line_total = entry.hours * rate
-                        
-                        InvoiceItem.objects.create(
-                            invoice=invoice,
-                            time_entry=entry,
-                            description=entry.description,
-                            hours=entry.hours,
-                            rate=rate,
-                            line_total=line_total
-                        )
-                        total += line_total
-                    
-                    # 3. Update the invoice's total amount
-                    invoice.total_amount = total
-                    invoice.save()
-                    
-                messages.success(request, f"Invoice #{invoice.pk} created in Draft status.")
-                return redirect('cases:invoice-detail', pk=invoice.pk)
-            
-            except Exception as e:
-                messages.error(request, f"Error creating invoice: {e}")
-
-    # --- Handle GET request ---
-    form = InvoiceCreateForm(case_pk=case.pk)
-    invoices = case.invoices.all().order_by('-issue_date')
-    
-    context = {
-        'case': case,
-        'form': form,
-        'invoices': invoices,
-    }
-    return render(request, 'cases/billing_dashboard.html', context)
-
-
-# --- View 15: Invoice Detail ---
-@login_required
-@user_is_assigned_to_case # This decorator needs to be adapted for this view
-def invoice_detail_view(request, pk):
-    invoice = get_object_or_404(Invoice, pk=pk)
-    # We pass the case's pk to the decorator check
-    
-    # --- Run security check manually ---
-    case = invoice.case
-    is_admin = request.user.roles.filter(name='Admin').exists()
-    is_assigned = CaseAssignment.objects.filter(case=case, user=request.user).exists()
-    if not (is_admin or is_assigned):
-        messages.error(request, "You do not have permission to view this invoice.")
-        return redirect('users:dashboard')
-
-    context = {
-        'invoice': invoice,
-    }
-    return render(request, 'cases/invoice_detail.html', context)
-
-# --- View 16: Create Stripe Checkout Session ---
-@login_required
-def create_checkout_session_view(request, pk):
-    invoice = get_object_or_404(Invoice, pk=pk)
-    case = invoice.case
-    
-    # --- Security Check ---
-    is_assigned = CaseAssignment.objects.filter(case=case, user=request.user).exists()
-    if not is_assigned:
-        messages.error(request, "You do not have permission to pay this invoice.")
-        return redirect('users:dashboard')
-
-    # --- Build URLs for Stripe ---
-    success_url = request.build_absolute_uri(
-        reverse('cases:invoice-detail', kwargs={'pk': invoice.pk})
-    )
-    cancel_url = request.build_absolute_uri(
-        reverse('cases:invoice-detail', kwargs={'pk': invoice.pk})
-    )
-
-    try:
-        # --- Create Stripe Checkout Session ---
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': f"Invoice #{invoice.pk} for {case.case_title}",
-                    },
-                    # Stripe requires the amount in CENTS
-                    'unit_amount': int(invoice.total_amount * 100),
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=success_url + '?status=success',
-            cancel_url=cancel_url + '?status=cancel',
-            # Store our internal invoice ID so the webhook can find it
-            metadata={
-                'invoice_pk': invoice.pk
-            }
-        )
-        
-        # Redirect the user to the Stripe-hosted checkout page
-        return redirect(session.url, code=303)
-        
-    except Exception as e:
-        messages.error(request, f"Stripe Error: {e}")
-        return redirect('cases:invoice-detail', pk=invoice.pk)
-
-
-# --- View 17: Stripe Webhook (Placeholder) ---
-@csrf_exempt # Disable CSRF for this view; Stripe can't send a token
-def stripe_webhook_view(request):
-    # This is a placeholder for the next step.
-    # We will add logic here to listen for Stripe's "payment_succeeded" event.
-    
-    print("--- WEBHOOK CALLED ---")
-    
-    return HttpResponse(status=200)
-
-
-# --- STEP 30: REPORTING VIEW
-# ---
-@login_required
-@user_passes_test(is_admin)
-def reporting_view(request):
-    
-    # --- 1. Financial Summary ---
-    total_billed = Invoice.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    total_paid = Invoice.objects.filter(status=Invoice.Status.PAID).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    outstanding = total_billed - total_paid
-    total_hours_logged = TimeEntry.objects.aggregate(Sum('hours'))['hours__sum'] or 0
-
-    # --- 2. Attorney Caseloads ---
-    # Get all users with the 'Attorney' role
-    attorneys = User.objects.filter(roles__name='Attorney')
-    
-    # Get a count of active cases for each attorney
-    attorney_caseloads = attorneys.annotate(
-        active_case_count=Count('case_assignments', filter=models.Q(case_assignments__case__is_archived=False))
-    ).order_by('-active_case_count')
-
-    context = {
-        'total_billed': total_billed,
-        'total_paid': total_paid,
-        'outstanding_balance': outstanding,
-        'total_hours_logged': total_hours_logged,
-        'attorney_caseloads': attorney_caseloads,
-    }
-    
-    return render(request, 'cases/reporting_dashboard.html', context)
-
-# --- STEP 30: REPORTING VIEW (UPDATED)
-# ---
-@login_required
-@user_passes_test(is_admin)
-def reporting_view(request):
-    
-    # --- 1. Financial Summary (No changes) ---
-    total_billed = Invoice.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    total_paid = Invoice.objects.filter(status=Invoice.Status.PAID).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    outstanding = total_billed - total_paid
-    total_hours_logged = TimeEntry.objects.aggregate(Sum('hours'))['hours__sum'] or 0
-
-    # --- 2. Attorney Caseloads (No changes) ---
-    attorneys = User.objects.filter(roles__name='Attorney')
-    attorney_caseloads = attorneys.annotate(
-        active_case_count=Count('case_assignments', filter=models.Q(case_assignments__case__is_archived=False))
-    ).order_by('-active_case_count')
-
-    # --- 3. NEW: Case Stage Bottlenecks ---
-    # We calculate the average duration for each stage
-    stage_bottlenecks = CaseStageLog.objects.filter(
-        # Only look at stages that have been completed
-        timestamp_completed__isnull=False
-    ).annotate(
-        # Calculate the duration for each individual log entry
-        duration=F('timestamp_completed') - F('timestamp_entered')
-    ).values(
-        # Group by the stage's name
-        'stage__name'
-    ).annotate(
-        # Calculate the average of the durations we just found
-        avg_duration=Avg('duration')
-    ).order_by('-avg_duration') # Show longest average time first
-
-    context = {
-        'total_billed': total_billed,
-        'total_paid': total_paid,
-        'outstanding_balance': outstanding,
-        'total_hours_logged': total_hours_logged,
-        'attorney_caseloads': attorney_caseloads,
-        'stage_bottlenecks': stage_bottlenecks, # <-- Add this to context
-    }
-    
-    return render(request, 'cases/reporting_dashboard.html', context)

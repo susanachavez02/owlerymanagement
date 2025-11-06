@@ -1,8 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import (
-    Case, Document, CaseWorkflow, CaseStage,
-    TimeEntry, Template, Invoice
+    Case, Document, CaseWorkflow, CaseStage, Template, 
 )
 from users.models import Role   # From the 'users' app
 
@@ -47,19 +46,7 @@ class StageCreateForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={'min': 1})
         }
 
-class TimeEntryForm(forms.ModelForm):
-    class Meta:
-        model = TimeEntry
-        fields = ['date', 'hours', 'description', 'is_billable']
-        widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
-            'hours': forms.NumberInput(attrs={'step': '0.25', 'min': '0'}),
-        }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Set 'is_billable' to True by default
-        self.fields['is_billable'].initial = True
 
 class TemplateUploadForm(forms.ModelForm):
     class Meta:
@@ -68,34 +55,3 @@ class TemplateUploadForm(forms.ModelForm):
         help_texts = {
             'context_fields': 'Enter as a JSON list, e.g., ["client_name", "case_title"]'
         }
-
-# --- NEW: Invoice Creation Form ---
-class InvoiceCreateForm(forms.ModelForm):
-    # This field will show a list of unbilled time entries
-    time_entries = forms.ModelMultipleChoiceField(
-        queryset=TimeEntry.objects.none(), # We'll set this in the view
-        widget=forms.CheckboxSelectMultiple,
-        required=True
-    )
-    
-    class Meta:
-        model = Invoice
-        fields = ['due_date']
-        widgets = {
-            'due_date': forms.DateInput(attrs={'type': 'date'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        # We must pass the case 'pk' from the view to filter time_entries
-        case_pk = kwargs.pop('case_pk', None)
-        super().__init__(*args, **kwargs)
-        
-        if case_pk:
-            # This is the magic:
-            # We filter for TimeEntry objects that belong to this case
-            # AND do not have an invoice_item linked to them (isnull=True)
-            self.fields['time_entries'].queryset = TimeEntry.objects.filter(
-                case__pk=case_pk,
-                invoice_item__isnull=True,
-                is_billable=True
-            )
