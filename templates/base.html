@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -122,7 +123,52 @@
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
   }
+
+  /* --- Modern Navbar Styles --- */
+
+/* Style the main nav links */
+.navbar-light .navbar-nav .nav-link {
+    font-weight: 600;
+    color: #343a40; /* A slightly softer black */
+    padding: 0.5rem 1rem;
+    border-radius: 6px; /* Rounded corners for links */
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Add a subtle hover effect for nav links */
+.navbar-light .navbar-nav .nav-link:hover {
+    background-color: #f8f9fa; /* Light gray hover */
+    color: var(--owl-dark);
+}
+
+/* Use brand color for the active link (if you have one) */
+.navbar-light .navbar-nav .nav-link.active {
+    color: var(--owl-gold);
+}
+
+/* Modernize the dropdown menu */
+.dropdown-menu {
+    border: none; /* Remove default border */
+    border-radius: 8px; /* Softer, more modern corners */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.07); /* Deeper, softer shadow */
+}
+
+/* Style the items inside the dropdown */
+.dropdown-item {
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    transition: all 0.2s;
+}
+
+/* Brand the dropdown hover state */
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: var(--owl-gold-hover);
+    color: var(--owl-dark);
+    border-radius: 4px; /* Add rounded corners to the hover item */
+}
 </style>
+
+
 
 
 
@@ -130,9 +176,11 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'homepage' %}">🦉 Owlery Portal</a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'homepage' %}">
+              <img src="{% static 'images/logoblack.png' %}" alt="Owlery Portal Logo" height="75" class="d-inline-block align-text-top">
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -176,8 +224,9 @@
                         <li class="nav-item">
                               <form action="{% url 'users:logout' %}" method="post" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                                <button type="submit" class="btn btn-outline-gold btn-sm">Logout</button>
                             </form>
+                        </li>
                             {% else %}
                         <li class="nav-item">
                             <a class="btn btn-outline-gold btn-sm" href="{% url 'users:login' %}">Login</a>
