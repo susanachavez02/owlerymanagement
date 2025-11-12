@@ -14,7 +14,7 @@ from django.core.files.base import ContentFile
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
     CaseWorkflow, CaseStage, Template, 
-    SignatureRequest, CaseStageLog
+    SignatureRequest, CaseStageLog, 
 )
 from django.db.models import Sum, Count, Avg, F
 from users.models import Role
@@ -139,23 +139,11 @@ def case_detail_view(request, pk):
                 messages.success(request, f"Document '{doc.title}' uploaded successfully.")
                 return redirect('cases:case-detail', pk=case.pk)
         
-        # Check if the 'log_time' button was pressed
-        elif 'log_time' in request.POST:
-            time_form = TimeEntryForm(request.POST)
-            if time_form.is_valid():
-                entry = time_form.save(commit=False)
-                entry.case = case
-                entry.attorney = request.user
-                entry.save()
-                messages.success(request, "Time entry logged successfully.")
-                return redirect('cases:case-detail', pk=case.pk)
     
     # --- GET Request Logic ---
     documents = case.documents.all().order_by('-id')
     assignments = case.assignments.all()
     upload_form = DocumentUploadForm()
-    time_form = TimeEntryForm()
-    time_entries = case.time_entries.all().order_by('-date') 
     
     # Get all stages for the case's workflow
     all_stages = None
@@ -171,8 +159,6 @@ def case_detail_view(request, pk):
         'documents': documents,
         'assignments': assignments,
         'upload_form': upload_form,
-        'time_entries': time_entries, # <-- Add to context
-        'time_form': time_form,       # <-- Add to context
         'all_stages': all_stages,
         'next_stage': next_stage,
     }

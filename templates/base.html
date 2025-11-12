@@ -144,12 +144,7 @@
                         </li>
                         
                         {% if is_admin_user %} 
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'cases:case-list' %}">All Cases</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'reporting-dashboard' %}">Reports</a>
-                            </li>
+                            
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Management
