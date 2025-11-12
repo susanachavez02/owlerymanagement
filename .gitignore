@@ -11,6 +11,7 @@ db.sqlite3
 # Python cache
 __pycache__/
 *.pyc
+.pyc
 
 # Django specific
 /static_root/
