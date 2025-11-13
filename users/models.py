@@ -39,6 +39,8 @@ class OnboardingKey(models.Model):
     
     # We set a default expiration time for the key, prevents old, forgotten onboarding links from being secuirty risks
     expires_at = models.DateTimeField() # 
+
+    roles = models.ManyToManyField(Role, blank=True, help_text="Roles to assign when user completes onboarding")
     
     def is_valid(self):
         """Checks if the key is unused and not expired."""

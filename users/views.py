@@ -33,6 +33,7 @@ def admin_create_key_view(request):
         form = AdminCreateKeyForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data['user']
+            roles = form.cleaned_data['roles']
             hours = form.cleaned_data['expires_in_hours']
             
             # Delete any old, unused keys for this user first
@@ -44,6 +45,9 @@ def admin_create_key_view(request):
                 expires_at=timezone.now() + timezone.timedelta(hours=hours)
             )
             
+            #Assign the roles to the key
+            key_instance.roles.set(roles)
+
             # Show a success message
             messages.success(request, f"Key generated for {user.username}. The setup link is:")
             
@@ -98,6 +102,9 @@ def set_password_view(request, key):
             # Activate the user
             user.is_active = True
             user.save()
+
+            # Assign the roles from the OnboardingKey
+            user.roles.set(key_instance.roles.all())
             
             # Mark the key as used
             key_instance.is_used = True
@@ -105,11 +112,10 @@ def set_password_view(request, key):
             
             # Log the user in automatically
             login(request, user)
-            
             messages.success(request, "Your password has been set and you are now logged in.")
             
             # TODO: Redirect to the correct dashboard (client or attorney)
-            return redirect('users/dashboard.html') # Redirect to the homepage for now
+            return redirect('users:dashboard') # Redirect to the homepage for now
     else:
         form = UserSetPasswordForm(user)
         

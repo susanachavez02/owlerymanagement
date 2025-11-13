@@ -12,6 +12,14 @@ class AdminCreateKeyForm(forms.Form):
         label="Select User to Onboard",
         help_text="Select the user account to generate an activation key for."
     )
+    
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Assign Roles"
+    )
+    
     # This field lets the admin set how long the key is valid.
     expires_in_hours = forms.IntegerField(
         initial=24, 
