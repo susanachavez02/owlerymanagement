@@ -67,13 +67,20 @@ def docx_find_and_replace(doc, context):
 
 @login_required
 @user_passes_test(is_admin)
-def case_list_view(request):
-    # Get all cases, ordered by the most recently filed
-    cases = Case.objects.all().order_by('-date_filed')
+def case_dashboard_view(request):
+    # This assumes you have a way to filter for "active" cases
+    cases_list = Case.objects.filter(is_archived=False).order_by('-date_filed') 
     
-    # Pass the list of cases into the template
+    # Example logic for stat cards (you'll need to adjust this)
+    active_count = cases_list.count()
+    
+    # This requires a 'status' field on your SignatureRequest model
+    pending_count = SignatureRequest.objects.filter(status='pending').count() 
+
     context = {
-        'cases': cases
+        'cases': cases_list,
+        'active_case_count': active_count,
+        'pending_signature_count': pending_count,
     }
     return render(request, 'cases/case_list.html', context)
 
@@ -115,6 +122,8 @@ def case_create_view(request):
         'form': form
     }
     return render(request, 'cases/case_create.html', context)
+
+
 
 # --- View 3: Case Detail (SECURED) ---
 @login_required

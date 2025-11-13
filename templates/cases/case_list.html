@@ -1,44 +1,105 @@
 {% extends "base.html" %}
 
 {% block content %}
+  
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Case Dashboard</h2>
-    <div>
-      <a href="{% url 'cases:template-list' %}" class="btn btn-management">Manage Templates</a>
-
-      <a href="{% url 'user-list' %}" class="btn btn-management">Manage Users</a>
-
-      <a href="{% url 'cases:workflow-list' %}" class="btn btn-management">Manage Workflows</a>
-      
-      <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action">Create New Case</a>
-    </div>
+    <h2 class="page-title">Case Dashboard</h2>
   </div>
 
-  <div class="list-group">
-    {% for case in cases %}
-      <div class="list-group-item list-group-item-action flex-column align-items-start mb-2">
-        <div class="d-flex w-100 justify-content-between">
-          
-          <a href="{% url 'cases:case-detail' pk=case.pk %}" class="text-decoration-none">
-            <h5 class="mb-1">{{ case.case_title }}</h5>
-          </a>
-          
-          <small>Created: {{ case.date_filed }}</small>
+  <div class="row">
+
+    <div class="col-md-8">
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-primary text-white fw-bold">
+              Active Cases
+            </div>
+            <div class="card-body">
+              <h2 class="card-title display-4 fw-bold">{{ active_case_count }}</h2>
+            </div>
+          </div>
         </div>
-        <p class="mb-1">{{ case.description|truncatewords:30 }}</p>
         
-        <small>
-          <strong>Assigned:</strong>
-          {% for assignment in case.assignments.all %}
-            {{ assignment.user.username }}
-            {% if not forloop.last %}, {% endif %}
-          {% endfor %}
-        </small>
+        <div class="col-md-6">
+          <div class="card shadow-sm mb-3">
+            <div class="card-header bg-warning text-dark fw-bold">
+              Pending Signatures
+            </div>
+            <div class="card-body">
+              <h2 class="card-title display-4 fw-bold">{{ pending_signature_count }}</h2>
+            </div>
+          </div>
+        </div>
+      </div> <h4 class="mt-3 page-title">My Active Cases</h4>
+      
+      <div class="shadow-sm p-3 bg-white rounded">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Case Title</th>
+                <th scope="col">Current Stage</th>
+                <th scope="col">Assigned</th>
+                <th scope="col">Date Filed</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for case in cases %}
+                <tr>
+                  <td>
+                    <a href="{% url 'cases:case-detail' pk=case.pk %}" class="text-decoration-none">
+                      <strong>{{ case.case_title }}</strong>
+                    </a>
+                  </td>
+                  <td>
+                    {% if case.current_stage %}
+                      <span class="badge bg-success">{{ case.current_stage.name }}</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Not Started</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% for assignment in case.assignments.all %}
+                      {{ assignment.user.username }}
+                      {% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                      <small class="text-muted">Unassigned</small>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <small>{{ case.date_filed|date:"M. d, Y" }}</small>
+                  </td>
+                  <td>
+                    <a href="{% url 'cases:case-detail' pk=case.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="5">
+                    <div class="alert alert-info mb-0" role="alert">
+                      No cases have been created yet.
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
-    {% empty %}
-      <div class="alert alert-info" role="alert">
-        No cases have been created yet.
+    </div> <div class="col-md-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title page-title">Quick Actions</h5>
+          <div class="d-grid gap-2">
+            <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action">Create New Case</a>
+            <hr class="my-2">
+            <a href="{% url 'cases:template-list' %}" class="btn btn-management">Manage Templates</a>
+            <a href="{% url 'user-list' %}" class="btn btn-management">Manage Users</a>
+            <a href="{% url 'cases:workflow-list' %}" class="btn btn-management">Manage Workflows</a>
+          </div>
+        </div>
       </div>
-    {% endfor %}
-  </div>
-{% endblock %}
+    </div> </div> {% endblock %}
