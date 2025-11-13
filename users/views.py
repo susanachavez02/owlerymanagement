@@ -18,7 +18,7 @@ def homepage_view(request):
         return redirect('users:dashboard')
     
     # Otherwise, show the public homepage
-    return render(request, 'users/homepage.html')
+    return render(request, 'users/landing_page.html')
 
 # This is a "test function" to check if a user is an admin
 def is_admin(user):
