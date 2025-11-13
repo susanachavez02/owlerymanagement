@@ -19,7 +19,7 @@ urlpatterns = [
     # Admin: Create a new case
     path('create/', views.case_create_view, name='case-create'),
     # Admin: List all cases
-    path('/', views.case_dashboard_view, name='case-dashboard'),
+    path('', views.case_dashboard_view, name='case-dashboard'),
     
     # --- User-Facing Case Views ---
     # View details for a single case
