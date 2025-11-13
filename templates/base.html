@@ -203,22 +203,24 @@
                         </li>
                     {% endif %}
                 </ul>
-
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+<ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     {% if request.user.is_authenticated %}
                         <li class="nav-item">
                             <div class="d-flex align-items-center">
                                 <span class="navbar-text me-2">
                                     Welcome, {{ user.username }}
                                 </span>
-                                <a href="{% url 'users:logout' %}" class="btn btn-outline-secondary btn-sm">Logout</a>
+                                <form action="{% url 'users:logout' %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm">Logout</button>
+                                </form>
                             </div>
                         </li>
                     {% else %}
                             <li class="nav-item">
                             <a class="btn btn-outline-gold btn-sm" href="{% url 'users:login' %}">Login</a>
                             </li>
-                    {% endif %}
+                    {% endif %} </ul>
                 </ul>
             </div>
             </div>

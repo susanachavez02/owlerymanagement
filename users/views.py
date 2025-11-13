@@ -126,7 +126,7 @@ def dashboard_view(request):
     # 1. Is the user an Admin?
     if user.roles.filter(name='Admin').exists():
         # Admins just see the main case list.
-        return redirect('cases:case-list')
+        return redirect('cases:case-dashboard')
         
     # 2. Is the user an Attorney?
     elif user.roles.filter(name='Attorney').exists():
