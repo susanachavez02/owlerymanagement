@@ -12,6 +12,7 @@ db.sqlite3
 __pycache__/
 *.pyc
 .pyc
+__init__.cpython-312.pyc
 
 # Django specific
 /static_root/
@@ -21,3 +22,8 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+cases/__pycache__/__init__.cpython-312.pyc
+cases/__pycache__/__init__.cpython-312.pyc
+cases/__pycache__/admin.cpython-312.pyc
+cases/__pycache__/apps.cpython-312.pyc
