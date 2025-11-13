@@ -162,3 +162,6 @@ MEDIA_URL = '/media/'
 
 # URL to redirect to after a successful login
 LOGIN_REDIRECT_URL = '/users/dashboard/'
+
+# For development (prints emails to your terminal)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

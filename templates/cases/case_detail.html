@@ -87,14 +87,36 @@
     {% csrf_token %}
     {{ upload_form|crispy }}
     <button type="submit" name="upload_document" class="btn btn-primary mt-2">Upload</button>
+  {# ...omitted code for upload form... #}
   </form>
 
- 
+  <h3 class="mt-4">Send Email Notification</h3>
+
+  <form action="{% url 'communication:send_case_notification' case_id=case.id %}" method="POST" class="mb-4">
+      
+      {% csrf_token %}
+      <div class="form-group">
+          <label for="recipient_email">Recipient Email:</label>
+          <input type="email" id="recipient_email" name="recipient_email" class="form-control" required>
+      </div>
+      <div class="form-group">
+          <label for="subject">Subject:</label>
+          <input type="text" id="subject" name="subject" class="form-control" required>
+      </div>
+      <div class="form-group">
+          <label for="message">Message:</label>
+          <textarea id="message" name="message" class="form-control" rows="5" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Send Notification</button>
+  </form>
+
+  <hr class="my-4">
+
 
   {# --- 7. Document List --- #}
-  {# Re-added heading in case Time Tracking section isn't shown #}
   <h5>Existing Documents</h5>
-  <div class="list-group">
+
+  <div class="list-group mb-5">
     {% for doc in documents %}
       {# Use div for layout, allowing button placement #}
       <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2"> {# Added flex-wrap and gap #}
@@ -103,12 +125,12 @@
             {{ doc.title }}
           </a>
           <small class="text-muted d-block">
-  Uploaded by: 
-  <a href="{% url 'profile-view' user_pk=doc.uploaded_by.pk %}">
-    {{ doc.uploaded_by.username }}
-  </a> 
-  | Version: {{ doc.version_number }} | Viewed: {{ doc.logs.count }}
-</small>
+            Uploaded by: 
+            <a href="{% url 'profile-view' user_pk=doc.uploaded_by.pk %}">
+              {{ doc.uploaded_by.username }}
+            </a> 
+            | Version: {{ doc.version_number }} | Viewed: {{ doc.logs.count }}
+          </small>
         </div>
         {# Button Group for Actions #}
         <div>
@@ -125,5 +147,7 @@
       <div class="alert alert-info mt-3">No documents have been uploaded for this case.</div>
     {% endfor %}
   </div>
+
+  
 
 {% endblock %}
