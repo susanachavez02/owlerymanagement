@@ -10,6 +10,8 @@ from .models import OnboardingKey, UserProfile, Role
 from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm, UserCreationAdminForm, UserEditAdminForm
 from cases.models import Case, CaseAssignment
 from django.urls import reverse
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 # --- NEW: Homepage View ---
 def homepage_view(request):
@@ -56,6 +58,38 @@ def admin_create_key_view(request):
                 f'/users/set-password/{key_instance.key}/'
             )
             messages.info(request, setup_link) # Show the link
+
+            # Send email if user has an email address
+            if user.email:
+                subject = "Your Owlery Account Invitation"
+                message = f"""
+                Hello {user.first_name or user.username},
+
+                You've been invited to join the Owlery Legal Case Management System!
+
+                Please click the link below to set up your account and password:
+
+                {setup_link}
+
+                This link will expire in {hours} hours.
+
+                If you didn't request this invitation, please contact an administrator.
+
+                Best regards,
+                Owlery Management
+                        """
+                send_mail(
+                    subject,
+                    message,
+                    'noreply@owlery.com',  # From email
+                    [user.email],  # To email
+                    fail_silently=False,
+                )
+                messages.success(request, f"Key generated for {user.username}. Email sent to {user.email}.")
+            else:
+                # No email provided, just show the link in messages
+                messages.success(request, f"Key generated for {user.username}. No email on file. The setup link is:")
+                messages.info(request, setup_link)
             
             return redirect('users:create-key') # Redirect back to the same page
     else:

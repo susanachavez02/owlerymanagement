@@ -1,0 +1,14 @@
+Hello,
+
+You've been invited to join the Owlery Legal Case Management System!
+
+Please click the link below to set up your account and password:
+
+{{ setup_link }}
+
+This link will expire in {{ hours }} hours.
+
+If you didn't request this invitation, please contact an administrator.
+
+Best regards,
+Owlery Management
