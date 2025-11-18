@@ -161,4 +161,7 @@ MEDIA_URL = '/media/'
 LOGIN_REDIRECT_URL = '/users/dashboard/'
 
 # For development (prints emails to your terminal)
+# in development, emails should print to the console. In production, this would 
+    #use Gmail/SendGrid with actual email account creation with certain tweaks to 
+    #the .env file, settings.py, the views.py
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

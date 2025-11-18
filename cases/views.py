@@ -14,7 +14,7 @@ from django.core.files.base import ContentFile
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
     CaseWorkflow, CaseStage, Template, 
-    SignatureRequest, CaseStageLog, 
+    SignatureRequest, CaseStageLog, Meeting, DocumentDueDate,
 )
 from django.db.models import Sum, Count, Avg, F
 from users.models import Role
@@ -667,5 +667,55 @@ def signing_page_view(request, token):
         'sig_request': sig_request
     }
     return render(request, 'cases/signing_page.html', context)
+
+@login_required
+def calendar_events_api(request):
+    """
+    Returns calendar events as JSON for the logged-in user.
+    FullCalendar will request this and display the events.
+    """
+    user = request.user
+    events = []
+    
+    # Get all meetings the user is involved in (either as organizer or participant)
+    meetings = Meeting.objects.filter(
+        participants=user
+    ).select_related('case').values('id', 'title', 'scheduled_time', 'duration_minutes', 'meeting_type', 'case__case_title')
+    
+    for meeting in meetings:
+        end_time = meeting['scheduled_time'] + timezone.timedelta(minutes=meeting['duration_minutes'])
+        events.append({
+            'id': f'meeting-{meeting["id"]}',
+            'title': f"📞 {meeting['title']}",
+            'start': meeting['scheduled_time'].isoformat(),
+            'end': end_time.isoformat(),
+            'type': 'meeting',
+            'backgroundColor': '#c4a24c',  # Your owl gold color
+            'borderColor': '#c4a24c',
+            'extendedProps': {
+                'caseTitle': meeting['case__case_title'],
+                'meetingType': meeting['meeting_type'],
+            }
+        })
+    
+    # Get all document due dates assigned to the user or linked to their cases
+    documents = DocumentDueDate.objects.filter(
+        case__assignments__user=user
+    ).select_related('case').values('id', 'document_name', 'due_date', 'is_completed', 'case__case_title').distinct()
+    
+    for doc in documents:
+        events.append({
+            'id': f'document-{doc["id"]}',
+            'title': f"📄 {doc['document_name']}",
+            'start': doc['due_date'].isoformat(),
+            'type': 'document',
+            'backgroundColor': '#ff6b6b' if not doc['is_completed'] else '#51cf66',
+            'borderColor': '#ff6b6b' if not doc['is_completed'] else '#51cf66',
+            'extendedProps': {
+                'caseTitle': doc['case__case_title'],
+            }
+        })
+    
+    return JsonResponse(events, safe=False)
 
 

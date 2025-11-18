@@ -4,6 +4,9 @@ from . import views
 app_name = 'cases'
 
 urlpatterns = [
+    # --- Calendar API  ---
+    path('api/calendar-events/', views.calendar_events_api, name='calendar-events-api'),
+    
     # --- Admin Workflow Management ---
     path('workflows/', views.workflow_list_view, name='workflow-list'),
     path('workflows/create/', views.workflow_create_view, name='workflow-create'),

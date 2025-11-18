@@ -2,6 +2,63 @@
 
 {% block content %}
 
+{# --- Calendar Section (For Both Attorneys and Clients) --- #}
+  <section class="mb-5">
+    <div class="container">
+      <h3 class="mb-3">📅 Your Calendar</h3>
+      <div id="calendar" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+    </div>
+  </section>
+
+  <!-- FullCalendar CSS -->
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+
+  <style>
+    #calendar {
+      max-width: 1000px;
+      margin: 20px auto;
+    }
+    
+    .fc {
+      font-family: inherit;
+    }
+    
+    .fc-button-primary {
+      background-color: #c4a24c !important;
+      border-color: #c4a24c !important;
+    }
+    
+    .fc-button-primary:hover {
+      background-color: #a68839 !important;
+    }
+    
+    .fc-daygrid-day.fc-day-today {
+      background-color: rgba(196, 162, 76, 0.1) !important;
+    }
+  </style>
+
+  <!-- FullCalendar JavaScript -->
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var calendarEl = document.getElementById('calendar');
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: '/cases/api/calendar-events/',  // Fetches from your API
+        height: 'auto',
+        contentHeight: 'auto',
+      });
+      calendar.render();
+    });
+  </script>
+
+
   {# --- Attorney Dashboard Content --- #}
   {% if is_attorney %}
     <div class="d-flex justify-content-between align-items-center mb-3">

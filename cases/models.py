@@ -175,3 +175,52 @@ class CaseStageLog(models.Model):
             return self.timestamp_completed - self.timestamp_entered
         # If not completed, return time elapsed so far
         return timezone.now() - self.timestamp_entered
+    
+
+# --- Calendar Event Model(s) ---
+class Meeting(models.Model):
+    """
+    Represents a scheduled meeting (video conference, phone call, or in-person)
+    """
+    MEETING_TYPES = [
+        ('video', 'Video Conference'),
+        ('phone', 'Phone Call'),
+        ('in_person', 'In Person'),
+    ]
+    
+    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name='meetings')
+    title = models.CharField(max_length=200, help_text="e.g., 'Client Check-in'")
+    meeting_type = models.CharField(max_length=20, choices=MEETING_TYPES)
+    scheduled_time = models.DateTimeField(help_text="When the meeting is scheduled")
+    duration_minutes = models.IntegerField(default=60, help_text="How long the meeting lasts in minutes")
+    description = models.TextField(blank=True, help_text="Additional details about the meeting")
+    
+    # Participants
+    organizer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='organized_meetings')
+    participants = models.ManyToManyField(User, related_name='meetings_involved')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.title} - {self.scheduled_time}"
+
+
+class DocumentDueDate(models.Model):
+    """
+    Represents a document deadline
+    """
+    case = models.ForeignKey(Case, on_delete=models.CASCADE, related_name='document_deadlines')
+    document_name = models.CharField(max_length=200, help_text="e.g., 'Discovery Documents'")
+    due_date = models.DateTimeField(help_text="When the document is due")
+    description = models.TextField(blank=True)
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_documents')
+    
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.document_name} - Due: {self.due_date}"
