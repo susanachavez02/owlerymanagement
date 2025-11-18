@@ -87,8 +87,16 @@ def case_dashboard_view(request):
 # --- View 2: Case Create (Admin) ---
 
 @login_required
-@user_passes_test(is_admin)
+#@user_passes_test(is_admin) //we want attorneys to also have access to this
 def case_create_view(request):
+    # --- Permission Check: Only Admins and Attorneys can create cases ---
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    is_attorney = request.user.roles.filter(name='Attorney').exists()
+    
+    if not (is_admin or is_attorney):
+        messages.error(request, "Only admins and attorneys can create cases.")
+        return redirect('users:dashboard')
+    
     if request.method == 'POST':
         form = CaseCreateForm(request.POST)
         if form.is_valid():
@@ -200,8 +208,16 @@ def document_view_and_log(request, doc_pk):
 
 # --- View 5: Workflow List (Admin) ---
 @login_required
-@user_passes_test(is_admin)
+#@user_passes_test(is_admin) //we also want attorneys to access this
 def workflow_list_view(request):
+    # --- Permission Check: Only Admins and Attorneys can manage workflows ---
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    is_attorney = request.user.roles.filter(name='Attorney').exists()
+    
+    if not (is_admin or is_attorney):
+        messages.error(request, "Only admins and attorneys can manage workflows.")
+        return redirect('users:dashboard')
+
     workflows = CaseWorkflow.objects.all()
     context = {
         'workflows': workflows
@@ -688,10 +704,24 @@ def calendar_events_api(request):
     # Get all meetings the user is involved in (either as organizer or participant)
     meetings = Meeting.objects.filter(
         participants=user
-    ).select_related('case').values('id', 'title', 'scheduled_time', 'duration_minutes', 'meeting_type', 'case__case_title')
+    ).select_related('case', 'organizer').values('id', 'title', 'scheduled_time', 'duration_minutes', 'meeting_type', 
+        'description', 'case__case_title', 'case__pk', 'organizer__username', 
+        'organizer__first_name', 'organizer__last_name')
     
     for meeting in meetings:
         end_time = meeting['scheduled_time'] + timezone.timedelta(minutes=meeting['duration_minutes'])
+
+        # Get participant names for this meeting
+        meeting_obj = Meeting.objects.get(id=meeting['id'])
+        participants = [p.get_full_name() or p.username for p in meeting_obj.participants.all()]
+        
+        # Format organizer name
+        organizer_name = meeting['organizer__first_name'] or ''
+        if meeting['organizer__last_name']:
+            organizer_name = f"{organizer_name} {meeting['organizer__last_name']}".strip()
+        if not organizer_name:
+            organizer_name = meeting['organizer__username']
+
         events.append({
             'id': f'meeting-{meeting["id"]}',
             'title': f"📞 {meeting['title']}",
@@ -701,8 +731,15 @@ def calendar_events_api(request):
             'backgroundColor': '#c4a24c',  # Your owl gold color
             'borderColor': '#c4a24c',
             'extendedProps': {
+                'meetingId': meeting['id'],
                 'caseTitle': meeting['case__case_title'],
+                'caseId': meeting['case__pk'],
                 'meetingType': meeting['meeting_type'],
+                'description': meeting['description'] or 'No description provided',
+                'duration': meeting['duration_minutes'],
+                'organizer': organizer_name,
+                'participants': ', '.join(participants),
+                'scheduledTime': meeting['scheduled_time'].strftime('%B %d, %Y at %I:%M %p'),
             }
         })
     
@@ -728,7 +765,7 @@ def calendar_events_api(request):
 
 # --- View 15: Meetings ---
 @login_required
-@user_passes_test(is_admin)
+# @user_passes_test(is_admin) //we want admin and attorneys to create meetings
 def create_meeting_view(request, case_pk=None):
     """
     Create a meeting for a case.
@@ -738,6 +775,14 @@ def create_meeting_view(request, case_pk=None):
     
     This allows the same view to work from both places.
     """
+
+    # --- Permission Check: Only Admins and Attorneys can create meetings ---
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    is_attorney = request.user.roles.filter(name='Attorney').exists()
+    
+    if not (is_admin or is_attorney):
+        messages.error(request, "Only admins and attorneys can schedule meetings.")
+        return redirect('users:dashboard')
     
     # Pre-select a case if we came from case detail
     case = None

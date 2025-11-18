@@ -139,11 +139,74 @@
             events: '/cases/api/calendar-events/',
             height: 'auto',
             contentHeight: 'auto',
+            //Handle event clicks
+            eventClick: function(info) {
+              var event = info.event;
+              var props = event.extendedProps;
+              
+              // Populate modal with event data
+              document.getElementById('modalMeetingTitle').textContent = event.title;
+              document.getElementById('modalCaseTitle').textContent = 'Case: ' + props.caseTitle;
+              document.getElementById('modalScheduledTime').textContent = 'Scheduled: ' + props.scheduledTime;
+              document.getElementById('modalMeetingType').textContent = 'Type: ' + props.meetingType;
+              document.getElementById('modalDuration').textContent = 'Duration: ' + props.duration + ' minutes';
+              document.getElementById('modalDescription').textContent = props.description;
+              document.getElementById('modalOrganizer').textContent = 'Organized by: ' + props.organizer;
+              document.getElementById('modalParticipants').textContent = 'Participants: ' + props.participants;
+              
+              // Show the modal
+              var modal = new bootstrap.Modal(document.getElementById('meetingDetailsModal'));
+              modal.show();
+            }
           });
           calendar.render();
         });
       </script>
-      
+
+      <!-- Meeting Details Modal -->
+      <div class="modal fade" id="meetingDetailsModal" tabindex="-1" aria-labelledby="meetingDetailsLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header" style="background-color: #c4a24c; color: white;">
+              <h5 class="modal-title" id="meetingDetailsLabel">📞 Meeting Details</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <h6 class="fw-bold" id="modalMeetingTitle">Meeting Title</h6>
+              </div>
+              <hr>
+              <div class="mb-2">
+                <strong id="modalCaseTitle">Case:</strong>
+              </div>
+              <div class="mb-2">
+                <strong id="modalScheduledTime">Scheduled:</strong>
+              </div>
+              <div class="mb-2">
+                <strong id="modalMeetingType">Type:</strong>
+              </div>
+              <div class="mb-2">
+                <strong id="modalDuration">Duration:</strong>
+              </div>
+              <div class="mb-2">
+                <strong id="modalOrganizer">Organized by:</strong>
+              </div>
+              <div class="mb-2">
+                <strong id="modalParticipants">Participants:</strong>
+              </div>
+              <hr>
+              <div class="mb-3">
+                <h6 class="fw-bold">Description</h6>
+                <p id="modalDescription" class="text-muted"></p>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div> <div class="col-md-4">
       <div class="card shadow-sm">
         <div class="card-body">

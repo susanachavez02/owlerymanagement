@@ -63,7 +63,7 @@ class MeetingForm(forms.ModelForm):
             'case': forms.Select(attrs={'class': 'form-control'}),
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Client Check-in'}),
             'meeting_type': forms.Select(attrs={'class': 'form-control'}),
-            'scheduled_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'scheduled_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'text'}),
             'duration_minutes': forms.NumberInput(attrs={'class': 'form-control', 'min': '15', 'step': '15'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'participants': forms.CheckboxSelectMultiple(),
