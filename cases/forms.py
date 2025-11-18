@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import (
-    Case, Document, CaseWorkflow, CaseStage, Template, 
+    Case, Document, CaseWorkflow, CaseStage, Template, Meeting, Case
 )
 from users.models import Role   # From the 'users' app
 
@@ -46,12 +46,25 @@ class StageCreateForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={'min': 1})
         }
 
-
-
 class TemplateUploadForm(forms.ModelForm):
     class Meta:
         model = Template
         fields = ['name', 'template_file', 'is_public', 'context_fields']
         help_texts = {
             'context_fields': 'Enter as a JSON list, e.g., ["client_name", "case_title"]'
+        }
+
+# --- Meeting Form  ---
+class MeetingForm(forms.ModelForm):
+    class Meta:
+        model = Meeting
+        fields = ['case', 'title', 'meeting_type', 'scheduled_time', 'duration_minutes', 'description', 'participants']
+        widgets = {
+            'case': forms.Select(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Client Check-in'}),
+            'meeting_type': forms.Select(attrs={'class': 'form-control'}),
+            'scheduled_time': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'duration_minutes': forms.NumberInput(attrs={'class': 'form-control', 'min': '15', 'step': '15'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'participants': forms.CheckboxSelectMultiple(),
         }

@@ -61,6 +61,16 @@
 
   {# --- Attorney Dashboard Content --- #}
   {% if is_attorney %}
+  <div class="mb-4 p-3 bg-light rounded">
+      <h5>Admin Quick Actions</h5>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'cases:case-create' %}" class="btn btn-primary">+ Create Case</a>
+        <a href="{% url 'cases:create-meeting' %}" class="btn btn-info">+ Schedule Meeting</a>
+        <a href="{% url 'cases:template-list' %}" class="btn btn-secondary">Manage Templates</a>
+        <a href="{% url 'cases:workflow-list' %}" class="btn btn-secondary">Manage Workflows</a>
+      </div>
+    </div>
+    <hr>
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2>Your Attorney Dashboard</h2>
     </div>

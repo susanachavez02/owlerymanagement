@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-5">
+  <h2>Schedule a Meeting</h2>
+  {% if case %}
+    <p class="text-muted">For case: <strong>{{ case.case_title }}</strong></p>
+  {% else %}
+    <p class="text-muted">Select a case below to schedule a meeting.</p>
+  {% endif %}
+  <hr>
+  
+  <form method="POST">
+    {% csrf_token %}
+    
+    <div class="mb-3">
+      <label for="{{ form.case.id_for_label }}" class="form-label">Case</label>
+      {{ form.case }}
+      {% if form.case.help_text %}
+        <small class="form-text text-muted d-block mt-1">{{ form.case.help_text }}</small>
+      {% endif %}
+      {% if form.case.errors %}
+        <div class="alert alert-danger">{{ form.case.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.title.id_for_label }}" class="form-label">Meeting Title</label>
+      {{ form.title }}
+      {% if form.title.errors %}
+        <div class="alert alert-danger">{{ form.title.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.meeting_type.id_for_label }}" class="form-label">Meeting Type</label>
+      {{ form.meeting_type }}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.scheduled_time.id_for_label }}" class="form-label">Scheduled Time</label>
+      {{ form.scheduled_time }}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.duration_minutes.id_for_label }}" class="form-label">Duration (minutes)</label>
+      {{ form.duration_minutes }}
+    </div>
+
+    <div class="mb-3">
+      <label for="{{ form.description.id_for_label }}" class="form-label">Description (Optional)</label>
+      {{ form.description }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Participants</label>
+      <div class="border p-3 rounded">
+        {% if form.participants %}
+          {{ form.participants }}
+        {% else %}
+          <p class="text-muted">No participants available. Please select a case first.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary" style="background-color: #c4a24c; border-color: #c4a24c;">Create Meeting</button>
+      {% if case %}
+        <a href="{% url 'cases:case-detail' pk=case.pk %}" class="btn btn-secondary">Cancel</a>
+      {% else %}
+        <a href="{% url 'cases:case-dashboard' %}" class="btn btn-secondary">Cancel</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{% endblock %}

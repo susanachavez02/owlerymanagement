@@ -23,7 +23,7 @@ from users.models import Role
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
     WorkflowCreateForm, StageCreateForm, 
-    TemplateUploadForm
+    TemplateUploadForm, MeetingForm
 )
 
 from users.views import is_admin
@@ -430,6 +430,10 @@ def template_upload_view(request):
 def generate_document_view(request, case_pk):
     case = get_object_or_404(Case, pk=case_pk)
 
+    #Moving out of test block to test error
+    client_assignment = case.assignments.filter(user__roles__name='Client').first()
+    attorney_assignment = case.assignments.filter(user__roles__name='Attorney').first()
+
     templates = Template.objects.filter(
         models.Q(is_public=True) | models.Q(uploaded_by=request.user)
     ).distinct()
@@ -446,13 +450,11 @@ def generate_document_view(request, case_pk):
             context = {}
 
             # Find the client
-            client_assignment = case.assignments.filter(user__roles__name='Client').first()
             if client_assignment:
                 context['client_name'] = client_assignment.user.get_full_name()
                 context['client_email'] = client_assignment.user.email
 
             # Find the attorney
-            attorney_assignment = case.assignments.filter(user__roles__name='Attorney').first()
             if attorney_assignment:
                 context['attorney_name'] = attorney_assignment.user.get_full_name()
 
@@ -503,16 +505,21 @@ def generate_document_view(request, case_pk):
     # `templates/cases/` directory that end with `_contract.html`.
     templates_dir = os.path.join(settings.BASE_DIR, 'templates', 'cases')
     contract_files = []
+    contract_choices = []
     if os.path.isdir(templates_dir):
         for fn in sorted(os.listdir(templates_dir)):
             # include both English and Spanish variants (e.g. _contract.html and _contract_es.html)
             if fn.endswith('_contract.html') or fn.endswith('_contract_es.html'):
                 contract_files.append(fn)
+                # Build the formatted label
+                label = fn.replace('_contract.html', '').replace('_', ' ').title()
+                contract_choices.append((fn, label))
 
     context = {
         'case': case,
         'templates': templates,
         'contract_files': contract_files,
+        'contract_choices': contract_choices,
         'contract_files_json': json.dumps(contract_files)
     }
     # Build a small, opinionated placeholder mapping so the frontend can autofill common keys
@@ -668,6 +675,7 @@ def signing_page_view(request, token):
     }
     return render(request, 'cases/signing_page.html', context)
 
+# --- View 14: Calendar ---
 @login_required
 def calendar_events_api(request):
     """
@@ -718,4 +726,60 @@ def calendar_events_api(request):
     
     return JsonResponse(events, safe=False)
 
+# --- View 15: Meetings ---
+@login_required
+@user_passes_test(is_admin)
+def create_meeting_view(request, case_pk=None):
+    """
+    Create a meeting for a case.
+    
+    If case_pk is provided (from case detail), that case is pre-selected.
+    If case_pk is NOT provided (from dashboard), admin must select a case.
+    
+    This allows the same view to work from both places.
+    """
+    
+    # Pre-select a case if we came from case detail
+    case = None
+    if case_pk:
+        case = get_object_or_404(Case, pk=case_pk)
+    
+    if request.method == 'POST':
+        form = MeetingForm(request.POST)
+        if form.is_valid():
+            meeting = form.save(commit=False)
+            meeting.organizer = request.user
+            meeting.save()
+            # Save the many-to-many participants
+            form.save_m2m()
+            
+            messages.success(request, f"Meeting '{meeting.title}' created successfully!")
+            
+            # Redirect back to the case detail (or dashboard if no case)
+            if case:
+                return redirect('cases:case-detail', pk=case.pk)
+            else:
+                return redirect('cases:case-dashboard')
+    else:
+        form = MeetingForm()
+        
+        # If we have a pre-selected case, set it and disable the dropdown
+        if case:
+            form.fields['case'].initial = case
+            form.fields['case'].widget.attrs['disabled'] = True
+            form.fields['case'].help_text = "This case was selected from the case detail page."
+            
+            # Pre-filter participants to show only users assigned to THIS case
+            form.fields['participants'].queryset = User.objects.filter(
+                case_assignments__case=case
+            ).distinct()
+        else:
+            # No case selected yet, show all cases
+            form.fields['case'].help_text = "Select the case for this meeting."
+    
+    context = {
+        'form': form,
+        'case': case,
+    }
+    return render(request, 'cases/create_meeting.html', context)
 

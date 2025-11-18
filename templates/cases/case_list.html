@@ -89,12 +89,69 @@
           </table>
         </div>
       </div>
+
+      {# --- Calendar Section --- #}
+      <div class="mt-4">
+        <h5 class="mb-3 page-title">📅 Your Calendar</h5>
+        <div id="calendar" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+      </div>
+
+      <!-- FullCalendar CSS -->
+      <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+
+      <style>
+        #calendar {
+          max-width: 1000px;
+          margin: 20px auto;
+        }
+        
+        .fc {
+          font-family: inherit;
+        }
+        
+        .fc-button-primary {
+          background-color: #c4a24c !important;
+          border-color: #c4a24c !important;
+        }
+        
+        .fc-button-primary:hover {
+          background-color: #a68839 !important;
+        }
+        
+        .fc-daygrid-day.fc-day-today {
+          background-color: rgba(196, 162, 76, 0.1) !important;
+        }
+      </style>
+
+      <!-- FullCalendar JavaScript -->
+      <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var calendarEl = document.getElementById('calendar');
+          var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '/cases/api/calendar-events/',
+            height: 'auto',
+            contentHeight: 'auto',
+          });
+          calendar.render();
+        });
+      </script>
+      
     </div> <div class="col-md-4">
       <div class="card shadow-sm">
         <div class="card-body">
           <h5 class="card-title page-title">Quick Actions</h5>
           <div class="d-grid gap-2">
             <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action">Create New Case</a>
+            <hr class="my-2">
+            <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">+ Schedule Meeting</a>
             <hr class="my-2">
             <a href="{% url 'cases:template-list' %}" class="btn btn-management">Manage Templates</a>
             <a href="{% url 'user-list' %}" class="btn btn-management">Manage Users</a>

@@ -13,6 +13,10 @@ urlpatterns = [
     path('workflows/<int:pk>/', views.workflow_detail_view, name='workflow-detail'),
     path('workflows/stage/create/<int:workflow_pk>/', views.stage_create_view, name='stage-create'),
 
+    # --- Meeting Management ---
+    path('create-meeting/', views.create_meeting_view, name='create-meeting'),  # From dashboard
+    path('<int:case_pk>/create-meeting/', views.create_meeting_view, name='create-meeting'),  # From case detail
+
     # --- NEW: Admin Template Management ---
     path('templates/', views.template_list_view, name='template-list'),
     path('templates/upload/', views.template_upload_view, name='template-upload'),

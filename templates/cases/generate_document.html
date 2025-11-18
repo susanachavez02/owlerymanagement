@@ -35,8 +35,8 @@
             <label id="html_contract_label" for="html_contract_select">Choose a contract</label>
             <select class="form-control" id="html_contract_select">
               <option value="" selected disabled>--- Select an HTML contract ---</option>
-              {% for fn in contract_files %}
-                <option value="{{ fn }}">{{ fn|replace:'_contract.html',''|replace:'_',' '|title }}</option>
+              {% for choice in contract_choices %}
+                <option value="{{ choice.0 }}">{{ choice.1 }}</option>
               {% empty %}
                 <option value="" disabled>No HTML contract templates found.</option>
               {% endfor %}
