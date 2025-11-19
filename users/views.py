@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.conf import settings
 from .models import OnboardingKey, UserProfile, Role
 from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm, UserCreationAdminForm, UserEditAdminForm
 from cases.models import Case, CaseAssignment
@@ -62,27 +63,22 @@ def admin_create_key_view(request):
             # Send email if user has an email address
             if user.email:
                 subject = "Your Owlery Account Invitation"
-                message = f"""
-                Hello {user.first_name or user.username},
-
-                You've been invited to join the Owlery Legal Case Management System!
-
-                Please click the link below to set up your account and password:
-
-                {setup_link}
-
-                This link will expire in {hours} hours.
-
-                If you didn't request this invitation, please contact an administrator.
-
-                Best regards,
-                Owlery Management
-                        """
+                
+                # Use the template context
+                context = {
+                    'user_name': user.first_name or user.username,
+                    'setup_link': setup_link,
+                    'hours': hours,
+                }
+                
+                # Render the email template
+                message = render_to_string('users/onboarding_email.txt', context)
+                
                 send_mail(
                     subject,
                     message,
-                    'noreply@owlery.com',  # From email
-                    [user.email],  # To email
+                    settings.DEFAULT_FROM_EMAIL,  # Uses the Gmail from .env
+                    [user.email],
                     fail_silently=False,
                 )
                 messages.success(request, f"Key generated for {user.username}. Email sent to {user.email}.")
