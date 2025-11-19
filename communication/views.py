@@ -104,7 +104,7 @@ def send_case_notification(request, case_id):
             send_mail(
                 subject,                            # The subject from the form
                 full_message,                       # The detailed message body
-                settings.EMAIL_HOST_USER,           # The 'from' email (from settings.py)
+                settings.DEFAULT_FROM_EMAIL,           # The 'from' email (from settings.py)
                 [recipient_email],                  # List of recipients
                 fail_silently=False,
             )
