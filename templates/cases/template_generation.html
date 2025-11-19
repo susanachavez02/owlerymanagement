@@ -1,0 +1,616 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary">&larr; Back to Dashboard</a>
+    <h2 id="pageTitle">Contract Generator</h2>
+    <div></div>
+  </div>
+
+  <p id="pageSubtitle" class="text-muted">
+    Create custom bilingual contracts easily by filling in the details below.
+  </p>
+
+  <!-- Contract Form -->
+  <div class="card shadow-sm mb-5">
+    <div class="card-body">
+      <h4 id="formTitle" class="card-title mb-3">Generate a New Contract</h4>
+      <form id="contractForm">
+        
+        <!-- Language -->
+        <div class="mb-3">
+          <label for="language" class="form-label" id="languageLabel">Select Language</label>
+          <select id="language" class="form-select" required>
+            <option value="">Choose...</option>
+            <option value="english">English</option>
+            <option value="spanish">Español</option>
+          </select>
+        </div>
+
+        <!-- Jurisdiction Section -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="region" class="form-label" id="regionLabel">Select Region</label>
+            <select id="region" class="form-select" required>
+              <option value="">Choose...</option>
+              <option value="texas">Texas</option>
+              <option value="mexico">Mexico</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="court" class="form-label" id="courtLabel">Select Court Type</label>
+            <select id="court" class="form-select" required>
+              <option value="">Choose...</option>
+              <option value="local">Local</option>
+              <option value="county">County</option>
+              <option value="state">State</option>
+              <option value="federal">Federal</option>
+              <option value="supreme">Supreme Court</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Contract Selection -->
+        <div class="mb-3">
+          <label for="contract" class="form-label" id="contractLabel">Select Contract</label>
+          <select id="contract" class="form-select" required>
+            <option value="">Choose...</option>
+            {% for pair in contract_choices %}
+              <option value="{{ pair.0 }}">{{ pair.1 }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+  <div class="row contract-row">
+          <div class="col-md-5">
+            <!-- Left column: form controls + generated placeholder fields -->
+            <div class="card mb-3">
+              <div class="card-body">
+                <!-- Keep the existing form inputs here (language/region/court/contract) -->
+                <!-- Inserted generated fields below -->
+                <hr />
+                <h5 id="fill_fields_heading" class="mb-3">Fill Contract Fields</h5>
+                <div id="fields_container" class="mb-3"></div>
+                <div class="d-flex" style="gap:.5rem;">
+                  <!-- Preview/Open Modal buttons removed per request -->
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-7">
+            <!-- Right column: inline preview -->
+            <div id="inlinePreview" class="card my-3" style="display:none;">
+              <div class="card-body">
+                <h5 id="inline_preview_title" class="card-title">Selected Contract Preview</h5>
+                <!-- Use a CSS class so HTML renders normally (not forced pre-wrap) -->
+                <div id="inlinePreviewContent" class="template-preview"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="text-center mt-4">
+          <button type="button" id="previewBtn" class="btn btn-primary me-2">Preview Contract</button>
+          <button type="button" id="downloadPDFBtn" class="btn btn-success">Download as PDF</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">Contract Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="previewContent" style="white-space: pre-wrap;"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeBtn">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  /* Equal-height two-column layout for fields + preview.
+    Ensure both columns align at the top, cards fill their column and
+    card-bodies scroll independently. Increase available preview height. */
+  .contract-row { align-items: stretch; }
+  .contract-row > .col-md-5, .contract-row > .col-md-7 { display: flex; flex-direction: column; }
+  /* force cards to the top of their column and grow to full height */
+  .contract-row .card { display: flex; flex-direction: column; height: 100%; margin-top: 0 !important; }
+  /* Allow the card body to flex and scroll; min-height:0 is critical for flex children */
+  .contract-row .card .card-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 1rem 1.25rem; background: #ffffff; }
+  /* Use more of the viewport for content; leave ~90px for headers/controls to make panes longer */
+  .contract-row .card .card-body { max-height: calc(100vh - 90px); }
+
+  /* Make the inline preview content stretch to fill the right card body */
+  #inlinePreview .card-body { display: flex; flex-direction: column; min-height: 0; }
+  #inlinePreviewContent { flex: 1 1 auto; min-height: 0; overflow: auto; }
+
+  /* Shared preview typography */
+  .template-preview {
+    white-space: normal;
+    line-height: 1.7;
+    font-size: 0.98rem;
+    color: #222;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    word-break: break-word;
+  }
+
+  .template-preview > * { margin-top: 0; }
+  .template-preview p { margin: 0 0 1rem 0; }
+  .template-preview h1, .template-preview h2, .template-preview h3 {
+    margin: 1.25rem 0 0.5rem 0;
+    line-height: 1.25;
+  }
+  .template-preview ul, .template-preview ol { margin: 0 0 0.9rem 1.25rem; }
+  .template-preview img { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; }
+
+  /* Subtle card polish */
+  #inlinePreview { border-radius: 0.35rem; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .template-preview code, .template-preview pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; }
+
+  /* Modal preview should mimic inline spacing but allow more vertical room */
+  .modal-preview { white-space: normal !important; line-height: 1.7; font-size: 1rem; }
+  .modal-body.modal-preview { max-height: 75vh; overflow: auto; }
+</style>
+<script>
+const { jsPDF } = window.jspdf;
+
+// Elements
+const languageSelect = document.getElementById('language');
+const regionSelect = document.getElementById('region');
+const courtSelect = document.getElementById('court');
+const contractSelect = document.getElementById('contract');
+const previewBtn = document.getElementById('previewBtn');
+const downloadPDFBtn = document.getElementById('downloadPDFBtn');
+const previewContent = document.getElementById('previewContent');
+let selectedContractHTML = "";
+let currentlyLoadedFile = "";
+const placeholderMap = JSON.parse('{{ placeholder_map_json|escapejs }}') || {};
+
+// Translations
+const translations = {
+  english: {
+    pageTitle: "Contract Generator",
+    pageSubtitle: "Create custom bilingual contracts easily by filling in the details below.",
+    formTitle: "Generate a New Contract",
+    languageLabel: "Select Language",
+    regionLabel: "Select Region",
+    courtLabel: "Select Court Type",
+    contractLabel: "Select Contract",
+    choose: "Choose...",
+    regions: { texas: "Texas", mexico: "Mexico" },
+    courts: { local: "Local", county: "County", state: "State", federal: "Federal", supreme: "Supreme Court" },
+    contracts: {},
+    preview: "Preview Contract",
+    download: "Download as PDF",
+    close: "Close",
+    modalTitle: "Contract Preview",
+    fillFieldsHeading: "Fill Contract Fields",
+    inlinePreviewTitle: "Selected Contract Preview",
+    selectHtmlPlaceholder: '--- Select an HTML contract ---',
+    noTemplatesFound: 'No HTML contract templates found.'
+  },
+  spanish: {
+    pageTitle: "Generador de Contratos",
+    pageSubtitle: "Cree contratos bilingües personalizados llenando los detalles a continuación.",
+    formTitle: "Generar un Nuevo Contrato",
+    languageLabel: "Seleccionar Idioma",
+    regionLabel: "Seleccionar Región",
+    courtLabel: "Seleccionar Tipo de Corte",
+    contractLabel: "Seleccionar Contrato",
+    choose: "Elegir...",
+    regions: { texas: "Texas", mexico: "México" },
+    courts: { local: "Local", county: "Condado", state: "Estatal", federal: "Federal", supreme: "Corte Suprema" },
+    contracts: {},
+    preview: "Vista Previa del Contrato",
+    download: "Descargar como PDF",
+    close: "Cerrar",
+    modalTitle: "Vista Previa del Contrato",
+    fillFieldsHeading: 'Complete los campos del contrato',
+    inlinePreviewTitle: 'Vista previa del contrato seleccionado',
+    selectHtmlPlaceholder: '--- Seleccione una plantilla HTML ---',
+    noTemplatesFound: 'No se encontraron plantillas HTML.'
+  }
+};
+
+// Build contract labels dynamically
+let contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
+const contractFetchUrl = "{% url 'cases:contract-template' %}";
+
+function prettyLabel(name) {
+  if (!name) return '';
+  let s = String(name);
+
+  // strip known filename suffixes
+  s = s.replace(/_contract\.html$/i, '')
+       .replace(/_contract$/i, '')
+       .replace(/\.html$/i, '');
+
+  // normalize separators
+  s = s.replace(/[_\-]+/g, ' ');
+
+  // break camelCase / PascalCase boundaries (lower->Upper)
+  s = s.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+
+  // split runs like "XMLParser" -> "XML Parser"
+  s = s.replace(/([A-Z]+)([A-Z][a-z0-9]+)/g, '$1 $2');
+
+  // Normalize common verbs: prefer "sell" over "sale"
+  s = s.replace(/\bsale\b/gi, 'sell');
+
+  // Specifically fix glued purchase+and+sell/sale variants (covers PurchaseandSell, purchaseandSale, purchaseandsell)
+  s = s.replace(/purchase\s*and\s*(sell|sale)/gi, 'purchase and sell');
+  s = s.replace(/purchaseand(sell|sale)/gi, 'purchase and sell');
+
+  // collapse whitespace and trim
+  s = s.replace(/\s+/g, ' ').trim();
+
+  // Title case each word (keeps "And" capitalized per request)
+  s = s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+  return s;
+}
+
+// Normalize any server-rendered <option> labels so every option shows the prettified name.
+// Prefer option.value (filename) but fall back to option.textContent if needed.
+function normalizeExistingContractOptions() {
+  if (!contractSelect || !contractSelect.options) return;
+  for (let i = 0; i < contractSelect.options.length; i++) {
+    const opt = contractSelect.options[i];
+    if (!opt.value) continue; // keep placeholder alone
+    // use canonical filename (value) first
+    const source = (opt.value || opt.textContent || '').trim();
+    const pretty = prettyLabel(source);
+    if (pretty && opt.textContent.trim() !== pretty) {
+      opt.textContent = pretty;
+    }
+  }
+}
+
+// Ensure server-rendered options are normalized on initial load
+document.addEventListener('DOMContentLoaded', () => {
+  normalizeExistingContractOptions();
+  // prefer explicit language, fall back to region, then English
+  const defaultLang = languageSelect.value || (regionSelect.value === 'mexico' ? 'spanish' : 'english') || 'english';
+  updateLanguage(defaultLang);
+  languageSelect.value = defaultLang;
+});
+
+translations.english.contracts = {};
+translations.spanish.contracts = {};
+contractFiles.forEach(f => {
+  translations.english.contracts[f] = prettyLabel(f);
+  translations.spanish.contracts[f] = prettyLabel(f);
+});
+
+// ✅ Updated function that keeps selections
+function updateLanguage(forceLang = null) {
+  const lang = forceLang || languageSelect.value;
+  if (!lang) return;
+  const t = translations[lang];
+
+  // Save current selections
+  const prevRegion = regionSelect.value;
+  const prevCourt = courtSelect.value;
+  const prevContract = contractSelect.value;
+
+  // Update text
+  document.getElementById('pageTitle').textContent = t.pageTitle;
+  document.getElementById('pageSubtitle').textContent = t.pageSubtitle;
+  document.getElementById('formTitle').textContent = t.formTitle;
+  document.getElementById('languageLabel').textContent = t.languageLabel;
+  document.getElementById('regionLabel').textContent = t.regionLabel;
+  document.getElementById('courtLabel').textContent = t.courtLabel;
+  document.getElementById('contractLabel').textContent = t.contractLabel;
+  // translate sidebar headings
+  const fh = document.getElementById('fill_fields_heading'); if(fh) fh.textContent = t.fillFieldsHeading || '';
+  const ipt = document.getElementById('inline_preview_title'); if(ipt) ipt.textContent = t.inlinePreviewTitle || t.preview;
+  document.getElementById('previewBtn').textContent = t.preview;
+  document.getElementById('downloadPDFBtn').textContent = t.download;
+  document.getElementById('closeBtn').textContent = t.close;
+  document.getElementById('previewModalLabel').textContent = t.modalTitle;
+
+  // Rebuild dropdowns
+  regionSelect.innerHTML = `<option value="">${t.choose}</option>`;
+  for (const [key, val] of Object.entries(t.regions)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = val;
+    regionSelect.appendChild(opt);
+  }
+
+  courtSelect.innerHTML = `<option value="">${t.choose}</option>`;
+  for (const [key, val] of Object.entries(t.courts)) {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = val;
+    courtSelect.appendChild(opt);
+  }
+
+  contractSelect.innerHTML = `<option value="">${t.choose}</option>`;
+  for (const [file, label] of Object.entries(t.contracts)) {
+    const opt = document.createElement("option");
+    opt.value = file;
+    opt.textContent = label;
+    contractSelect.appendChild(opt);
+  }
+  // update html select placeholder if present
+  if(contractSelect && contractSelect.options && contractSelect.options.length>0){
+    contractSelect.options[0].text = t.selectHtmlPlaceholder || contractSelect.options[0].text;
+  }
+
+  // Restore selections
+  if (prevRegion && regionSelect.querySelector(`option[value="${prevRegion}"]`)) {
+    regionSelect.value = prevRegion;
+  }
+  if (prevCourt && courtSelect.querySelector(`option[value="${prevCourt}"]`)) {
+    courtSelect.value = prevCourt;
+  }
+  if (prevContract && contractSelect.querySelector(`option[value="${prevContract}"]`)) {
+    contractSelect.value = prevContract;
+  }
+
+  languageSelect.value = lang;
+}
+
+// Event listeners
+languageSelect.addEventListener("change", () => {
+  updateLanguage();
+  // if a contract is already loaded, rebuild the sidebar fields so labels/selects translate
+  try{ if(currentlyLoadedFile && selectedContractHTML){ buildSidebarFields(selectedContractHTML); } }catch(e){ /* ignore */ }
+});
+
+regionSelect.addEventListener("change", () => {
+  if (regionSelect.value === "mexico") {
+    updateLanguage("spanish");
+    languageSelect.value = "spanish";
+  } else if (regionSelect.value === "texas") {
+    updateLanguage("english");
+    languageSelect.value = "english";
+  }
+});
+
+// Fetch contract file
+async function loadContractTemplate(fileName) {
+  try {
+    const lang = (languageSelect && (languageSelect.value||'').toString().toLowerCase().startsWith('span')) ? 'es' : 'en';
+    // If Spanish requested, try a Spanish variant filename first
+    if(lang === 'es'){
+      const tryNames = [];
+      if(fileName.endsWith('.html')){
+        const base = fileName.replace(/\.html$/, '');
+        tryNames.push(base + '_es.html');
+        tryNames.push(base.replace('_contract','_contract_es') + '.html');
+      }
+      for(const fn of tryNames){
+        try{
+          const resp = await fetch(`${contractFetchUrl}?file=${encodeURIComponent(fn)}`);
+          if(resp.ok){ return await resp.text(); }
+        }catch(e){ /* ignore and try next */ }
+      }
+      // fall through to original if no spanish variant found
+    }
+    const response = await fetch(`${contractFetchUrl}?file=${encodeURIComponent(fileName)}`);
+    if (!response.ok) throw new Error("File not found");
+    const original = await response.text();
+    // If Spanish requested but no Spanish variant was found, attempt a lightweight auto-translation
+    if(lang === 'es'){
+      try{
+        const auto = autoTranslateHtml(original, 'es');
+        return auto;
+      }catch(e){
+        console.warn('Auto-translate failed, returning original HTML', e);
+        return original;
+      }
+    }
+    return original;
+  } catch (err) {
+    console.error(err);
+    return "Error loading contract template. Ensure the template exists under templates/cases/ and the server endpoint is reachable.";
+  }
+}
+
+// Lightweight rule-based HTML translator for common terms & months.
+// NOTE: This is a convenience fallback only. Legal texts should be translated and reviewed by a human.
+function autoTranslateHtml(html, target){
+  if(!html || target !== 'es') return html;
+  let out = html;
+  // Months
+  const monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthsEs = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  monthsEn.forEach((m,i)=>{
+    const re = new RegExp('\\b'+m+'\\b','gi');
+    out = out.replace(re, monthsEs[i]);
+  });
+
+  // Common legal/document terms (basic)
+  const dict = {
+    'Contract': 'Contrato',
+    'Agreement': 'Acuerdo',
+    'Lessor': 'Arrendador',
+    'Lessee': 'Arrendatario',
+    'Buyer': 'Comprador',
+    'Seller': 'Vendedor',
+    'Start Date': 'Fecha de inicio',
+    'End Date': 'Fecha de término',
+    'Term': 'Plazo',
+    'Notwithstanding': 'No obstante',
+    'Effective': 'Vigente',
+    'Signature': 'Firma',
+    'Witness': 'Testigo',
+    'County': 'Condado',
+    'State': 'Estado',
+    'City': 'Ciudad',
+    'Day': 'Día',
+    'Month': 'Mes',
+    'Year': 'Año',
+    'Amount': 'Cantidad'
+  };
+  // Replace longer keys first by sorting by length desc
+  const keys = Object.keys(dict).sort((a,b)=>b.length-a.length);
+  keys.forEach(k=>{
+    const re = new RegExp('\\b'+k+'\\b','gi');
+    out = out.replace(re, dict[k]);
+  });
+
+  // Replace some structural words (simple)
+  out = out.replace(/\bof the\b/gi, 'del');
+  out = out.replace(/\bthe\b/gi, 'el');
+  out = out.replace(/\band\b/gi, 'y');
+
+  return out;
+}
+
+// Preview
+previewBtn.addEventListener("click", async () => {
+  const lang = languageSelect.value;
+  const contractFile = contractSelect.value;
+
+  if (!lang || !contractFile) {
+    alert(lang === "spanish" ? "Seleccione un idioma y un contrato." : "Please select a language and a contract.");
+    return;
+  }
+
+  selectedContractHTML = await loadContractTemplate(contractFile);
+  previewContent.innerHTML = selectedContractHTML;
+
+  const modal = new bootstrap.Modal(document.getElementById("previewModal"));
+  modal.show();
+});
+
+// Download PDF
+downloadPDFBtn.addEventListener("click", () => {
+  if (!selectedContractHTML) {
+    alert(languageSelect.value === "spanish" ? "Primero genere una vista previa del contrato." : "Please preview the contract first.");
+    return;
+  }
+
+  const doc = new jsPDF();
+  const text = selectedContractHTML.replace(/<[^>]*>/g, '');
+  const lines = doc.splitTextToSize(text, 180);
+  doc.text(lines, 15, 20);
+  doc.save('Generated_Contract.pdf');
+});
+
+  // Inline preview update
+const inlinePreview = document.getElementById('inlinePreview');
+const inlinePreviewContent = document.getElementById('inlinePreviewContent');
+
+contractSelect.addEventListener('change', async () => {
+  const file = contractSelect.value;
+  if (!file) {
+    selectedContractHTML = "";
+    currentlyLoadedFile = "";
+    inlinePreview.style.display = 'none';
+    inlinePreviewContent.innerHTML = '';
+    return;
+  }
+
+  if (file !== currentlyLoadedFile) {
+    selectedContractHTML = await loadContractTemplate(file);
+    currentlyLoadedFile = file;
+  }
+
+  inlinePreviewContent.innerHTML = selectedContractHTML;
+  inlinePreview.style.display = 'block';
+  // build generated fields from placeholders and ensure preview updates live
+  buildSidebarFields(selectedContractHTML);
+});
+
+// Sidebar functions: detect <<KEY>> placeholders, render inputs, live-replace in preview
+function extractPlaceholders(text){
+  const re = /<<([A-Z0-9_]+)>>/gi;
+  const set = new Set();
+  let m;
+  while((m = re.exec(text)) !== null){ set.add(m[1]); }
+  return Array.from(set);
+}
+
+function buildSidebarFields(text){
+  const fieldsContainer = document.getElementById('fields_container');
+  fieldsContainer.innerHTML = '';
+  const placeholders = extractPlaceholders(text);
+  if(placeholders.length === 0){
+    fieldsContainer.innerHTML = '<p class="text-muted">No placeholders detected.</p>';
+    return;
+  }
+  // helper to get current language short code
+  const lang = (languageSelect && (languageSelect.value||'').toString().toLowerCase().startsWith('span')) ? 'es' : 'en';
+  const placeholderTranslations = {
+    CITY: { en: 'CITY', es: 'CIUDAD' },
+    STATE: { en: 'STATE', es: 'ESTADO' },
+    DAY: { en: 'DAY', es: 'DÍA' },
+    MONTH: { en: 'MONTH', es: 'MES' },
+    YEAR: { en: 'YEAR', es: 'AÑO' },
+    AGE: { en: 'AGE', es: 'EDAD' },
+    LESSOR: { en: 'LESSOR', es: 'ARRENDADOR' },
+    LESSEE: { en: 'LESSEE', es: 'ARRENDATARIO' }
+  };
+
+  function createSelect(id){ const s = document.createElement('select'); s.id = id; s.className = 'form-select'; return s; }
+  function populateDay(s){ s.innerHTML=''; const empty = document.createElement('option'); empty.value=''; empty.textContent = (lang==='es')? '-- Día --':'-- Day --'; s.appendChild(empty); for(let d=1; d<=31; d++){ const o=document.createElement('option'); o.value=d; o.textContent=d; s.appendChild(o);} }
+  function populateMonth(s){ const months_en=['January','February','March','April','May','June','July','August','September','October','November','December']; const months_es=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; const months = (lang==='es')?months_es:months_en; s.innerHTML=''; const empty=document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')?'-- Mes --':'-- Month --'; s.appendChild(empty); months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; s.appendChild(o);}); }
+  function populateYear(s){ s.innerHTML=''; const empty=document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')?'-- Año --':'-- Year --'; s.appendChild(empty); const now=new Date().getFullYear(); for(let y=now-5;y<=now+10;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; s.appendChild(o);} }
+  function populateAge(s){ s.innerHTML=''; const empty=document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')?'-- Edad --':'-- Age --'; s.appendChild(empty); for(let a=18;a<=100;a++){ const o=document.createElement('option'); o.value=a; o.textContent=a; s.appendChild(o); } }
+  function populateState(s){ s.innerHTML=''; const empty=document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')?'-- Seleccione Estado --':'-- Select State --'; s.appendChild(empty); const US=['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'];
+  const MX=['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua','Coahuila','Colima','Durango','Guanajuato','Guerrero','Hidalgo','Jalisco','México','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco','Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas','Ciudad de México'];
+  const list = (regionSelect && regionSelect.value==='mexico')?MX:US; list.forEach(sv=>{ const o=document.createElement('option'); o.value=sv; o.textContent=sv; s.appendChild(o); }); }
+
+  placeholders.forEach(key =>{
+    const id = 'field_' + key;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mb-2';
+    const up = key.toUpperCase();
+    const labelText = (placeholderTranslations[up] && placeholderTranslations[up][lang])?placeholderTranslations[up][lang]:key.replace(/_/g,' ');
+    // choose control type
+    let control;
+    if(up==='DAY') { control = createSelect(id); populateDay(control); }
+    else if(up==='MONTH'){ control = createSelect(id); populateMonth(control); }
+    else if(up==='YEAR'){ control = createSelect(id); populateYear(control); }
+    else if(up.includes('AGE') || up==='AGE'){ control = createSelect(id); populateAge(control); }
+    else if(up.includes('STATE') || up==='STATE'){ control = createSelect(id); populateState(control); }
+    else { control = document.createElement('input'); control.id = id; control.className = 'form-control'; }
+
+    const label = document.createElement('label'); label.setAttribute('for', id); label.className='form-label'; label.textContent = labelText;
+    wrapper.appendChild(label); wrapper.appendChild(control);
+    // prefill from placeholderMap (case-insensitive)
+    const val = placeholderMap[key] || placeholderMap[key.toUpperCase()] || '';
+    if(val){ if(control.tagName === 'INPUT') control.value = val; else control.value = val; }
+    // update preview on change/input
+    const onChange = ()=>{ const filled = fillTemplateFromFields(selectedContractHTML); inlinePreviewContent.innerHTML = filled; const modalBody = document.getElementById('previewContent'); if(modalBody) modalBody.innerHTML = filled; };
+    control.addEventListener('input', onChange); control.addEventListener('change', onChange);
+    fieldsContainer.appendChild(wrapper);
+  });
+}
+
+function fillTemplateFromFields(text){
+  let out = text;
+  const fields = document.querySelectorAll('#fields_container input, #fields_container select, #fields_container textarea');
+  fields.forEach(inp =>{
+    const key = (inp.id || '').replace(/^field_/, '');
+    if(!key) return;
+    const re = new RegExp('<<' + key + '>>', 'g');
+    out = out.replace(re, inp.value || '');
+  });
+  return out;
+}
+
+// Sidebar buttons
+document.getElementById('close_sidebar').addEventListener('click', ()=>{
+  document.getElementById('template_sidebar').style.display = 'none';
+});
+// Preview/Open Modal actions removed — buttons were deleted from the UI.
+</script>
+{% endblock %}

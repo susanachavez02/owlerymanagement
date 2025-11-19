@@ -6,7 +6,7 @@
   {# --- 1. Header & Quick Links --- #}
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2"> {# Added flex-wrap and gap #}
     <div>
-      <a href="{% url 'cases:case-dashboard' %}" class="btn btn-sm btn-outline-secondary mb-2">Back to Case List</a>
+      <a href="{% url 'users:dashboard' %}" class="btn btn-sm btn-outline-secondary mb-2">Back to Dashboard</a>
       <h2 class="mt-1 mb-0">{{ case.case_title }}</h2>
     </div>
     <div>
@@ -82,16 +82,33 @@
   </div>
   <hr>
 
-  {# --- 4. Document Management Header  --- #}
+{# --- 4. Document Management Header  --- #}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5>Case Documents</h5>
-    {# Show Generate button only to relevant roles #}
-    {% if is_admin_user or 'Attorney' in user_roles %}
-    <a href="{% url 'cases:generate-document' case_pk=case.pk %}" class="btn btn-success">
-      Generate Document
-    </a>
-    {% endif %}
+    <div class="d-flex align-items-center gap-2">
+      {# Existing Generate Document link #}
+      {% if is_admin_user or 'Attorney' in user_roles %}
+      <a href="{% url 'cases:generate-document' case_pk=case.pk %}" class="btn btn-success">
+        Generate Document
+      </a>
+
+      <div class="input-group">
+        <select id="templateDropdown" class="form-control" style="max-width: 250px;">
+          <option value="" disabled selected>Select Contract Template...</option>
+          </select>
+        
+        <div class="input-group-append">
+          <button id="templateDownloadBtn" class="btn btn-primary" disabled>
+            <i class="fas fa-download"></i> Download PDF
+          </button>
+        </div>
+      </div>
+      
+      {% endif %}
+    </div>
   </div>
+
+  
 
   {# --- 5. Document Upload Form --- #}
   <h6>Upload a New Document</h6>
@@ -160,6 +177,60 @@
     {% endfor %}
   </div>
 
-  
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Use the actual primary key of the current case from Django context
+        const caseId = {{ case.pk }}; 
+        const templateDropdown = document.getElementById('templateDropdown');
+        const downloadButton = document.getElementById('templateDownloadBtn');
+        
+        // --- 1. Fetch Templates and Populate Dropdown ---
+        function fetchAndPopulateTemplates() {
+            // Note: Assuming your API is mounted at /cases/api/
+            fetch('/cases/api/templates/') 
+                .then(response => response.json())
+                .then(templates => {
+                    templates.forEach(template => {
+                        const option = document.createElement('option');
+                        option.value = template.id; // The template ID for the API
+                        option.textContent = template.name; // The template name for display
+                        templateDropdown.appendChild(option);
+                    });
+                    
+                    // Enable the dropdown after options are loaded
+                    templateDropdown.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error fetching templates:', error);
+                    templateDropdown.innerHTML = '<option value="" disabled selected>Error loading templates</option>';
+                    templateDropdown.disabled = true;
+                });
+        }
+        
+        // --- 2. Handle Dropdown Selection and Enable Button ---
+        templateDropdown.addEventListener('change', function() {
+            const selectedTemplateId = this.value;
+            // Enable the button only if a valid template is selected
+            if (selectedTemplateId) {
+                downloadButton.disabled = false;
+            } else {
+                downloadButton.disabled = true;
+            }
+        });
 
-{% endblock %}
+        // --- 3. Handle Download Click ---
+        downloadButton.addEventListener('click', function() {
+            const templateId = templateDropdown.value;
+            if (templateId && caseId) {
+                // Construct the dynamic URL: /api/templates/{template_pk}/download/{case_pk}/
+                window.location.href = `/cases/api/templates/${templateId}/download/${caseId}/`;
+            } else {
+                alert('Please select a contract template first.');
+            }
+        });
+
+        // Initial fetch
+        fetchAndPopulateTemplates();
+    });
+  </script>
+  	{% endblock %}
