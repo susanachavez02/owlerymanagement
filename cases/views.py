@@ -132,13 +132,17 @@ def case_create_view(request):
             # This is essential because the CaseAssignment model likely requires the 'role' field.
             
             # 1. Assign the Attorney
-            CaseAssignment.objects.create(case=case, user=attorney, role='Attorney')
+            CaseAssignment.objects.create(case=case, user=attorney)
             
             # 2. Assign the Client
-            CaseAssignment.objects.create(case=case, user=client, role='Client')
+            CaseAssignment.objects.create(case=case, user=client)
             
             messages.success(request, f"Successfully created case: {case.case_title}")
-            return redirect('cases:case-dashboard') # Redirect to the case list after success
+            # Redirect based on user role
+            if is_admin:
+                return redirect('cases:case-dashboard')  # Admins go to case dashboard
+            else:
+                return redirect('users:dashboard')  # Attorneys go to their dashboard
     else:
         # If it's a GET request, just show a blank form
         form = CaseCreateForm()
