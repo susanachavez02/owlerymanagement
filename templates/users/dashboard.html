@@ -1,6 +1,99 @@
 {% extends "base.html" %} {# Uses the main base template with the functional navbar #}
 
 {% block content %}
+  {# --- Attorney Dashboard Content --- #}
+  {% if is_attorney %}
+  <div class="mb-4 p-3 bg-light rounded">
+      <h5>Attorney Quick Actions</h5>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'cases:case-create' %}" class="btn btn-primary">+ Create Case</a>
+        <a href="{% url 'cases:create-meeting' %}" class="btn btn-info">+ Schedule Meeting</a>
+        <a href="{% url 'cases:template-list' %}" class="btn btn-secondary">Manage Contracts</a>
+      </div>
+    </div>
+    <hr>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>Your Attorney Dashboard</h2>
+    </div>
+    <p>Welcome, Attorney. Here are your active cases.</p>
+    <hr>
+
+    <h4>Your Cases</h4>
+    <div class="list-group">
+      {% for case in assigned_cases %}
+        <a href="{% url 'cases:case-detail' pk=case.pk %}" class="list-group-item list-group-item-action flex-column align-items-start mb-2">
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ case.case_title }}</h5>
+            <small>Created: {{ case.date_filed|date:"Y-m-d" }}</small>
+          </div>
+          <p class="mb-1">{{ case.description|truncatewords:30 }}</p>
+        </a>
+      {% empty %}
+        <div class="alert alert-info" role="alert">
+          You are not assigned to any cases yet.
+        </div>
+      {% endfor %} {# Closes Attorney's case loop #}
+    </div>
+
+  {# --- Client Dashboard Content --- #}
+  {% elif is_client %}
+    <header class="py-5 bg-white border-bottom rounded-3 mb-4">
+      <div class="container">
+        <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+          <div>
+            <h1 class="display-6 fw-bold mb-2">Welcome back, Client</h1>
+            <p class="text-secondary mb-0">View your cases, upload documents, and manage your profile.</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section id="cases" class="py-5">
+      <div class="container">
+        <h2 class="h1 fw-bold mb-4">My Cases</h2>
+
+        {# --- Display Assigned Cases --- #}
+        <div class="list-group">
+          {% for case in assigned_cases %} {# Start Client's case loop #}
+            <a href="{% url 'cases:case-detail' pk=case.pk %}" class="list-group-item list-group-item-action flex-column align-items-start mb-2 shadow-sm border rounded-3 bg-white">
+              <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ case.case_title }}</h5>
+                <div>
+                  {% if case.current_stage %}
+                    <span class="badge bg-info">{{ case.current_stage.name }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">No Stage</span>
+                  {% endif %}
+                  <small class="ms-2 text-muted">Filed: {{ case.date_filed|date:"Y-m-d" }}</small>
+                </div>
+              </div>
+              <p class="mb-1 text-secondary">{{ case.description|truncatewords:30 }}</p>
+              {# Show assigned attorney #}
+              {% for assignment in case.assignments.all %}
+                {% for role in assignment.user.roles.all %}
+                  {% if role.name == 'Attorney' %}
+                    <small class="text-muted">Attorney: {{ assignment.user.get_full_name|default:assignment.user.username }}</small>
+                  {% endif %}
+                {% endfor %} {# Closes role loop #}
+              {% endfor %} {# Closes assignment loop #}
+            </a>
+          {% empty %} {# Correct tag for the FOR case loop #}
+            <div class="alert alert-info" role="alert">
+              You are not assigned to any cases yet.
+            </div>
+          {% endfor %} {# Closes Client's case loop #}
+        </div> {# Closes list-group div #}
+      </div> {# Closes container div #}
+    </section>
+
+
+
+  {# --- Fallback --- This is OUTSIDE the client's FOR loop #}
+  {% else %}
+    <div class="alert alert-warning">
+      Your dashboard could not be loaded. Please contact support.
+    </div>
+  {% endif %} {# Closes the main IF/ELIF/ELSE #}
 
 {# --- Calendar Section (For Both Attorneys and Clients) --- #}
   <section class="mb-5">
@@ -121,93 +214,6 @@
     </div>
   </div>
 
-
-  {# --- Attorney Dashboard Content --- #}
-  {% if is_attorney %}
-  <div class="mb-4 p-3 bg-light rounded">
-      <h5>Admin Quick Actions</h5>
-      <div class="d-flex gap-2 flex-wrap">
-        <a href="{% url 'cases:case-create' %}" class="btn btn-primary">+ Create Case</a>
-        <a href="{% url 'cases:create-meeting' %}" class="btn btn-info">+ Schedule Meeting</a>
-        <a href="{% url 'cases:template-list' %}" class="btn btn-secondary">Manage Templates</a>
-        <a href="{% url 'cases:workflow-list' %}" class="btn btn-secondary">Manage Workflows</a>
-      </div>
-    </div>
-    <hr>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2>Your Attorney Dashboard</h2>
-    </div>
-    <p>Welcome, Attorney. Here are your active cases.</p>
-    <hr>
-
-    <h4>Your Cases</h4>
-    <div class="list-group">
-      {% for case in assigned_cases %}
-        <a href="{% url 'cases:case-detail' pk=case.pk %}" class="list-group-item list-group-item-action flex-column align-items-start mb-2">
-          <div class="d-flex w-100 justify-content-between">
-            <h5 class="mb-1">{{ case.case_title }}</h5>
-            <small>Created: {{ case.date_filed|date:"Y-m-d" }}</small>
-          </div>
-          <p class="mb-1">{{ case.description|truncatewords:30 }}</p>
-        </a>
-      {% empty %}
-        <div class="alert alert-info" role="alert">
-          You are not assigned to any cases yet.
-        </div>
-      {% endfor %} {# Closes Attorney's case loop #}
-    </div>
-
-  {# --- Client Dashboard Content --- #}
-  {% elif is_client %}
-    <header class="py-5 bg-white border-bottom rounded-3 mb-4">
-      <div class="container">
-        <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
-          <div>
-            <h1 class="display-6 fw-bold mb-2">Welcome back, Client</h1>
-            <p class="text-secondary mb-0">View your cases, upload documents, and manage your profile.</p>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <section id="cases" class="py-5">
-      <div class="container">
-        <h2 class="h1 fw-bold mb-4">My Cases</h2>
-
-        {# --- Display Assigned Cases --- #}
-        <div class="list-group">
-          {% for case in assigned_cases %} {# Start Client's case loop #}
-            <a href="{% url 'cases:case-detail' pk=case.pk %}" class="list-group-item list-group-item-action flex-column align-items-start mb-2 shadow-sm border rounded-3 bg-white">
-              <div class="d-flex w-100 justify-content-between">
-                <h5 class="mb-1">{{ case.case_title }}</h5>
-                <div>
-                  {% if case.current_stage %}
-                    <span class="badge bg-info">{{ case.current_stage.name }}</span>
-                  {% else %}
-                    <span class="badge bg-secondary">No Stage</span>
-                  {% endif %}
-                  <small class="ms-2 text-muted">Filed: {{ case.date_filed|date:"Y-m-d" }}</small>
-                </div>
-              </div>
-              <p class="mb-1 text-secondary">{{ case.description|truncatewords:30 }}</p>
-              {# Show assigned attorney #}
-              {% for assignment in case.assignments.all %}
-                {% for role in assignment.user.roles.all %}
-                  {% if role.name == 'Attorney' %}
-                    <small class="text-muted">Attorney: {{ assignment.user.get_full_name|default:assignment.user.username }}</small>
-                  {% endif %}
-                {% endfor %} {# Closes role loop #}
-              {% endfor %} {# Closes assignment loop #}
-            </a>
-          {% empty %} {# Correct tag for the FOR case loop #}
-            <div class="alert alert-info" role="alert">
-              You are not assigned to any cases yet.
-            </div>
-          {% endfor %} {# Closes Client's case loop #}
-        </div> {# Closes list-group div #}
-      </div> {# Closes container div #}
-    </section>
-
     <section id="help" class="py-5 bg-white border-top rounded-3">
       <div class="container text-center">
         <h2 class="h4 fw-bold mb-3">Need help?</h2>
@@ -215,11 +221,5 @@
       </div>
     </section>
 
-  {# --- Fallback --- This is OUTSIDE the client's FOR loop #}
-  {% else %}
-    <div class="alert alert-warning">
-      Your dashboard could not be loaded. Please contact support.
-    </div>
-  {% endif %} {# Closes the main IF/ELIF/ELSE #}
 
 {% endblock %}

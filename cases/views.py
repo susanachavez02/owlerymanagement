@@ -1,23 +1,34 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from django.db import models
 import io
+from io import BytesIO
 from docx import Document as DocxDocument
-from django.core.files.base import ContentFile
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from users.models import UserProfile
+# --- WeasyPrint Imports ---
+from weasyprint import HTML, CSS
+from django.template.loader import render_to_string
+
 # We need to import the admin test function from our 'users' app
 
 # --- Model Imports ---
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
     CaseWorkflow, CaseStage, Template, 
-    SignatureRequest, CaseStageLog, Meeting, DocumentDueDate,
+    SignatureRequest, CaseStageLog, Meeting, DocumentDueDate, ContractTemplate,
 )
 from django.db.models import Sum, Count, Avg, F
 from users.models import Role
+from .serializers import ContractTemplateSerializer
 
 # --- Form Imports ---
 from .forms import (
@@ -32,11 +43,11 @@ from .decorators import user_is_assigned_to_case
 # --- Django's File handling utilities ---
 from django.core.files.base import ContentFile
 from django.conf import settings # <-- Import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime
 import os
 import json
-from django.conf import settings
 
 # --- HELPER FUNCTION FOR DOCX ---
 def docx_find_and_replace(doc, context):
@@ -100,7 +111,7 @@ def case_create_view(request):
     if request.method == 'POST':
         form = CaseCreateForm(request.POST)
         if form.is_valid():
-            case = form.save() # We can save directly now
+            case = form.save() # Saves the case object
 
             # If a workflow was assigned, set the current_stage
             # to the first stage in that workflow (order=1).
@@ -108,20 +119,26 @@ def case_create_view(request):
                 first_stage = case.workflow.stages.filter(order=1).first()
                 if first_stage:
                     case.current_stage = first_stage
-                    case.save() # Save the change
+                    case.save() # Save the change to current_stage
 
+                    # Log the start of the workflow
                     CaseStageLog.objects.create(case=case, stage=first_stage)
 
             # Step 2: Get the attorney and client from the form's data
             attorney = form.cleaned_data['attorney']
             client = form.cleaned_data['client']
             
-            # Step 3: Create the CaseAssignment links
-            CaseAssignment.objects.create(case=case, user=attorney)
-            CaseAssignment.objects.create(case=case, user=client)
+            # 💡 FIX: Create the CaseAssignment links, explicitly defining the role.
+            # This is essential because the CaseAssignment model likely requires the 'role' field.
+            
+            # 1. Assign the Attorney
+            CaseAssignment.objects.create(case=case, user=attorney, role='Attorney')
+            
+            # 2. Assign the Client
+            CaseAssignment.objects.create(case=case, user=client, role='Client')
             
             messages.success(request, f"Successfully created case: {case.case_title}")
-            return redirect('cases:case-list') # Redirect to the new list
+            return redirect('cases:case-dashboard') # Redirect to the case list after success
     else:
         # If it's a GET request, just show a blank form
         form = CaseCreateForm()
@@ -130,8 +147,6 @@ def case_create_view(request):
         'form': form
     }
     return render(request, 'cases/case_create.html', context)
-
-
 
 # --- View 3: Case Detail (SECURED) ---
 @login_required
@@ -343,7 +358,7 @@ def advance_stage_view(request, case_pk):
 
 # --- View 10: Template List (Admin) ---
 @login_required
-def template_list_view(request):
+def template_generation_view(request):
     templates = Template.objects.all().order_by('name')
 
     # Discover any contract templates placed under the project's
@@ -374,7 +389,7 @@ def template_list_view(request):
         # lightweight placeholder map for client-side autofill (no case context here)
         'placeholder_map_json': json.dumps({})
     }
-    return render(request, 'cases/template_list.html', context)
+    return render(request, 'cases/template_generation.html', context)
 
 
 @login_required
@@ -828,3 +843,108 @@ def create_meeting_view(request, case_pk=None):
     }
     return render(request, 'cases/create_meeting.html', context)
 
+
+# --- List and Create Templates (GET /api/templates/, POST /api/templates/) ---
+class ContractTemplateListCreateView(generics.ListCreateAPIView):
+    queryset = ContractTemplate.objects.all().order_by('-updated_at')
+    serializer_class = ContractTemplateSerializer
+    permission_classes = [IsAuthenticated] # Ensures only logged-in users can access
+
+    def perform_create(self, serializer):
+        # Set the 'created_by' field automatically to the logged-in user
+        serializer.save(created_by=self.request.user)
+    
+    # Optionally filter to only show public templates and the user's own templates
+    def get_queryset(self):
+        user = self.request.user
+        # All public templates OR templates created by the current user
+        return ContractTemplate.objects.filter(models.Q(is_public=True) | models.Q(created_by=user)).order_by('-updated_at')
+
+# --- Retrieve, Update, and Destroy a Template (GET/PUT/PATCH/DELETE /api/templates/{id}/) ---
+class ContractTemplateRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ContractTemplate.objects.all()
+    serializer_class = ContractTemplateSerializer
+    permission_classes = [IsAuthenticated]
+    
+    # NOTE: You may want to add custom permission to ensure only the creator or an admin can edit/delete
+    # For example, using a custom permission class like: IsOwnerOrReadOnly
+
+def template_list(request):
+    # This view just renders the HTML page. 
+    # The data fetching is done by JavaScript via the API.
+    return render(request, 'cases/template_list.html', {})
+
+def generate_document_from_template(template_content, template_name):
+    """
+    [PLACEHOLDER FUNCTION]
+    In a real application, this function would:
+    1. Fill in placeholders (like {{ case.name }}) using context data.
+    2. Use a library like `docxtpl` to generate a DOCX file from a .docx base template.
+    3. Return the file object (e.g., an io.BytesIO object) ready to be served.
+
+    For this example, we will just return the raw template content as a simple .txt file.
+    """
+    
+    if context_data is None:
+        context_data = {}
+        
+    # 1. Use Django's template engine to render the HTML string
+    # We first wrap the content in a temporary template to process Django's template tags (like {{ variable }})
+    html_string = render_to_string('document_processor_temp.html', {'template_content': template_content, **context_data})
+
+    # 2. Convert the rendered HTML to PDF bytes using WeasyPrint
+    # NOTE: You'll need to handle CSS/static files properly if your HTML is complex.
+    pdf_bytes = HTML(string=html_string).write_pdf()
+
+    # 3. Prepare the response buffer and filename
+    output_filename = f"{template_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    buffer = BytesIO(pdf_bytes)
+    
+    return buffer, output_filename
+
+
+class ContractTemplateDownloadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    # UPDATE THE METHOD SIGNATURE to accept case_pk
+    def get(self, request, pk, case_pk, *args, **kwargs):
+        # 1. Retrieve the template instance
+        template = get_object_or_404(ContractTemplate, pk=pk)
+
+        # 2. Retrieve the specific Case and related data using case_pk
+        case = get_object_or_404(Case, pk=case_pk)
+        
+        # ASSUME: The Case model has a ForeignKey to a Client model
+        client_profile = client_user.profile if client_user else None
+        
+        # 3. Build the Context Dictionary for the template
+        context = {
+            # Case Data
+            'case_title': case.title,
+            'case_date_filed': case.date_filed.strftime('%Y-%m-%d'),
+            
+            # Client Data (check if client exists)
+            'client_full_name': client_user.get_full_name() if client_user else 'N/A',
+            'client_phone': client_profile.phone if client_profile else 'N/A',
+            'client_firm_role': client_profile.firm_role if client_profile else 'N/A',
+            
+            # User/Signatory Data (The user downloading the document)
+            'preparer_name': request.user.get_full_name() or request.user.username,
+            
+            # Additional variables needed by your templates
+        }
+
+        # 4. Generate the document (pass the context dictionary)
+        file_buffer, filename = generate_document_from_template(
+            template.content, 
+            template.name,
+            context_data=context # Pass the real data here
+        )
+
+        # 5. Serve the file using FileResponse
+        response = FileResponse(file_buffer, as_attachment=True)
+        response['Content-Type'] = 'application/pdf' 
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        return response

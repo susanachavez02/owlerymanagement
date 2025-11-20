@@ -1,5 +1,10 @@
 from django.urls import path
 from . import views
+from .views import (
+    ContractTemplateListCreateView,
+    ContractTemplateRetrieveUpdateDestroyView,
+    ContractTemplateDownloadView
+)
 
 app_name = 'cases'
 
@@ -18,7 +23,7 @@ urlpatterns = [
     path('<int:case_pk>/create-meeting/', views.create_meeting_view, name='create-meeting'),  # From case detail
 
     # --- NEW: Admin Template Management ---
-    path('templates/', views.template_list_view, name='template-list'),
+    path('templates/generate/', views.template_generation_view, name='template-generation'),
     path('templates/upload/', views.template_upload_view, name='template-upload'),
     path('contract-template/', views.contract_template_view, name='contract-template'),
 
@@ -26,7 +31,7 @@ urlpatterns = [
     # Admin: Create a new case
     path('create/', views.case_create_view, name='case-create'),
     # Admin: List all cases
-    path('', views.case_dashboard_view, name='case-dashboard'),
+    path('case-dashboard/', views.case_dashboard_view, name='case-dashboard'),
     
     # --- User-Facing Case Views ---
     # View details for a single case
@@ -35,6 +40,10 @@ urlpatterns = [
     # View/Download a document and log it
     # e.g., /cases/document/5/view/
     path('document/<int:doc_pk>/view/', views.document_view_and_log, name='document-view'),
+    path('api/templates/', ContractTemplateListCreateView.as_view(), name='template-list-create'),
+    path('api/templates/<int:pk>/', ContractTemplateRetrieveUpdateDestroyView.as_view(), name='template-detail' ),
+    path('templates/', views.template_list, name='template-list'),
+    path('api/templates/<int:pk>/download/<int:case_pk>/', ContractTemplateDownloadView.as_view(), name='template-download'),
 
     # --- Advance Case Stage ---
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.utils import timezone
 import uuid
@@ -224,3 +225,51 @@ class DocumentDueDate(models.Model):
     
     def __str__(self):
         return f"{self.document_name} - Due: {self.due_date}"
+    
+
+class ContractTemplate(models.Model):
+    # Template name displayed in the list
+    name = models.CharField(
+        max_length=255, 
+        unique=True,
+        help_text="A unique, human-readable name for the contract template."
+    )
+    
+    # Stores the raw, editable text content (e.g., the HTML or text with placeholders)
+    content = models.TextField(
+        blank=True, 
+        null=True,
+        help_text="The raw content of the template, including all placeholders."
+    )
+    
+    # Stores the original uploaded file (e.g., .docx, .html)
+    template_file = models.FileField(
+        upload_to='document_templates/', 
+        blank=True, 
+        null=True,
+        help_text="The source file for the template (optional if content is directly edited)."
+    )
+    
+    # Link to the user who created/uploaded it
+    created_by = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='contract_templates'
+    )
+    
+    is_public = models.BooleanField(
+        default=False,
+        help_text="Designates whether this template is available to all users."
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Contract Template"
+        verbose_name_plural = "Contract Templates"
