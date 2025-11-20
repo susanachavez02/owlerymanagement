@@ -5,7 +5,7 @@
   <h2>Create a New Case</h2>
   <p>Fill out the details below to create a new case and assign an attorney and client.</p>
   
-<form action="{% url 'case-create' %}" method="POST" novalidate>    
+<form action="{% url 'cases:case-create' %}" method="POST" novalidate>    
   {% csrf_token %}
     {{ form|crispy }}
     <button type="submit" class="btn btn-success mt-3"> Save Case </button>

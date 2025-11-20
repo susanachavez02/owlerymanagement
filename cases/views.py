@@ -111,7 +111,7 @@ def case_create_view(request):
     if request.method == 'POST':
         form = CaseCreateForm(request.POST)
         if form.is_valid():
-            case = form.save() # We can save directly now
+            case = form.save() # Saves the case object
 
             # If a workflow was assigned, set the current_stage
             # to the first stage in that workflow (order=1).
@@ -119,20 +119,26 @@ def case_create_view(request):
                 first_stage = case.workflow.stages.filter(order=1).first()
                 if first_stage:
                     case.current_stage = first_stage
-                    case.save() # Save the change
+                    case.save() # Save the change to current_stage
 
+                    # Log the start of the workflow
                     CaseStageLog.objects.create(case=case, stage=first_stage)
 
             # Step 2: Get the attorney and client from the form's data
             attorney = form.cleaned_data['attorney']
             client = form.cleaned_data['client']
             
-            # Step 3: Create the CaseAssignment links
-            CaseAssignment.objects.create(case=case, user=attorney)
-            CaseAssignment.objects.create(case=case, user=client)
+            # 💡 FIX: Create the CaseAssignment links, explicitly defining the role.
+            # This is essential because the CaseAssignment model likely requires the 'role' field.
+            
+            # 1. Assign the Attorney
+            CaseAssignment.objects.create(case=case, user=attorney, role='Attorney')
+            
+            # 2. Assign the Client
+            CaseAssignment.objects.create(case=case, user=client, role='Client')
             
             messages.success(request, f"Successfully created case: {case.case_title}")
-            return redirect('cases:case-dashboard') # Redirect to the new list
+            return redirect('cases:case-dashboard') # Redirect to the case list after success
     else:
         # If it's a GET request, just show a blank form
         form = CaseCreateForm()
@@ -141,8 +147,6 @@ def case_create_view(request):
         'form': form
     }
     return render(request, 'cases/case_create.html', context)
-
-
 
 # --- View 3: Case Detail (SECURED) ---
 @login_required
