@@ -340,11 +340,19 @@ function updateLanguage(forceLang = null) {
   }
 
   contractSelect.innerHTML = `<option value="">${t.choose}</option>`;
+  // Filter contracts based on language
+  const isSpanish = lang === 'spanish';
   for (const [file, label] of Object.entries(t.contracts)) {
-    const opt = document.createElement("option");
-    opt.value = file;
-    opt.textContent = label;
-    contractSelect.appendChild(opt);
+    // Spanish contracts have "_es" in the filename, English contracts don't
+    const hasEsSuffix = file.includes('_es');
+    
+    // Show Spanish contracts when Spanish is selected, English contracts when English is selected
+    if ((isSpanish && hasEsSuffix) || (!isSpanish && !hasEsSuffix)) {
+      const opt = document.createElement("option");
+      opt.value = file;
+      opt.textContent = label;
+      contractSelect.appendChild(opt);
+    }
   }
   // update html select placeholder if present
   if(contractSelect && contractSelect.options && contractSelect.options.length>0){
