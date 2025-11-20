@@ -40,6 +40,9 @@ ALLOWED_HOSTS = []
 
 CSRF_TRUSTED_ORIGINS = ['https://localhost:8000']
 
+# settings.py
+SESSION_COOKIE_SECURE = False  # Set to True only in production (HTTPS)
+CSRF_COOKIE_SECURE = False     # Set to True only in production
 
 # Application definition
 

@@ -65,11 +65,7 @@
 
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-primary" style="background-color: #c4a24c; border-color: #c4a24c;">Create Meeting</button>
-      {% if case %}
-        <a href="{% url 'cases:case-detail' pk=case.pk %}" class="btn btn-secondary">Cancel</a>
-      {% else %}
-        <a href="{% url 'cases:case-dashboard' %}" class="btn btn-secondary">Cancel</a>
-      {% endif %}
+        <a href="{% url 'users:dashboard' %}" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>
