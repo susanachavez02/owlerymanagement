@@ -14,6 +14,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import UserProfile
+from .utils import generate_document_from_template
+
 # --- WeasyPrint Imports ---
 from weasyprint import HTML, CSS
 from django.template.loader import render_to_string
@@ -151,6 +153,22 @@ def case_create_view(request):
         'form': form
     }
     return render(request, 'cases/case_create.html', context)
+
+@login_required
+@user_passes_test(is_admin) # Only admins can hit this URL
+def case_delete_view(request, pk):
+    case = get_object_or_404(Case, pk=pk)
+    
+    if request.method == 'POST':
+        # Archive it instead of hard deleting? 
+        # If you want hard delete: case.delete()
+        # Here we assume hard delete based on your request:
+        case.delete()
+        messages.success(request, "Case deleted successfully.")
+        return redirect('cases:case-dashboard')
+        
+    # If GET, redirect back (safety)
+    return redirect('cases:case-dashboard')
 
 # --- View 3: Case Detail (SECURED) ---
 @login_required
@@ -336,7 +354,7 @@ def advance_stage_view(request, case_pk):
         # 1. Find the current, active log entry (it has no 'completed' timestamp)
         current_log_entry = CaseStageLog.objects.filter(
             case=case, 
-            stage=current_stage,
+            stage=case.current_stage,  # <--- FIX: Access it from the case object
             timestamp_completed__isnull=True
         ).first()
         
@@ -535,6 +553,11 @@ def generate_document_view(request, case_pk):
             except Exception as e:
                 print(f"!!! Error generating document: {e}")
                 messages.error(request, f"Error generating document. Is the template file a valid .docx? Error: {e}")
+
+# 1. FETCH DATABASE TEMPLATES (Add this block)
+    db_templates = ContractTemplate.objects.filter(
+        models.Q(is_public=True) | models.Q(created_by=request.user)
+    ).order_by('name')
 
     # Discover any HTML contract templates placed under the project's
     # `templates/cases/` directory that end with `_contract.html`.
@@ -861,9 +884,20 @@ class ContractTemplateListCreateView(generics.ListCreateAPIView):
     # Optionally filter to only show public templates and the user's own templates
     def get_queryset(self):
         user = self.request.user
-        # All public templates OR templates created by the current user
-        return ContractTemplate.objects.filter(models.Q(is_public=True) | models.Q(created_by=user)).order_by('-updated_at')
 
+        # 1. Allow staff/superusers to see ALL templates
+        if user.is_authenticated and (user.is_staff or user.is_superuser):
+            return ContractTemplate.objects.all().order_by('-updated_at')
+
+        # 2. Default filtering for standard users (Public OR User's own)
+        if user.is_authenticated:
+            return ContractTemplate.objects.filter(
+                models.Q(is_public=True) | models.Q(created_by=user)
+            ).order_by('-updated_at')
+        
+        # 3. For anonymous users (only public templates)
+        return ContractTemplate.objects.filter(is_public=True).order_by('-updated_at')
+    
 # --- Retrieve, Update, and Destroy a Template (GET/PUT/PATCH/DELETE /api/templates/{id}/) ---
 class ContractTemplateRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = ContractTemplate.objects.all()
@@ -878,77 +912,36 @@ def template_list(request):
     # The data fetching is done by JavaScript via the API.
     return render(request, 'cases/template_list.html', {})
 
-def generate_document_from_template(template_content, template_name):
-    """
-    [PLACEHOLDER FUNCTION]
-    In a real application, this function would:
-    1. Fill in placeholders (like {{ case.name }}) using context data.
-    2. Use a library like `docxtpl` to generate a DOCX file from a .docx base template.
-    3. Return the file object (e.g., an io.BytesIO object) ready to be served.
-
-    For this example, we will just return the raw template content as a simple .txt file.
-    """
-    
-    if context_data is None:
-        context_data = {}
-        
-    # 1. Use Django's template engine to render the HTML string
-    # We first wrap the content in a temporary template to process Django's template tags (like {{ variable }})
-    html_string = render_to_string('document_processor_temp.html', {'template_content': template_content, **context_data})
-
-    # 2. Convert the rendered HTML to PDF bytes using WeasyPrint
-    # NOTE: You'll need to handle CSS/static files properly if your HTML is complex.
-    pdf_bytes = HTML(string=html_string).write_pdf()
-
-    # 3. Prepare the response buffer and filename
-    output_filename = f"{template_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
-    
-    buffer = BytesIO(pdf_bytes)
-    
-    return buffer, output_filename
 
 
 class ContractTemplateDownloadView(APIView):
     permission_classes = [IsAuthenticated]
 
-    # UPDATE THE METHOD SIGNATURE to accept case_pk
-    def get(self, request, pk, case_pk, *args, **kwargs):
-        # 1. Retrieve the template instance
+    def get(self, request, pk):
+        # 1. Get the template
         template = get_object_or_404(ContractTemplate, pk=pk)
-
-        # 2. Retrieve the specific Case and related data using case_pk
-        case = get_object_or_404(Case, pk=case_pk)
         
-        # ASSUME: The Case model has a ForeignKey to a Client model
-        client_profile = client_user.profile if client_user else None
-        
-        # 3. Build the Context Dictionary for the template
-        context = {
-            # Case Data
-            'case_title': case.title,
-            'case_date_filed': case.date_filed.strftime('%Y-%m-%d'),
-            
-            # Client Data (check if client exists)
-            'client_full_name': client_user.get_full_name() if client_user else 'N/A',
-            'client_phone': client_profile.phone if client_profile else 'N/A',
-            'client_firm_role': client_profile.firm_role if client_profile else 'N/A',
-            
-            # User/Signatory Data (The user downloading the document)
-            'preparer_name': request.user.get_full_name() or request.user.username,
-            
-            # Additional variables needed by your templates
-        }
+        # 2. Define an empty context (since this is a blank template download)
+        context = {}
 
-        # 4. Generate the document (pass the context dictionary)
+        # 3. Generate the PDF using your helper function
+        # (Ensure generate_document_from_template is imported!)
         file_buffer, filename = generate_document_from_template(
             template.content, 
             template.name,
-            context_data=context # Pass the real data here
+            context_data=context
         )
 
-        # 5. Serve the file using FileResponse
+        # 4. Return the file as a PDF attachment
         response = FileResponse(file_buffer, as_attachment=True)
-        response['Content-Type'] = 'application/pdf' 
+        response['Content-Type'] = 'application/pdf'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
         return response
+    
+# Add to bottom of cases/views.py
+@login_required
+def get_db_template_content(request, pk):
+    """Returns the raw HTML content of a database ContractTemplate"""
+    template = get_object_or_404(ContractTemplate, pk=pk)
+    return HttpResponse(template.content, content_type='text/html')

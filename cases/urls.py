@@ -23,7 +23,7 @@ urlpatterns = [
     path('<int:case_pk>/create-meeting/', views.create_meeting_view, name='create-meeting'),  # From case detail
 
     # --- NEW: Admin Template Management ---
-    path('templates/generate/', views.template_generation_view, name='template-generation'),
+    path('templates/generate/', views.generate_document_view, name='template-generation'),
     path('templates/upload/', views.template_upload_view, name='template-upload'),
     path('contract-template/', views.contract_template_view, name='contract-template'),
 
@@ -32,7 +32,7 @@ urlpatterns = [
     path('create/', views.case_create_view, name='case-create'),
     # Admin: List all cases
     path('case-dashboard/', views.case_dashboard_view, name='case-dashboard'),
-    
+    path('case/<int:pk>/delete/', views.case_delete_view, name='case-delete'),
     # --- User-Facing Case Views ---
     # View details for a single case
     # <int:pk> captures the ID from the URL (e.g., /cases/1/)
@@ -43,8 +43,8 @@ urlpatterns = [
     path('api/templates/', ContractTemplateListCreateView.as_view(), name='template-list-create'),
     path('api/templates/<int:pk>/', ContractTemplateRetrieveUpdateDestroyView.as_view(), name='template-detail' ),
     path('templates/', views.template_list, name='template-list'),
-    path('api/templates/<int:pk>/download/<int:case_pk>/', ContractTemplateDownloadView.as_view(), name='template-download'),
-
+    path('api/templates/<int:pk>/download/', views.ContractTemplateDownloadView.as_view(), name='template-download'),
+    path('api/contract-template/<int:pk>/content/', views.get_db_template_content, name='db-template-content'),
     # --- Advance Case Stage ---
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
 

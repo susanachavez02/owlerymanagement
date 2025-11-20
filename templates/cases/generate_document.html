@@ -9,19 +9,21 @@
     {% csrf_token %}
       <div class="form-group">
       <label id="availableTemplatesLabel" for="template_id_select">Available Templates</label>
-      <select class="form-control" id="template_id_select" name="template_id">
-        <option value="" selected disabled>--- Please select a template ---</option>
-        {% for template in templates %}
-          <option value="{{ template.pk }}">
-            {{ template.name }}
-          </option>
-        {% empty %}
-          <option value="" disabled>No templates are available.</option>
+      <select id="contractSelect" class="form-select">
+    <option value="">--- Choose a contract ---</option>
+
+    <optgroup label="My Custom Templates">
+        {% for t in db_templates %}
+            <option value="db-{{ t.id }}">{{ t.name }}</option>
         {% endfor %}
-      </select>
-    </div>
-  <button id="generate_btn" type="submit" class="btn btn-success mt-3">Generate</button>
-  </form>
+    </optgroup>
+
+    <optgroup label="System Templates">
+        {% for file, label in contract_choices %}
+            <option value="{{ file }}">{{ label }}</option>
+        {% endfor %}
+    </optgroup>
+</select>
 
     <hr />
 
@@ -406,7 +408,23 @@
       return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
-    async function fetchTemplate(fileName){
+async function fetchTemplate(fileName){
+      // --- 1. NEW: Check for Database Templates (Starts with 'db-') ---
+      if (fileName && fileName.startsWith('db-')) {
+        const id = fileName.replace('db-', '');
+        // Fetch from the new Django view we created in the previous step
+        try {
+          const response = await fetch(`/cases/api/contract-template/${id}/content/`, {credentials: 'same-origin'});
+          if (!response.ok) throw new Error("Failed to load database template");
+          return await response.text();
+        } catch (e) {
+          console.error("Error fetching database template:", e);
+          return "Error loading template. Please check the console.";
+        }
+      }
+      // ---------------------------------------------------------------
+
+      // --- 2. Existing Logic for File System Templates ---
       const lang = currentLang();
       if(lang === 'es'){
         // try spanish variants first
@@ -418,25 +436,29 @@
         }
         for(const fn of tryNames){
           try{
+            // Ensure contractTemplateUrl is defined in your script or replace with '/cases/contract-template/'
             const r = await fetch(contractTemplateUrl + '?file=' + encodeURIComponent(fn), {credentials: 'same-origin'});
             if(r.ok) return await r.text();
           }catch(e){ /* ignore */ }
         }
         // fall through to original
       }
+      
       const resp = await fetch(contractTemplateUrl + '?file=' + encodeURIComponent(fileName), {credentials: 'same-origin'});
       if(!resp.ok) throw new Error('Unable to fetch template: ' + resp.status);
-        const original = await resp.text();
-        // If Spanish requested but no Spanish variant was found, attempt simple auto-translation
-        if(lang === 'es'){
-          try{
-            return autoTranslateHtml(original, 'es');
-          }catch(e){
-            console.warn('Auto-translate failed', e);
-            return original;
-          }
+      
+      const original = await resp.text();
+      
+      // If Spanish requested but no Spanish variant was found, attempt simple auto-translation
+      if(lang === 'es'){
+        try{
+          return autoTranslateHtml(original, 'es');
+        }catch(e){
+          console.warn('Auto-translate failed', e);
+          return original;
         }
-        return original;
+      }
+      return original;
     }
 
       // Lightweight rule-based HTML translator (convenience fallback). Not for production/legal use.
