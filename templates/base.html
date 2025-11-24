@@ -26,142 +26,36 @@
     --owl-gold-hover:#e2b857; 
   }
 
-  /* ... all your other custom styles ... */
-  .btn-gold {
-    background:var(--owl-gold);
-    color:var(--owl-dark);
-    border:none;
-  }
-  .btn-gold:hover { 
-    background:var(--owl-gold-hover); 
-    color:var(--owl-dark); 
-  }
+  /* Custom Styles */
+  .btn-gold { background:var(--owl-gold); color:var(--owl-dark); border:none; }
+  .btn-gold:hover { background:var(--owl-gold-hover); color:var(--owl-dark); }
   
-  .btn-outline-gold {
-    color:var(--owl-gold);
-    border:1px solid var(--owl-gold);
-    background:transparent;
-  }
-  .btn-outline-gold:hover,
-  .btn-outline-gold:focus {
-    background:var(--owl-gold);
-    color:var(--owl-dark);
-    border-color:var(--owl-gold);
-  }
+  .btn-outline-gold { color:var(--owl-gold); border:1px solid var(--owl-gold); background:transparent; }
+  .btn-outline-gold:hover, .btn-outline-gold:focus { background:var(--owl-gold); color:var(--owl-dark); border-color:var(--owl-gold); }
 
-  .page-title {
-    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-weight: 700;
-    letter-spacing:.2px;
-    margin-bottom:.25rem;
-  }
-  .page-subtitle { 
-    color:#526575; 
-  }
+  .page-title { font-family: "Inter", sans-serif; font-weight: 700; letter-spacing:.2px; margin-bottom:.25rem; }
+  .page-subtitle { color:#526575; }
 
-  .badge { 
-    border-radius: 999px; 
-    padding:.4rem .6rem; 
-    font-weight:600; 
-  }
+  .badge { border-radius: 999px; padding:.4rem .6rem; font-weight:600; }
 
-  .btn-management {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-  }
+  /* Navbar Styles */
+  .navbar-light .navbar-nav .nav-link { font-weight: 600; color: #343a40; padding: 0.5rem 1rem; border-radius: 6px; transition: background-color 0.2s ease-in-out; }
+  .navbar-light .navbar-nav .nav-link:hover { background-color: #f8f9fa; color: var(--owl-dark); }
+  .navbar-light .navbar-nav .nav-link.active { color: var(--owl-gold); }
+
+  .dropdown-menu { border: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.07); }
+  .dropdown-item { font-weight: 500; padding: 0.5rem 1.25rem; transition: all 0.2s; }
+  .dropdown-item:hover, .dropdown-item:focus { background-color: var(--owl-gold-hover); color: var(--owl-dark); border-radius: 4px; }
   
-  .btn-management:hover {
-    background: #5a6268;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
-  }
+  /* Buttons */
+  .btn-management { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+  .btn-management:hover { background: #5a6268; color: white; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3); }
 
-  .btn-reports {
-    background: var(--owl-gold);
-    color: var(--owl-dark);
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-  }
-  
-  .btn-reports:hover {
-    background: var(--owl-gold-hover);
-    color: var(--owl-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(196, 162, 76, 0.4);
-  }
+  .btn-reports { background: var(--owl-gold); color: var(--owl-dark); border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+  .btn-reports:hover { background: var(--owl-gold-hover); color: var(--owl-dark); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(196, 162, 76, 0.4); }
 
-  .btn-primary-action {
-    background: #1e40af;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-  }
-  
-  .btn-primary-action:hover {
-    background: #1e3a8a;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
-  }
-
-.navbar-light .navbar-nav .nav-link {
-    font-weight: 600;
-    color: #343a40; 
-    padding: 0.5rem 1rem;
-    border-radius: 6px; 
-    transition: background-color 0.2s ease-in-out;
-}
-
-.navbar-light .navbar-nav .nav-link:hover {
-    background-color: #f8f9fa; 
-    color: var(--owl-dark);
-}
-
-.navbar-light .navbar-nav .nav-link.active {
-    color: var(--owl-gold);
-}
-
-.dropdown-menu {
-    border: none; 
-    border-radius: 8px; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.07); 
-}
-
-.dropdown-item {
-    font-weight: 500;
-    padding: 0.5rem 1.25rem;
-    transition: all 0.2s;
-}
-
-.dropdown-item:hover, .dropdown-item:focus {
-    background-color: var(--owl-gold-hover);
-    color: var(--owl-dark);
-    border-radius: 4px; 
-}
+  .btn-primary-action { background: #1e40af; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+  .btn-primary-action:hover { background: #1e3a8a; color: white; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3); }
 </style>
 </head>
 
@@ -177,17 +71,46 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center">
                     {% if request.user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link active" href="{% url 'users:dashboard' %}">Dashboard</a>
                         </li>
+
+                        <li class="nav-item">
+                          <a class="nav-link" href="{% url 'cases:calendar' %}">
+                            Calendar
+                          </a>
+                        </li>
+
+                        {% if is_admin_user %} 
+                        <li class="nav-item">
+                            
+                        </li>
+        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                User Directory
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="adminManageDropdown">
+                                <li class="nav-item">
+                                <a class="nav-link" href="{% url 'cases:client-list' %}">
+                                    Clients
+                                </a>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{% url 'cases:attorney-list' %}">
+                                            Attorneys
+                                        </a>
+                                    </li>
+                            </ul>
+                        </li>
+                        {% endif %}
                         
                         {% if is_admin_user %} 
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'cases:template-list' %}">
-                                Contract Templates
-                            </a>
+                            
                         </li>
         
                         <li class="nav-item dropdown">
@@ -196,9 +119,8 @@
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="adminManageDropdown">
                                 <li><a class="dropdown-item" href="{% url 'user-list' %}">Manage Users</a></li>
-                                <li><a class="dropdown-item" href="{% url 'client-reassignment' %}">Reassign Clients</a></li>
-                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'cases:workflow-list' %}">Manage Workflows</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cases:template-list' %}">Manage Templates</a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -210,7 +132,7 @@
                     {% endif %}
                 </ul>
                 
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                     {% if request.user.is_authenticated %}
                         <li class="nav-item">
                             <div class="d-flex align-items-center">
@@ -234,7 +156,6 @@
     </nav>
     
     <main class="container py-4">
-                
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -246,7 +167,6 @@
         
         {% block content %}
         {% endblock %}
-                
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"

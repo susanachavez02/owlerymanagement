@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center">
+                
+                <div class="me-4">
+                    {% if profile_user.profile.profile_picture %}
+                        <img src="{{ profile_user.profile.profile_picture.url }}" 
+                             alt="{{ profile_user.username }}" 
+                             class="rounded-circle shadow-sm"
+                             style="width: 100px; height: 100px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center" 
+                             style="width: 100px; height: 100px; font-size: 2.5rem;">
+                            {{ profile_user.first_name|first }}{{ profile_user.last_name|first }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <h2 class="fw-bold mb-1">{{ profile_user.get_full_name }}</h2>
+                    <p class="text-muted mb-2">{{ profile_user.email }}</p>
+                    <span class="badge bg-primary rounded-pill">
+                        {{ profile_user.roles.first.name|default:"User" }}
+                    </span>
+                    <p class="mb-0 mt-2 small text-muted">
+                        <i class="fas fa-phone me-1"></i> {{ profile_user.profile.phone|default:"No phone listed" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <h4 class="page-title mb-3">📂 Associated Cases</h4>
+            <div class="list-group shadow-sm mb-4">
+                {% for assignment in assignments %}
+                <a href="{% url 'cases:case-detail' assignment.case.pk %}" class="list-group-item list-group-item-action p-3">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h5 class="mb-1 fw-bold text-primary">{{ assignment.case.case_title }}</h5>
+                        <small class="text-muted">{{ assignment.case.date_filed|date:"M d, Y" }}</small>
+                    </div>
+                    <p class="mb-1 text-secondary small">{{ assignment.case.description|truncatewords:20 }}</p>
+                    <span class="badge bg-success rounded-pill mt-2">{{ assignment.case.current_stage.name }}</span>
+                </a>
+                {% empty %}
+                <div class="list-group-item p-4 text-center text-muted">
+                    No active cases found for this user.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            {% if related_people %}
+            <h4 class="page-title mb-3">👥 Related {{ related_title }}</h4>
+            <div class="card shadow-sm">
+                <ul class="list-group list-group-flush">
+                    {% for person in related_people %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div class="d-flex align-items-center">
+                            
+                            <div class="me-3" style="width: 40px; height: 40px;">
+                                {% if person.profile.profile_picture %}
+                                    <img src="{{ person.profile.profile_picture.url }}" 
+                                         class="rounded-circle w-100 h-100 shadow-sm" 
+                                         style="object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center w-100 h-100">
+                                        <small class="fw-bold text-secondary">
+                                            {{ person.first_name|first }}{{ person.last_name|first }}
+                                        </small>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <a href="{% url 'cases:user-profile' person.pk %}" class="text-decoration-none text-dark fw-bold">
+                                    {{ person.get_full_name }}
+                                </a>
+                                <div class="small text-muted" style="font-size: 0.8rem;">{{ person.email }}</div>
+                            </div>
+                        </div>
+                        <a href="{% url 'cases:user-profile' person.pk %}" class="btn btn-sm btn-light">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

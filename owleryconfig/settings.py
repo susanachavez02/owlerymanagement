@@ -157,8 +157,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 
 # --- Media File (User Uploads) Configuration ---
 # The local filesystem path where user files will be stored
-MEDIA_ROOT = BASE_DIR / 'media'
-
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # The public URL prefix for those files
 MEDIA_URL = '/media/'
 

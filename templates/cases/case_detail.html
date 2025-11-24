@@ -9,10 +9,12 @@
       <a href="{% url 'users:dashboard' %}" class="btn btn-sm btn-outline-secondary mb-2">Back to Dashboard</a>
       <h2 class="mt-1 mb-0">{{ case.case_title }}</h2>
     </div>
-    <div>
+  </div>
+  <div class="mb-4 p-3 bg-light rounded">
+      <div class="d-flex gap-2 flex-wrap">
       <a href="{% url 'communication:case-messaging' case_pk=case.pk %}" class="btn btn-info">View Case Messages</a>
     </div>
-  </div>
+    </div>
   <p class="lead">{{ case.description|default:"No description provided." }}</p>
 
   {# --- 2. Workflow Progress --- #}
@@ -73,8 +75,7 @@
   {# --- 4a. Meetings Section --- #}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5>Case Meetings</h5>
-    {# Only admins can schedule meetings #}
-    {% if is_admin_user %}
+    {% if is_admin_user or 'Attorney' in user_roles %}
       <a href="{% url 'cases:create-meeting' case_pk=case.pk %}" class="btn btn-success">
         + Schedule Meeting
       </a>

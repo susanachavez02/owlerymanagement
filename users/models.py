@@ -8,13 +8,14 @@ from django.utils import timezone # We'll need this for the expiration time
 class UserProfile(models.Model):
     # This links the profile to the built-in Django User model
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    phone = models.CharField(max_length=20, blank=True)
+    firm_role = models.CharField(max_length=100, blank=True)
     
-    # Extra fields from your doc 
-    phone = models.CharField(max_length=20, blank=True, null=True)
-    firm_role = models.CharField(max_length=100, blank=True, help_text="Primary role, e.g., 'Managing Partner'")
+    # ADD THIS LINE:
+    profile_picture = models.ImageField(default='default_profile.png', upload_to='profile_pics', blank=True, null=True)
 
     def __str__(self):
-        return f"{self.user.username} Profile"
+        return f'{self.user.username} Profile'
 
 # Model 2: Role
 class Role(models.Model):

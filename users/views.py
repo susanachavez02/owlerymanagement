@@ -1,7 +1,7 @@
 # Create your views here.
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -12,6 +12,7 @@ from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm,
 from cases.models import Case, CaseAssignment
 from django.urls import reverse
 from django.core.mail import send_mail
+from django.db.models import Q
 from django.template.loader import render_to_string
 
 # --- NEW: Homepage View ---
@@ -197,14 +198,30 @@ def dashboard_view(request):
 @login_required
 @user_passes_test(is_admin)
 def user_management_list_view(request):
-    # Get all users, and pre-fetch their related roles and profiles
-    # This is more efficient than looking them up one-by-one in the template
-    users = User.objects.all().prefetch_related(
-        'roles', 'profile'
-    ).order_by('username')
+    User = get_user_model()
+    
+    # 1. Start with all users
+    users = User.objects.all().order_by('-date_joined')
+    
+    # 2. Search Filter (checks username, first name, last name, email)
+    search_query = request.GET.get('q', '')
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+
+    # 3. Role Filter (checks the Role model relation)
+    role_filter = request.GET.get('role', '')
+    if role_filter:
+        users = users.filter(roles__name=role_filter)
     
     context = {
-        'users': users
+        'users': users,
+        'search_query': search_query,
+        'role_filter': role_filter
     }
     return render(request, 'users/user_management_list.html', context)
 

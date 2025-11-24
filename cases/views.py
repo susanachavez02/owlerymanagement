@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.db import models
 import io
+from django.db.models import Q
 from io import BytesIO
 from docx import Document as DocxDocument
 from rest_framework import generics, status
@@ -870,6 +871,8 @@ def create_meeting_view(request, case_pk=None):
     }
     return render(request, 'cases/create_meeting.html', context)
 
+def calendar_view(request):
+    return render(request, 'cases/calendar.html', {})
 
 # --- List and Create Templates (GET /api/templates/, POST /api/templates/) ---
 class ContractTemplateListCreateView(generics.ListCreateAPIView):
@@ -945,3 +948,99 @@ def get_db_template_content(request, pk):
     """Returns the raw HTML content of a database ContractTemplate"""
     template = get_object_or_404(ContractTemplate, pk=pk)
     return HttpResponse(template.content, content_type='text/html')
+
+@login_required
+def client_list_view(request):
+    User = get_user_model()
+    # Filter for users who have the 'Client' role
+    users = User.objects.filter(roles__name='Client').distinct().order_by('last_name')
+    context = {
+        'users': users,
+        'page_title': 'Clients',
+        'icon': 'fas fa-user-friends'
+    }
+    return render(request, 'cases/user_list.html', context)
+
+@login_required
+def attorney_list_view(request):
+    User = get_user_model()
+    # Filter for users who have the 'Attorney' role
+    users = User.objects.filter(roles__name='Attorney').distinct().order_by('last_name')
+    context = {
+        'users': users,
+        'page_title': 'Attorneys',
+        'icon': 'fas fa-gavel'
+    }
+    return render(request, 'cases/user_list.html', context)
+
+@login_required
+def user_profile_view(request, pk):
+    User = get_user_model()
+    profile_user = get_object_or_404(User, pk=pk)
+    
+    # 1. Get all cases this user is assigned to
+    assignments = CaseAssignment.objects.filter(user=profile_user).select_related('case')
+    
+    # 2. Determine "Related People" logic
+    related_people = []
+    related_title = ""
+    
+    is_attorney_profile = profile_user.roles.filter(name='Attorney').exists()
+    is_client_profile = profile_user.roles.filter(name='Client').exists()
+
+    # Get the IDs of cases this user is part of
+    case_ids = assignments.values_list('case_id', flat=True)
+
+    if is_attorney_profile:
+        # If looking at an Attorney, show their Clients
+        related_title = "Clients"
+        related_people = User.objects.filter(
+            case_assignments__case__id__in=case_ids,
+            roles__name='Client'
+        ).distinct()
+        
+    elif is_client_profile:
+        # If looking at a Client, show their Attorneys
+        related_title = "Attorneys"
+        related_people = User.objects.filter(
+            case_assignments__case__id__in=case_ids,
+            roles__name='Attorney'
+        ).distinct()
+
+    context = {
+        'profile_user': profile_user,
+        'assignments': assignments,
+        'related_people': related_people,
+        'related_title': related_title,
+    }
+    return render(request, 'cases/user_profile.html', context)
+
+@login_required
+# @user_passes_test(is_admin) # Ensure you have your admin check here
+def user_management_view(request):
+    User = get_user_model()
+    
+    # 1. Start with all users
+    users = User.objects.all().order_by('-date_joined')
+    
+    # 2. Search Filter (checks username, first name, last name, email)
+    search_query = request.GET.get('q', '')
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+
+    # 3. Role Filter (checks the Role model relation)
+    role_filter = request.GET.get('role', '')
+    if role_filter:
+        users = users.filter(roles__name=role_filter)
+    
+    context = {
+        'users': users,
+        'search_query': search_query,
+        'role_filter': role_filter
+    }
+    return render(request, 'cases/user_management_list.html', context)

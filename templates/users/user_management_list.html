@@ -5,6 +5,15 @@
 <style>
   /* ===== USER MANAGEMENT PAGE STYLES ===== */
   
+  /* Search Bar Styles */
+  .search-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
   /* Card Grid Layout */
   .users-grid {
     display: grid;
@@ -106,20 +115,7 @@
     gap: 0.5rem;
   }
 
-  .user-card-actions .btn {
-    width: 100%;
-    font-size: 0.875rem;
-  }
-
-  /* Make forms take full width */
-  .user-card-actions form {
-    width: 100%;
-    margin: 0;
-  }
-
-  /* ===== LEGAL PROFESSIONAL BUTTON COLORS ===== */
-  
-  /* Edit User Button - Deep Blue (Trust & Authority) */
+  /* Action Button Styles */
   .btn-edit-user {
     background: #1e40af;
     color: white;
@@ -127,22 +123,14 @@
     padding: 10px;
     border-radius: 6px;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
-    display: block;
     text-align: center;
     text-decoration: none;
+    display: block;
+    width: 100%;
+    transition: all 0.2s;
   }
-  
-  .btn-edit-user:hover {
-    background: #1e3a8a;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
-  }
+  .btn-edit-user:hover { background: #1e3a8a; color: white; transform: translateY(-1px); }
 
-  /* Reset Password Button - Teal (Informational Action) */
   .btn-reset-password {
     background: #0891b2;
     color: white;
@@ -150,19 +138,11 @@
     padding: 10px;
     border-radius: 6px;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
     width: 100%;
-    display: block;
+    transition: all 0.2s;
   }
-  
-  .btn-reset-password:hover {
-    background: #0e7490;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3);
-  }
+  .btn-reset-password:hover { background: #0e7490; transform: translateY(-1px); }
 
-  /* Deactivate Button - Red (Warning/Danger) */
   .btn-deactivate-user {
     background: #dc2626;
     color: white;
@@ -170,19 +150,11 @@
     padding: 10px;
     border-radius: 6px;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
     width: 100%;
-    display: block;
+    transition: all 0.2s;
   }
-  
-  .btn-deactivate-user:hover {
-    background: #b91c1c;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
-  }
+  .btn-deactivate-user:hover { background: #b91c1c; transform: translateY(-1px); }
 
-  /* Activate Button - Green (Positive Action) */
   .btn-activate-user {
     background: #16a34a;
     color: white;
@@ -190,37 +162,66 @@
     padding: 10px;
     border-radius: 6px;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
     width: 100%;
-    display: block;
+    transition: all 0.2s;
   }
-  
-  .btn-activate-user:hover {
-    background: #15803d;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
-  }
+  .btn-activate-user:hover { background: #15803d; transform: translateY(-1px); }
 
-  /* Empty state */
   .empty-state {
     text-align: center;
     padding: 3rem;
     color: #6c757d;
-    font-style: italic;
   }
 </style>
 
-
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="page-title">User Management</h2>
   <div>
+    <h2 class="page-title">User Management</h2>
+    <p class="page-subtitle mb-0">View and manage all system users.</p>
+  </div>
+  <div class="d-flex gap-2">
     <a href="{% url 'user-create' %}" class="btn btn-gold">Create New User</a>
     <a href="{% url 'client-reassignment' %}" class="btn btn-outline-gold">Reassign Clients</a>
-    <a href="{% url 'cases:case-dashboard' %}" class="btn btn-secondary">Back to Case Dashboard</a>
+    <a href="{% url 'cases:case-dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
   </div>
 </div>
-<p class="page-subtitle mb-0">View all users in the system and manage their accounts.</p>
+
+<div class="search-card mb-4">
+  <form method="GET" class="row g-3 align-items-center">
+    
+    <div class="col-md-6">
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+        <input type="text" name="q" class="form-control border-start-0 ps-0" 
+               placeholder="Search by name, username, or email..." 
+               value="{{ search_query }}">
+        <input type="hidden" name="role" value="{{ role_filter }}">
+      </div>
+    </div>
+
+    <div class="col-md-6 d-flex justify-content-md-end align-items-center">
+      <span class="text-muted fw-bold me-2 text-uppercase small">Filter By:</span>
+      <div class="btn-group" role="group">
+        <a href="?q={{ search_query }}" 
+           class="btn btn-sm {% if not role_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+           All
+        </a>
+        <a href="?q={{ search_query }}&role=Client" 
+           class="btn btn-sm {% if role_filter == 'Client' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+           Clients
+        </a>
+        <a href="?q={{ search_query }}&role=Attorney" 
+           class="btn btn-sm {% if role_filter == 'Attorney' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+           Attorneys
+        </a>
+        <a href="?q={{ search_query }}&role=Admin" 
+           class="btn btn-sm {% if role_filter == 'Admin' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+           Admins
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
 
 {% if users %}
   <div class="users-grid">
@@ -229,14 +230,19 @@
         {# Card Header with Avatar #}
         <div class="user-card-header">
           <div class="user-avatar">
-            {{ user.username|first|upper }}
+            {% if user.profile.profile_picture %}
+                 <img src="{{ user.profile.profile_picture.url }}" 
+                      style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+            {% else %}
+                 {{ user.username|first|upper }}
+            {% endif %}
           </div>
           <div class="user-card-info">
             <div class="user-card-username">
               <a href="{% url 'profile-view' user_pk=user.pk %}">{{ user.username }}</a>
             </div>
             <div class="user-card-role">
-              {{ user.roles.all|join:", "|default:"No Role" }}
+              {{ user.roles.first.name|default:"User" }}
             </div>
           </div>
         </div>
@@ -263,11 +269,9 @@
           </div>
         </div>
 
-        {# Card Actions with Legal Professional Colors #}
+        {# Card Actions #}
         <div class="user-card-actions">
-          <a href="{% url 'user-edit' user_pk=user.pk %}" class="btn-edit-user">
-            Edit User
-          </a>
+          <a href="{% url 'user-edit' user_pk=user.pk %}" class="btn-edit-user">Edit User</a>
 
           <form action="{% url 'user-reset-password' user_pk=user.pk %}" method="POST">
             {% csrf_token %}
@@ -277,7 +281,7 @@
             </button>
           </form>
 
-          {% if user != request.user %} {# Prevent self-deactivation #}
+          {% if user != request.user %}
             <form action="{% url 'user-toggle-active' user_pk=user.pk %}" method="POST">
               {% csrf_token %}
               {% if user.is_active %}
@@ -299,7 +303,9 @@
   </div>
 {% else %}
   <div class="empty-state">
-    No users found.
+    <h3>No users found.</h3>
+    <p>Try adjusting your search or filters.</p>
+    <a href="{% url 'user-list' %}" class="btn btn-outline-secondary mt-2">Clear Filters</a>
   </div>
 {% endif %}
 
