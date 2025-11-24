@@ -438,3 +438,11 @@ def profile_view(request, user_pk):
         messages.error(request, "You do not have permission to view this profile.")
         # Redirect to the viewer's own dashboard
         return redirect('users:dashboard')
+    
+def attorneys_firm_view(request):
+    attorneys = User.objects.filter(roles__name='Attorney').order_by('last_name', 'first_name')
+    
+    context = {
+        'attorneys': attorneys
+    }
+    return render(request, 'users/attorneys_firm.html', context)

@@ -23,4 +23,7 @@ urlpatterns = [
     # e.g., /users/set-password/a-long-uuid-key/
     path('set-password/<uuid:key>/', views.set_password_view, name='set-password'),
     path('user-edit/<int:pk>/', views.user_edit_view, name='user-edit'),
+
+    # Landing Page
+    path('attorney-landing/', views.attorneys_firm_view, name='attorney-landing'),
 ]
