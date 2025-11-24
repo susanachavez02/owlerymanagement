@@ -9,6 +9,7 @@ from .forms import NewMessageForm
 from cases.models import Case, CaseAssignment # Need to import Case/Assignment
 from cases.models import Case
 from users.models import Role
+from django.utils import timezone
 from cases.decorators import user_is_assigned_to_case
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
@@ -29,22 +30,20 @@ def case_messaging_view(request, case_pk):
             msg.case = case
             msg.sender = request.user
             
+            # 🛠️ FIX: Explicitly set the timestamp to 'now'
+            msg.sent_at = timezone.now()
+            
             # --- Find the Recipient ---
-            # Find all users on the case, EXCLUDING the sender
             other_users = case.assignments.exclude(user=request.user)
             
-            # For the MVP, we assume there is only one other person
-            # (e.g., Client messages Attorney, or Attorney messages Client)
             if other_users.exists():
                 msg.recipient = other_users.first().user
             else:
-                # Handle edge case (e.g., admin talking to themselves)
                 msg.recipient = request.user 
             
             msg.save()
             messages.success(request, "Message sent.")
             return redirect('communication:case-messaging', case_pk=case.pk)
-    
     # --- Handle GET Request ---
     # Create a blank form
     form = NewMessageForm()
