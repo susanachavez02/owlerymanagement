@@ -38,7 +38,7 @@ from .serializers import ContractTemplateSerializer
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
     WorkflowCreateForm, StageCreateForm, 
-    TemplateUploadForm, MeetingForm, ConsultationScheduleForm,
+    TemplateUploadForm, MeetingForm, ConsultationScheduleForm, ConsultationForm,
 )
 
 from users.views import is_admin

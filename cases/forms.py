@@ -106,3 +106,24 @@ class ConsultationScheduleForm(forms.Form):
         if not time and not link:
             raise forms.ValidationError("Please either set a specific time OR provide a booking link.")
         return cleaned_data
+    
+
+# Add this to the bottom of cases/forms.py
+
+class ConsultationForm(forms.ModelForm):
+    class Meta:
+        model = ConsultationRequest
+        fields = ['name', 'phone', 'email', 'service_needed', 'attorney']
+        widgets = {
+            'service_needed': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'attorney': forms.Select(attrs={'class': 'form-select'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter the attorney dropdown to only show users with the 'Attorney' role
+        self.fields['attorney'].queryset = User.objects.filter(roles__name='Attorney')
+        self.fields['attorney'].empty_label = "Select an Attorney (Optional)"
