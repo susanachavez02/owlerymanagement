@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import (
-    Case, Document, CaseWorkflow, CaseStage, Template, Meeting, Case
+    Case, Document, CaseWorkflow, CaseStage, Template, Meeting, Case, ConsultationRequest
 )
 from users.models import Role   # From the 'users' app
 
@@ -68,3 +68,41 @@ class MeetingForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'participants': forms.CheckboxSelectMultiple(),
         }
+
+class ConsultationScheduleForm(forms.Form):
+    MEETING_TYPES = (
+        ('Online Video', 'Online Video (Zoom/Teams)'),
+        ('Phone Call', 'Phone Call'),
+        ('In Person', 'In Person at Office'),
+    )
+    
+    meeting_type = forms.ChoiceField(choices=MEETING_TYPES, label="Meeting Type")
+    
+    scheduled_time = forms.DateTimeField(
+        required=False, 
+        label="Set Specific Time",
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+        help_text="Select a confirmed time..."
+    )
+    
+    booking_link = forms.URLField(
+        required=False, 
+        label="OR Send Booking Link",
+        widget=forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://calendly.com/...'}),
+        help_text="...or provide a link for them to choose."
+    )
+    
+    additional_message = forms.CharField(
+        required=False, 
+        widget=forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        label="Message to Client"
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        time = cleaned_data.get("scheduled_time")
+        link = cleaned_data.get("booking_link")
+
+        if not time and not link:
+            raise forms.ValidationError("Please either set a specific time OR provide a booking link.")
+        return cleaned_data

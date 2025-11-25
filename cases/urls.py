@@ -63,4 +63,12 @@ urlpatterns = [
     # --- E-Signature URLs ---
     path('document/<int:doc_pk>/request-signature/', views.signature_request_view, name='signature-request'),
     path('document/sign/<uuid:token>/', views.signing_page_view, name='signing-page'),
+
+    # Public Form
+    path('request-consultation/', views.request_consultation_view, name='request-consultation'),
+    
+    # Attorney Actions
+    path('consultation/<int:pk>/', views.consultation_detail_view, name='consultation-detail'),
+    path('consultation/<int:pk>/schedule/', views.schedule_consultation_action, name='schedule-consultation'),
+    path('consultation/<int:pk>/update/<str:status>/', views.update_consultation_status, name='update-consultation'),
 ]

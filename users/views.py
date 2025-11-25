@@ -9,7 +9,7 @@ from django.db import transaction
 from django.conf import settings
 from .models import OnboardingKey, UserProfile, Role
 from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm, UserCreationAdminForm, UserEditAdminForm
-from cases.models import Case, CaseAssignment
+from cases.models import Case, CaseAssignment, ConsultationRequest
 from django.urls import reverse
 from django.core.mail import send_mail
 from django.db.models import Q
@@ -158,40 +158,35 @@ def set_password_view(request, key):
 def dashboard_view(request):
     user = request.user
     
-    # --- Check Roles ---
+    # Determine User Role
+    is_attorney = user.roles.filter(name='Attorney').exists()
+    is_client = user.roles.filter(name='Client').exists()
     
-    # 1. Is the user an Admin?
-    if user.roles.filter(name='Admin').exists():
-        # Admins just see the main case list.
-        return redirect('cases:case-dashboard')
-        
-    # 2. Is the user an Attorney?
-    elif user.roles.filter(name='Attorney').exists():
-        # Get all cases assigned to this attorney
+    # Get Assigned Cases
+    assigned_cases = Case.objects.none()
+    if is_attorney or is_client:
+        # Show cases where this user is assigned
         assigned_cases = Case.objects.filter(assignments__user=user).order_by('-date_filed')
-        
-        context = {
-            'assigned_cases': assigned_cases,
-            'is_attorney': True
-        }
-        return render(request, 'users/dashboard.html', context)
-        
-    # 3. Is the user a Client?
-    elif user.roles.filter(name='Client').exists():
-        # Get all cases assigned to this client
-        assigned_cases = Case.objects.filter(assignments__user=user).order_by('-date_filed')
-        
-        context = {
-            'assigned_cases': assigned_cases,
-            'is_client': True
-        }
-        return render(request, 'users/dashboard.html', context)
+
+    # --- NEW LOGIC: Fetch Incoming Requests ---
+    consultations = []
+    if is_attorney:
+        # Get pending requests assigned specifically to this attorney
+        consultations = ConsultationRequest.objects.filter(
+            attorney=user, 
+            status='Pending'
+        ).order_by('-created_at')
+    # ------------------------------------------
+
+    context = {
+        'user': user,
+        'is_attorney': is_attorney,
+        'is_client': is_client,
+        'assigned_cases': assigned_cases,
+        'consultations': consultations, # <--- Pass the list to the template
+    }
     
-    # 4. Fallback
-    else:
-        # If user has no roles, send them to the login page with an error.
-        messages.error(request, "Your account is not yet configured. Please contact an administrator.")
-        return redirect('users:logout')
+    return render(request, 'users/reg_user_dashboard.html', context)
     
 # --- STEP 33: USER MANAGEMENT VIEW
 # ---

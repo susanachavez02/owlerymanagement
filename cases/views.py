@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.db import models
 import io
+from django.core.mail import send_mail
 from django.db.models import Q
 from io import BytesIO
 from docx import Document as DocxDocument
@@ -27,7 +28,7 @@ from django.template.loader import render_to_string
 from .models import (
     Case, CaseAssignment, Document, DocumentLog,
     CaseWorkflow, CaseStage, Template, 
-    SignatureRequest, CaseStageLog, Meeting, DocumentDueDate, ContractTemplate,
+    SignatureRequest, CaseStageLog, Meeting, DocumentDueDate, ContractTemplate, ConsultationRequest,   
 )
 from django.db.models import Sum, Count, Avg, F
 from users.models import Role
@@ -37,7 +38,7 @@ from .serializers import ContractTemplateSerializer
 from .forms import (
     CaseCreateForm, DocumentUploadForm,
     WorkflowCreateForm, StageCreateForm, 
-    TemplateUploadForm, MeetingForm
+    TemplateUploadForm, MeetingForm, ConsultationScheduleForm,
 )
 
 from users.views import is_admin
@@ -82,19 +83,27 @@ def docx_find_and_replace(doc, context):
 @login_required
 @user_passes_test(is_admin)
 def case_dashboard_view(request):
-    # This assumes you have a way to filter for "active" cases
-    cases_list = Case.objects.filter(is_archived=False).order_by('-date_filed') 
     
-    # Example logic for stat cards (you'll need to adjust this)
+    # Filter cases for non-admins
+    if not is_admin_user:
+        cases_list = cases_list.filter(assignments__user=request.user)
+
     active_count = cases_list.count()
-    
-    # This requires a 'status' field on your SignatureRequest model
-    pending_count = SignatureRequest.objects.filter(status='pending').count() 
+    pending_count = SignatureRequest.objects.filter(status='pending').count() if 'SignatureRequest' in globals() else 0
+
+    # --- NEW: Fetch Consultation Requests ---
+    consultations = []
+    if is_attorney:
+        consultations = ConsultationRequest.objects.filter(attorney=request.user, status='Pending').order_by('-created_at')
+    elif is_admin_user:
+        consultations = ConsultationRequest.objects.filter(status='Pending').order_by('-created_at')
 
     context = {
         'cases': cases_list,
         'active_case_count': active_count,
         'pending_signature_count': pending_count,
+        'is_admin_user': is_admin_user,
+        'consultations': consultations, # <--- Pass this to template
     }
     return render(request, 'cases/case_list.html', context)
 
@@ -1044,3 +1053,105 @@ def user_management_view(request):
         'role_filter': role_filter
     }
     return render(request, 'cases/user_management_list.html', context)
+
+# --- 1. Public Consultation Request View ---
+def request_consultation_view(request):
+    initial_data = {}
+    
+    # If accessed via ?attorney_id=5, pre-select that attorney
+    attorney_id = request.GET.get('attorney_id')
+    if attorney_id:
+        initial_data['attorney'] = attorney_id
+
+    if request.method == 'POST':
+        form = ConsultationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your consultation request has been sent. We will contact you shortly.")
+            return redirect('homepage')
+    else:
+        form = ConsultationForm(initial=initial_data)
+
+    return render(request, 'cases/consultation_form.html', {'form': form})
+
+# --- 2. Attorney Actions ---
+@login_required
+def update_consultation_status(request, pk, status):
+    consultation = get_object_or_404(ConsultationRequest, pk=pk)
+    
+    # Security check: Ensure current user is the assigned attorney or an admin
+    if request.user != consultation.attorney and not request.user.is_superuser:
+        messages.error(request, "You cannot manage this request.")
+        return redirect('cases:case-dashboard')
+
+    consultation.status = status
+    consultation.save()
+    messages.success(request, f"Request marked as {status}.")
+    return redirect('cases:case-dashboard')
+
+# --- 2. Schedule & Email Action ---
+@login_required
+def schedule_consultation_action(request, pk):
+    consultation = get_object_or_404(ConsultationRequest, pk=pk)
+    
+    if request.method == 'POST':
+        form = ConsultationScheduleForm(request.POST)
+        if form.is_valid():
+            # Extract data
+            m_type = form.cleaned_data['meeting_type']
+            time = form.cleaned_data['scheduled_time']
+            link = form.cleaned_data['booking_link']
+            msg = form.cleaned_data['additional_message']
+            
+            # Construct Email Content
+            subject = f"Update on your Consultation Request: {consultation.service_needed[:30]}..."
+            
+            email_body = f"Dear {consultation.name},\n\n"
+            email_body += f"Attorney {request.user.get_full_name()} has reviewed your request.\n\n"
+            email_body += f"Meeting Type: {m_type}\n"
+            
+            if time:
+                email_body += f"Confirmed Time: {time.strftime('%B %d, %Y at %I:%M %p')}\n"
+                consultation.status = 'Scheduled' # Auto-update status
+            
+            if link:
+                email_body += f"Please schedule your time here: {link}\n"
+            
+            if msg:
+                email_body += f"\nMessage from Attorney:\n{msg}\n"
+            
+            email_body += "\nBest regards,\nThe Owlery Legal Team"
+
+            # Send Email (Print to console if email backend not set up)
+            try:
+                if consultation.email:
+                    send_mail(
+                        subject,
+                        email_body,
+                        'noreply@owlerylegal.com',
+                        [consultation.email],
+                        fail_silently=False,
+                    )
+                    messages.success(request, f"Invitation sent to {consultation.email}")
+                else:
+                    messages.warning(request, "Client has no email address.")
+            except Exception as e:
+                messages.error(request, f"Error sending email: {e}")
+
+            consultation.save()
+            return redirect('cases:consultation-detail', pk=consultation.pk)
+    
+    return redirect('cases:consultation-detail', pk=consultation.pk)
+
+# --- View 21: Consultation Details & Scheduling ---
+@login_required
+def consultation_detail_view(request, pk):
+    consultation = get_object_or_404(ConsultationRequest, pk=pk)
+    
+    # Security check
+    if request.user != consultation.attorney and not request.user.is_superuser:
+        messages.error(request, "Access denied.")
+        return redirect('cases:case-dashboard')
+
+    schedule_form = ConsultationScheduleForm()
+    return render(request, 'cases/consultation_detail.html', {'consultation': consultation, 'schedule_form': schedule_form})

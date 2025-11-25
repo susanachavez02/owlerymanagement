@@ -1,0 +1,66 @@
+{% load static %}
+{% load widget_tweaks %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Request Consultation - Owlery Legal Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --owl-dark: #0c0f19; --owl-gold: #c4a24c; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .form-card { max-width: 600px; margin: 80px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .btn-gold { background-color: var(--owl-gold); color: var(--owl-dark); font-weight: 700; width: 100%; padding: 12px; border: none; }
+        .btn-gold:hover { background-color: #e2b857; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-card">
+            <div class="text-center mb-4">
+                <img src="{% static 'images/logoblack.png' %}" alt="Logo" height="50" class="mb-3">
+                <h2 class="fw-bold">Request a Consultation</h2>
+                <p class="text-muted">Tell us about your case, and we'll be in touch.</p>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Full Name</label>
+                    {% render_field form.name class="form-control" placeholder="John Doe" %}
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Phone Number</label>
+                        {% render_field form.phone class="form-control" placeholder="(555) 123-4567" %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Email Address</label>
+                        {% render_field form.email class="form-control" placeholder="john@example.com" %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Requested Attorney</label>
+                    {% render_field form.attorney class="form-select" %}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Service Needed / Case Details</label>
+                    {% render_field form.service_needed class="form-control" placeholder="Briefly describe your legal issue..." %}
+                </div>
+
+                <button type="submit" class="btn btn-gold">Submit Request</button>
+                <div class="text-center mt-3">
+                    <a href="{% url 'homepage' %}" class="text-muted text-decoration-none small">Back to Home</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

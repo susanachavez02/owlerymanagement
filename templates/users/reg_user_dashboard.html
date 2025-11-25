@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# --- ATTORNEY DASHBOARD --- #}
+{% if is_attorney %}
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title">Attorney Dashboard</h2>
+  </div>
+
+  <div class="row">
+    
+    <div class="col-md-8">
+      <h4 class="page-title mb-3">Your Active Cases</h4>
+      
+      <div class="list-group shadow-sm mb-4">
+        {% for case in assigned_cases %}
+          <a href="{% url 'cases:case-detail' pk=case.pk %}" class="list-group-item list-group-item-action p-3">
+            <div class="d-flex w-100 justify-content-between align-items-center">
+              <h5 class="mb-1 fw-bold text-primary">{{ case.case_title }}</h5>
+              <small class="text-muted">Filed: {{ case.date_filed|date:"M d, Y" }}</small>
+            </div>
+            <p class="mb-1 text-secondary small">{{ case.description|truncatewords:20 }}</p>
+            
+            <div class="d-flex align-items-center gap-2 mt-2">
+                {% if case.current_stage %}
+                    <span class="badge bg-success rounded-pill">{{ case.current_stage.name }}</span>
+                {% else %}
+                    <span class="badge bg-secondary rounded-pill">New</span>
+                {% endif %}
+            </div>
+          </a>
+        {% empty %}
+          <div class="list-group-item p-5 text-center text-muted bg-light border-0 rounded">
+            <i class="far fa-folder-open fa-3x mb-3 text-secondary"></i>
+            <h5>No active cases found</h5>
+            <p>You have not been assigned to any legal cases yet.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      
+      {% if consultations %}
+      <div class="card shadow-sm mb-4 border-warning">
+        <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+            <span>Incoming Requests</span>
+            <span class="badge bg-dark text-white rounded-pill">{{ consultations.count }}</span>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for req in consultations %}
+            <li class="list-group-item p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 fw-bold text-dark">{{ req.name }}</h6>
+                    <small class="text-muted">{{ req.created_at|date:"M d" }}</small>
+                </div>
+                
+                <p class="small text-muted mb-3" style="line-height: 1.4;">
+                    {{ req.service_needed|truncatewords:12 }}
+                </p>
+                
+                <div class="d-grid">
+                    <a href="{% url 'cases:consultation-detail' pk=req.pk %}" class="btn btn-outline-primary btn-sm">
+                        View & Schedule
+                    </a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title page-title mb-3">Quick Actions</h5>
+          <div class="d-grid gap-2">
+            <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action">
+                <i class="fas fa-plus me-2"></i> Create New Case
+            </a>
+            <hr class="my-1">
+            <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">
+                <i class="far fa-calendar-plus me-2"></i> Schedule Meeting
+            </a>
+            <hr class="my-1">
+            <a href="{% url 'cases:template-list' %}" class="btn btn-management">
+                <i class="fas fa-file-contract me-2"></i> Manage Contracts
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div> </div> {# --- CLIENT DASHBOARD --- #}
+{% elif is_client %}
+    
+    <header class="py-5 bg-white border-bottom rounded-3 mb-4 shadow-sm">
+        <div class="container">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                    {{ user.first_name|first }}
+                </div>
+                <div>
+                    <h1 class="display-6 fw-bold mb-0">Welcome, {{ user.first_name }}</h1>
+                    <p class="text-muted mb-0">Track your cases and documents.</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="active-cases" class="mb-5">
+      <h4 class="page-title mb-3">Your Active Cases</h4>
+      
+      <div class="list-group shadow-sm">
+        {% for case in assigned_cases %}
+            <a href="{% url 'cases:case-detail' pk=case.pk %}" class="list-group-item list-group-item-action p-4 d-flex align-items-center justify-content-between hover-bg-light transition">
+                
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                        <i class="fas fa-briefcase fa-lg"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-1 text-dark">{{ case.case_title }}</h5>
+                        
+                        <div class="d-flex align-items-center gap-2 text-secondary small">
+                            {% if case.current_stage %}
+                                <span class="badge bg-info text-dark rounded-pill fw-normal px-2">
+                                    {{ case.current_stage.name }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary rounded-pill fw-normal px-2">New</span>
+                            {% endif %}
+                            <span>&bull;</span>
+                            <span>Filed: {{ case.date_filed|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <i class="fas fa-chevron-right text-muted"></i>
+                </div>
+            </a>
+        {% empty %}
+            <div class="text-center p-5 bg-white rounded border border-dashed">
+                <div class="text-muted mb-3">
+                    <i class="far fa-folder-open fa-3x"></i>
+                </div>
+                <h5 class="fw-bold text-dark">No active cases found</h5>
+                <p class="text-secondary">You have not been assigned to any legal cases yet.</p>
+            </div>
+        {% endfor %}
+      </div>
+    </section>
+
+{# --- FALLBACK --- #}
+{% else %}
+    <div class="alert alert-info">
+        <h4>Welcome to Owlery</h4>
+        <p>Your account is active, but no role has been assigned. Please contact an administrator.</p>
+    </div>
+{% endif %}
+
+{% endblock %}

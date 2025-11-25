@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title">Consultation Request</h2>
+        <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                    <h5 class="mb-0 fw-bold text-primary">{{ consultation.name }}</h5>
+                    <span class="badge {% if consultation.status == 'Pending' %}bg-warning text-dark{% elif consultation.status == 'Scheduled' %}bg-info{% elif consultation.status == 'Accepted' %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                        {{ consultation.status }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">Phone</label>
+                            <p class="fs-5">{{ consultation.phone }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">Email</label>
+                            <p class="fs-5">
+                                {% if consultation.email %}
+                                    <a href="mailto:{{ consultation.email }}">{{ consultation.email }}</a>
+                                {% else %}
+                                    <span class="text-muted">Not provided</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <hr class="text-muted my-4">
+                    
+                    <label class="text-muted small text-uppercase fw-bold mb-2">Service Needed / Description</label>
+                    <div class="p-3 bg-light rounded border">
+                        {{ consultation.service_needed|linebreaks }}
+                    </div>
+                    
+                    <p class="text-muted small mt-3 text-end">
+                        Request received on {{ consultation.created_at|date:"F d, Y at g:i A" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Actions</h5>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-primary py-2" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                            <i class="far fa-calendar-check me-2"></i> Schedule Meeting
+                        </button>
+
+                        {% if consultation.status == 'Pending' %}
+                        <a href="{% url 'cases:update-consultation' pk=consultation.pk status='Accepted' %}" class="btn btn-success">
+                            <i class="fas fa-check me-2"></i> Mark as Accepted
+                        </a>
+                        {% endif %}
+
+                        <a href="{% url 'cases:update-consultation' pk=consultation.pk status='Denied' %}" 
+                           class="btn btn-outline-danger"
+                           onclick="return confirm('Are you sure you want to deny this request?');">
+                            <i class="fas fa-times me-2"></i> Deny Request
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Schedule Consultation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'cases:schedule-consultation' pk=consultation.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small">This will send an email to <strong>{{ consultation.email }}</strong> with the details below.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Meeting Type</label>
+                        {% render_field schedule_form.meeting_type class="form-select" %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Set Specific Time</label>
+                        {% render_field schedule_form.scheduled_time class="form-control" %}
+                    </div>
+                    
+                    <div class="text-center text-muted my-2">- OR -</div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Send Booking Link</label>
+                        {% render_field schedule_form.booking_link class="form-control" placeholder="https://calendly.com/your-link" %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Additional Message</label>
+                        {% render_field schedule_form.additional_message class="form-control" placeholder="Looking forward to speaking with you..." %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send Invitation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

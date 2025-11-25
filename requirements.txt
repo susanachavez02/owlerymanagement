@@ -7,6 +7,7 @@ crispy-bootstrap5==2025.6
 cssselect2==0.8.0
 Django==5.2.7
 django-crispy-forms==2.4
+django-widget-tweaks==1.5.0
 djangorestframework==3.16.1
 fonttools==4.60.1
 idna==3.11

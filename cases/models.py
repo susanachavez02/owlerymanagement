@@ -273,3 +273,23 @@ class ContractTemplate(models.Model):
     class Meta:
         verbose_name = "Contract Template"
         verbose_name_plural = "Contract Templates"
+
+
+class ConsultationRequest(models.Model):
+    STATUS_CHOICES = (
+        ('Pending', 'Pending'),
+        ('Accepted', 'Accepted'),
+        ('Denied', 'Denied'),
+        ('Scheduled', 'Scheduled'),
+    )
+
+    name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True) # Good to have for replies
+    service_needed = models.TextField()
+    attorney = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='consultations')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Consultation: {self.name} - {self.status}"
