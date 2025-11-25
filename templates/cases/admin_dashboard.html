@@ -96,14 +96,45 @@
      
 
     </div> <div class="col-md-4">
+      
+      {% if consultations %}
+      <div class="card shadow-sm mb-4 border-warning">
+        <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+            <span>Incoming Requests</span>
+            <span class="badge bg-dark text-white rounded-pill">{{ consultations.count }}</span>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for req in consultations %}
+            <li class="list-group-item p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 fw-bold text-dark">{{ req.name }}</h6>
+                    <small class="text-muted">{{ req.created_at|date:"M d" }}</small>
+                </div>
+                
+                <p class="small text-muted mb-3" style="line-height: 1.4;">
+                    {{ req.service_needed|truncatewords:12 }}
+                </p>
+                
+                <div class="d-grid">
+                    <a href="{% url 'cases:consultation-detail' pk=req.pk %}" class="btn btn-outline-primary btn-sm">
+                        View & Schedule
+                    </a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
       <div class="card shadow-sm">
         <div class="card-body">
-          <h5 class="card-title page-title">Quick Actions</h5>
+          <h5 class="card-title page-title mb-3">Quick Actions</h5>
           <div class="d-grid gap-2">
             <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action">Create New Case</a>
             <hr class="my-2">
             <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">+ Schedule Meeting</a>
             <hr class="my-2">
+            
             {% if is_admin_user %}
             <a href="{% url 'cases:template-list' %}" class="btn btn-management">Manage Templates</a>
             <a href="{% url 'user-list' %}" class="btn btn-management">Manage Users</a>
@@ -112,4 +143,7 @@
           </div>
         </div>
       </div>
+
+    </div> ```
+
     </div> </div> {% endblock %}
