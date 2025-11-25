@@ -158,36 +158,35 @@ def set_password_view(request, key):
 def dashboard_view(request):
     user = request.user
     
-    # Determine User Role
+    # 1. Define ALL Roles (including Admin)
+    is_admin_role = user.roles.filter(name='Admin').exists() # <--- ADD THIS
     is_attorney = user.roles.filter(name='Attorney').exists()
     is_client = user.roles.filter(name='Client').exists()
+
+    # 2. Redirect Admins and Attorneys to the main Case Dashboard
+    if is_admin_role or is_attorney:
+        return redirect('cases:case-dashboard')
     
-    # Get Assigned Cases
+    # 3. Logic for Clients (who stay on this dashboard)
     assigned_cases = Case.objects.none()
-    if is_attorney or is_client:
+    if is_client:
         # Show cases where this user is assigned
         assigned_cases = Case.objects.filter(assignments__user=user).order_by('-date_filed')
 
-    # --- NEW LOGIC: Fetch Incoming Requests ---
-    consultations = []
-    if is_attorney:
-        # Get pending requests assigned specifically to this attorney
-        consultations = ConsultationRequest.objects.filter(
-            attorney=user, 
-            status='Pending'
-        ).order_by('-created_at')
-    # ------------------------------------------
+    # (Consultations logic isn't strictly needed here since Attorneys redirect away, 
+    # but keeping it doesn't hurt if you change logic later)
+    consultations = [] 
 
     context = {
         'user': user,
         'is_attorney': is_attorney,
         'is_client': is_client,
         'assigned_cases': assigned_cases,
-        'consultations': consultations, # <--- Pass the list to the template
+        'consultations': consultations,
     }
     
     return render(request, 'users/reg_user_dashboard.html', context)
-    
+
 # --- STEP 33: USER MANAGEMENT VIEW
 # ---
 @login_required

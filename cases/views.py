@@ -81,21 +81,33 @@ def docx_find_and_replace(doc, context):
 # --- View 1: Case List (Admin) ---
 
 @login_required
-@user_passes_test(is_admin)
+# REMOVED: @user_passes_test(is_admin) 
 def case_dashboard_view(request):
+    # 1. Determine User Roles
+    is_admin_user = request.user.roles.filter(name='Admin').exists()
+    is_attorney = request.user.roles.filter(name='Attorney').exists()
     
-    # Filter cases for non-admins
+    # 2. Security Check: Block regular Clients from this Staff Dashboard
+    if not (is_admin_user or is_attorney):
+        return redirect('users:dashboard')
+
+    # 3. Get Cases
+    cases_list = Case.objects.filter(is_archived=False).order_by('-date_filed') 
+    
+    # Filter cases: Admins see all, Attorneys see assigned only
     if not is_admin_user:
         cases_list = cases_list.filter(assignments__user=request.user)
 
     active_count = cases_list.count()
     pending_count = SignatureRequest.objects.filter(status='pending').count() if 'SignatureRequest' in globals() else 0
 
-    # --- NEW: Fetch Consultation Requests ---
+    # 4. Fetch Consultation Requests (Logic for both roles)
     consultations = []
     if is_attorney:
+        # Attorneys see requests assigned specifically to them
         consultations = ConsultationRequest.objects.filter(attorney=request.user, status='Pending').order_by('-created_at')
     elif is_admin_user:
+        # Admins see ALL pending requests (to triage them)
         consultations = ConsultationRequest.objects.filter(status='Pending').order_by('-created_at')
 
     context = {
@@ -103,9 +115,9 @@ def case_dashboard_view(request):
         'active_case_count': active_count,
         'pending_signature_count': pending_count,
         'is_admin_user': is_admin_user,
-        'consultations': consultations, # <--- Pass this to template
+        'consultations': consultations,
     }
-    return render(request, 'cases/case_list.html', context)
+    return render(request, 'cases/admin_dashboard.html', context)
 
 # --- View 2: Case Create (Admin) ---
 
