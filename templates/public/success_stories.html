@@ -1,0 +1,157 @@
+{% extends "base_public.html" %}
+{% block title %}Success Stories - Owlery{% endblock %}
+
+{% block content %}
+<style>
+    /* Page Specific Styles */
+    .testimonial-card {
+        background-color: #ffffff;
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 16px;
+        padding: 40px;
+        height: 100%;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        transition: transform 0.3s ease;
+    }
+    
+    .testimonial-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .quote-icon {
+        font-size: 2rem;
+        color: var(--owl-gold);
+        opacity: 0.3;
+        margin-bottom: 20px;
+    }
+
+    .testimonial-text {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: var(--owl-dark);
+        font-style: italic;
+        margin-bottom: 30px;
+    }
+
+    .client-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 20px;
+    }
+
+    .client-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: var(--owl-dark);
+        color: var(--owl-gold);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .client-details h5 {
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--owl-dark);
+    }
+
+    .client-details span {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+</style>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="display-4">Client Success Stories</h1>
+        <p class="lead text-white-50">See how we've helped people just like you.</p>
+    </div>
+</header>
+
+<section class="py-5 bg-light">
+    <div class="container py-5">
+        <div class="row g-4">
+            
+            <div class="col-md-6">
+                <div class="testimonial-card">
+                    <i class="fas fa-quote-left quote-icon"></i>
+                    <p class="testimonial-text">
+                        "The Owlery Portal completely transformed how I communicated with my attorney. Being able to see my case status in real-time and sign documents from my phone took all the stress out of the process."
+                    </p>
+                    <div class="client-info">
+                        <div class="client-avatar">RJ</div>
+                        <div class="client-details">
+                            <h5>Robert Jenkins</h5>
+                            <span>Business Owner</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="testimonial-card">
+                    <i class="fas fa-quote-left quote-icon"></i>
+                    <p class="testimonial-text">
+                        "Efficient, secure, and incredibly user-friendly. I felt informed every step of the way during my property dispute. The document automation saved us weeks of back-and-forth emails."
+                    </p>
+                    <div class="client-info">
+                        <div class="client-avatar">SM</div>
+                        <div class="client-details">
+                            <h5>Sarah Miller</h5>
+                            <span>Real Estate Investor</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="testimonial-card">
+                    <i class="fas fa-quote-left quote-icon"></i>
+                    <p class="testimonial-text">
+                        "I was overwhelmed by the complexity of my divorce proceedings. Jessica and the Owlery team made it manageable. The portal kept all my documents organized and easy to find."
+                    </p>
+                    <div class="client-info">
+                        <div class="client-avatar">DK</div>
+                        <div class="client-details">
+                            <h5>David Kim</h5>
+                            <span>Family Law Client</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="testimonial-card">
+                    <i class="fas fa-quote-left quote-icon"></i>
+                    <p class="testimonial-text">
+                        "As a startup founder, time is everything. Michael Ross helped us incorporate and draft our initial contracts in record time using this platform. Highly recommended."
+                    </p>
+                    <div class="client-info">
+                        <div class="client-avatar">EL</div>
+                        <div class="client-details">
+                            <h5>Emma Lewis</h5>
+                            <span>Tech Founder</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-white text-center">
+    <div class="container">
+        <h2 class="fw-bold mb-3">Ready to start your journey?</h2>
+        <p class="text-muted mb-4">Join hundreds of satisfied clients today.</p>
+        <a href="{% url 'cases:request-consultation' %}" class="btn btn-owl-primary px-5 py-3 rounded-pill">Request Consultation</a>
+    </div>
+</section>
+{% endblock %}

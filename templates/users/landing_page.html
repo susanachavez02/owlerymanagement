@@ -292,6 +292,15 @@
         .footer a { color: white; text-decoration: none; }
         .footer a:hover { color: var(--owl-gold); }
 
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Offset for fixed navbar so titles aren't hidden */
+        section {
+            scroll-margin-top: 80px; 
+        }
+
     </style>
 </head>
 <body>
@@ -299,26 +308,37 @@
     <nav class="navbar navbar-expand-lg landing-nav sticky-top">
         <div class="container">
             <a class="navbar-brand" href="#">
-                <img src="{% static 'images/logoblack.png' %}" alt="Owlery Logo" height="60">
+                <img src="{% static 'images/logoblack.png' %}" alt="Owlery Logo" height="50">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#landingNav">
-                <span class="fas fa-bars"></span>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#landingNav">
+                <span class="fas fa-bars fa-lg text-dark"></span>
             </button>
             
             <div class="collapse navbar-collapse" id="landingNav">
-                <ul class="navbar-nav ms-auto align-items-center">
+                
+                <ul class="navbar-nav mx-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:features' %}">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:attorneys' %}">Attorneys</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:success-stories' %}">Success Stories</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'users:contact' %}">Contact</a></li>
+                </ul>
+                <ul class="navbar-nav ms-0 align-items-center mt-3 mt-lg-0">
                     {% if user.is_authenticated %}
-                        <li class="nav-item"><a class="nav-link" href="{% url 'users:dashboard' %}">Go to Dashboard</a></li>
+                        <li class="nav-item">
+                            <span class="text-muted small me-2 d-none d-lg-inline">Hello, {{ user.first_name|default:user.username }}</span>
+                        </li>
+                        <li class="nav-item"><a class="btn btn-owl-primary btn-sm px-4" href="{% url 'users:dashboard' %}">Dashboard</a></li>
                         <li class="nav-item ms-2">
                             <form action="{% url 'users:logout' %}" method="POST" class="d-inline">
                                 {% csrf_token %}
-                                <button class="btn btn-owl-outline text-dark border-dark btn-sm" style="padding: 8px 20px;">Logout</button>
+                                <button class="btn btn-sm text-muted" style="text-decoration: underline;">Logout</button>
                             </form>
                         </li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{% url 'users:login' %}">Login</a></li>
-                        <li class="nav-item ms-3">
-                            <a href="{% url 'users:register' %}" class="btn btn-owl-primary">Create Account</a>
+                        <li class="nav-item me-2"><a class="nav-link" href="{% url 'users:login' %}">Log In</a></li>
+                        <li class="nav-item">
+                            <a href="{% url 'users:register' %}" class="btn btn-owl-primary btn-sm px-4">Get Started</a>
                         </li>
                     {% endif %}
                 </ul>

@@ -1,0 +1,47 @@
+{% extends "base_public.html" %}
+{% block title %}Features - Owlery{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div class="container">
+        <h1 class="display-4">Powerful Features</h1>
+        <p class="lead text-white-50">Tools designed for the modern law firm.</p>
+    </div>
+</header>
+
+<section class="py-5">
+    <div class="container py-5">
+        <div class="row align-items-center mb-5">
+            <div class="col-md-6">
+                <div class="p-5 bg-white rounded shadow-sm border">
+                    <i class="fas fa-project-diagram fa-3x text-warning mb-3"></i>
+                    <h3>Workflow Automation</h3>
+                    <p class="text-muted">Stop tracking cases in spreadsheets. Our automated workflows move cases from "Intake" to "Resolved" with zero friction.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-5">
+                    <h4>Smart Logic</h4>
+                    <p class="text-muted">Define stages, assign tasks automatically, and never miss a deadline.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row align-items-center flex-md-row-reverse">
+            <div class="col-md-6">
+                <div class="p-5 bg-white rounded shadow-sm border">
+                    <i class="fas fa-file-signature fa-3x text-warning mb-3"></i>
+                    <h3>Document Generation</h3>
+                    <p class="text-muted">Create complex contracts in seconds. Map database fields directly to your Word templates.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-5">
+                    <h4>One-Click Drafts</h4>
+                    <p class="text-muted">Attorneys save an average of 5 hours per week using our auto-fill engine.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

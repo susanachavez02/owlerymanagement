@@ -24,6 +24,10 @@ urlpatterns = [
     path('set-password/<uuid:key>/', views.set_password_view, name='set-password'),
     path('user-edit/<int:pk>/', views.user_edit_view, name='user-edit'),
 
-    # Landing Page
-    path('attorney-landing/', views.attorneys_firm_view, name='attorney-landing'),
+    # Public Pages
+    path('features/', views.features_view, name='features'),
+    path('attorneys/', views.attorneys_firm_view, name='attorneys'),
+    path('success-stories/', views.success_stories_view, name='success-stories'),
+    path('contact/', views.contact_page_view, name='contact'),
+
 ]

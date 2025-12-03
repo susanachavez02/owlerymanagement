@@ -434,9 +434,13 @@ def profile_view(request, user_pk):
         return redirect('users:dashboard')
     
 def attorneys_firm_view(request):
-    attorneys = User.objects.filter(roles__name='Attorney').order_by('last_name', 'first_name')
-    
-    context = {
-        'attorneys': attorneys
-    }
-    return render(request, 'users/attorneys_firm.html', context)
+    return render(request, 'public/attorneys.html')
+
+def features_view(request):
+    return render(request, 'public/features.html')
+
+def success_stories_view(request):
+    return render(request, 'public/success_stories.html')
+
+def contact_page_view(request):
+    return render(request, 'public/contact.html')
