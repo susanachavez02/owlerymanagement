@@ -3,31 +3,6 @@
 {% block content %}
   <a id="back_link" href="{% url 'cases:case-detail' pk=case.pk %}">&larr; Back to Case Details</a>
   <h2 id="page_heading" class="mt-2">Generate Document for: {{ case.case_title }}</h2>
-  <p id="page_instructions">Select a template to generate a new document. The system will pre-fill the document with this case's data.</p>
-  
-  <form method="POST">
-    {% csrf_token %}
-      <div class="form-group">
-      <label id="availableTemplatesLabel" for="template_id_select">Available Templates</label>
-      <select id="contractSelect" class="form-select">
-    <option value="">--- Choose a contract ---</option>
-
-    <optgroup label="My Custom Templates">
-        {% for t in db_templates %}
-            <option value="db-{{ t.id }}">{{ t.name }}</option>
-        {% endfor %}
-    </optgroup>
-
-    <optgroup label="System Templates">
-        {% for file, label in contract_choices %}
-            <option value="{{ file }}">{{ label }}</option>
-        {% endfor %}
-    </optgroup>
-</select>
-
-    <hr />
-
-  <h3 id="html_section_title" class="mt-4">HTML Contract Templates (preview & fill)</h3>
   <p id="html_section_instructions">Select an HTML contract template to preview and fill placeholders inline.</p>
   <div class="row contract-row">
     <div class="col-md-5">

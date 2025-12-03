@@ -1167,3 +1167,43 @@ def consultation_detail_view(request, pk):
 
     schedule_form = ConsultationScheduleForm()
     return render(request, 'cases/consultation_detail.html', {'consultation': consultation, 'schedule_form': schedule_form})
+
+@login_required
+def case_directory_view(request):
+    # 1. Check Permissions
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    is_attorney = request.user.roles.filter(name='Attorney').exists()
+    
+    if not (is_admin or is_attorney):
+        messages.error(request, "Access denied.")
+        return redirect('users:dashboard')
+
+    # 2. Fetch ALL Cases
+    cases = Case.objects.all().select_related('current_stage').prefetch_related('assignments__user').order_by('-date_filed')
+    
+    # 3. Filter for Attorneys (See only assigned cases)
+    if not is_admin:
+        cases = cases.filter(assignments__user=request.user)
+
+    # --- 4. NEW: Search Functionality ---
+    search_query = request.GET.get('q', '')
+    if search_query:
+        # Create a query that looks in Title or Assigned User Names
+        query = Q(case_title__icontains=search_query) | \
+                Q(assignments__user__first_name__icontains=search_query) | \
+                Q(assignments__user__last_name__icontains=search_query) | \
+                Q(assignments__user__username__icontains=search_query)
+        
+        # Add special handling for Status keywords
+        if search_query.lower() == 'active':
+            query |= Q(is_archived=False)
+        elif search_query.lower() == 'archived':
+            query |= Q(is_archived=True)
+            
+        cases = cases.filter(query).distinct()
+
+    context = {
+        'cases': cases,
+        'search_query': search_query, # Pass this back to keep the text in the box
+    }
+    return render(request, 'cases/case_directory.html', context)

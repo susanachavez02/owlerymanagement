@@ -83,6 +83,14 @@
                           </a>
                         </li>
 
+                        {% if is_admin_user or is_attorney_user %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'cases:case-directory' %}">
+                                 Case Directory
+                            </a>
+                        </li>
+                        {% endif %}
+
                         {% if is_admin_user %} 
                         <li class="nav-item">
                             

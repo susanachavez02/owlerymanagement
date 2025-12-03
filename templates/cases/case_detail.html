@@ -80,7 +80,31 @@
         + Schedule Meeting
       </a>
     {% endif %}
-  </div>
+    </div>
+   {% if meetings %}
+    <ul class="list-group mb-4">
+      {% for meeting in meetings %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ meeting.title }}</strong> <br>
+            <small class="text-muted">
+              {{ meeting.scheduled_time|date:"M. d, Y H:i" }} with 
+              <a href="{% url 'profile-view' user_pk=meeting.with_user.pk %}">
+                {{ meeting.with_user.get_full_name|default:meeting.with_user.username }}
+              </a>
+            </small>
+          </div>
+          {% if is_admin_user or 'Attorney' in user_roles %}
+            <a href="{% url 'cases:edit-meeting' meeting_pk=meeting.pk %}" class="btn btn-sm btn-outline-primary">
+              Edit
+            </a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">No meetings scheduled for this case.</p>
+  {% endif %}
   <hr>
 
 {# --- 4. Document Management Header  --- #}
@@ -104,10 +128,13 @@
           </button>
         </div>
       </div>
+        <hr class="my-4">
+
       
       {% endif %}
     </div>
   </div>
+  <hr class="my-4">
 
   
 
@@ -119,6 +146,9 @@
     <button type="submit" name="upload_document" class="btn btn-primary mt-2">Upload</button>
   {# ...omitted code for upload form... #}
   </form>
+
+    <hr class="my-4">
+
 
   <h3 class="mt-4">Send Email Notification</h3>
 
@@ -139,8 +169,10 @@
       </div>
       <button type="submit" class="btn btn-primary">Send Notification</button>
   </form>
+</div>
 
   <hr class="my-4">
+
 
 
   {# --- 7. Document List --- #}
@@ -177,6 +209,7 @@
       <div class="alert alert-info mt-3">No documents have been uploaded for this case.</div>
     {% endfor %}
   </div>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

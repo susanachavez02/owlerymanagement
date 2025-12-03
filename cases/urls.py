@@ -52,6 +52,9 @@ urlpatterns = [
     path('templates/', views.template_list, name='template-list'),
     path('api/templates/<int:pk>/download/', views.ContractTemplateDownloadView.as_view(), name='template-download'),
     path('api/contract-template/<int:pk>/content/', views.get_db_template_content, name='db-template-content'),
+
+    # Case Directory
+    path('cases/', views.case_directory_view, name='case-directory'),
    
     # --- Advance Case Stage ---
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
