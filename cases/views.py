@@ -30,7 +30,7 @@ from .models import (
     CaseWorkflow, CaseStage, Template, 
     SignatureRequest, CaseStageLog, Meeting, DocumentDueDate, ContractTemplate, ConsultationRequest,   
 )
-from django.db.models import Sum, Count, Avg, F
+from django.db.models import Sum, Count, Avg, F, Count
 from users.models import Role
 from .serializers import ContractTemplateSerializer
 
@@ -81,34 +81,45 @@ def docx_find_and_replace(doc, context):
 # --- View 1: Case List (Admin) ---
 
 @login_required
-# REMOVED: @user_passes_test(is_admin) 
 def case_dashboard_view(request):
     # 1. Determine User Roles
     is_admin_user = request.user.roles.filter(name='Admin').exists()
     is_attorney = request.user.roles.filter(name='Attorney').exists()
     
-    # 2. Security Check: Block regular Clients from this Staff Dashboard
+    # 2. Security Check
     if not (is_admin_user or is_attorney):
         return redirect('users:dashboard')
 
-    # 3. Get Cases
-    cases_list = Case.objects.filter(is_archived=False).order_by('-date_filed') 
+    # 3. Get Cases (Active only for dashboard)
+    cases_list = Case.objects.filter(is_archived=False).select_related('current_stage').prefetch_related('assignments__user').order_by('-date_filed')
     
     # Filter cases: Admins see all, Attorneys see assigned only
     if not is_admin_user:
         cases_list = cases_list.filter(assignments__user=request.user)
 
+    # --- CHART DATA CALCULATION ---
+    # Group active cases by their stage name and count them
+    stage_data = cases_list.values('current_stage__name').annotate(count=Count('id'))
+    
+    # Prepare lists for Chart.js (Handle cases with no stage as 'New')
+    stage_labels = [item['current_stage__name'] if item['current_stage__name'] else 'New' for item in stage_data]
+    stage_counts = [item['count'] for item in stage_data]
+    # ------------------------------
+
     active_count = cases_list.count()
     pending_count = SignatureRequest.objects.filter(status='pending').count() if 'SignatureRequest' in globals() else 0
 
-    # 4. Fetch Consultation Requests (Logic for both roles)
+    # 4. Fetch Consultation Requests
     consultations = []
+    
     if is_attorney:
-        # Attorneys see requests assigned specifically to them
         consultations = ConsultationRequest.objects.filter(attorney=request.user, status='Pending').order_by('-created_at')
     elif is_admin_user:
-        # Admins see ALL pending requests (to triage them)
         consultations = ConsultationRequest.objects.filter(status='Pending').order_by('-created_at')
+
+    # --- NEW: Fetch Recent Activity ---
+    # Get the last 5 stage changes across all cases
+    recent_activity = CaseStageLog.objects.all().select_related('case', 'stage').order_by('-timestamp_entered')[:5]
 
     context = {
         'cases': cases_list,
@@ -116,7 +127,12 @@ def case_dashboard_view(request):
         'pending_signature_count': pending_count,
         'is_admin_user': is_admin_user,
         'consultations': consultations,
+        'stage_labels': json.dumps(stage_labels), 
+        'stage_counts': json.dumps(stage_counts),
+        'recent_activity': recent_activity, # <--- PASS TO TEMPLATE
     }
+    
+    # Ensure this points to your new template file
     return render(request, 'cases/admin_dashboard.html', context)
 
 # --- View 2: Case Create (Admin) ---

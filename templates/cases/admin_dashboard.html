@@ -2,81 +2,105 @@
 
 {% block content %}
   
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="page-title">Case Dashboard</h2>
   </div>
 
   <div class="row">
 
-    <div class="col-md-8">
+    <div class="col-lg-8">
 
-      <div class="row">
+      <div class="row mb-4">
         <div class="col-md-6">
-          <div class="card shadow-sm mb-3">
-            <div class="card-header bg-primary text-white fw-bold">
-              Active Cases
-            </div>
-            <div class="card-body">
-              <h2 class="card-title display-4 fw-bold">{{ active_case_count }}</h2>
+          <div class="card shadow-sm h-100 border-0">
+            <div class="card-body d-flex align-items-center p-3">
+              <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                <i class="fas fa-briefcase fa-xl text-primary"></i>
+              </div>
+              <div>
+                <h6 class="text-muted text-uppercase fw-bold mb-0" style="font-size: 0.75rem;">Active Cases</h6>
+                <h2 class="mb-0 fw-bold text-dark">{{ active_case_count }}</h2>
+              </div>
             </div>
           </div>
         </div>
         
         <div class="col-md-6">
-          <div class="card shadow-sm mb-3">
-            <div class="card-header bg-warning text-dark fw-bold">
-              Pending Signatures
-            </div>
-            <div class="card-body">
-              <h2 class="card-title display-4 fw-bold">{{ pending_signature_count }}</h2>
+          <div class="card shadow-sm h-100 border-0">
+            <div class="card-body d-flex align-items-center p-3">
+              <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                <i class="fas fa-file-signature fa-xl text-warning"></i>
+              </div>
+              <div>
+                <h6 class="text-muted text-uppercase fw-bold mb-0" style="font-size: 0.75rem;">Pending Signatures</h6>
+                <h2 class="mb-0 fw-bold text-dark">{{ pending_signature_count }}</h2>
+              </div>
             </div>
           </div>
         </div>
       </div> 
 
-      <h4 class="mt-3 page-title">Active Cases</h4>
-      
-      <div class="shadow-sm p-3 bg-white rounded">
+      <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-white py-2 border-bottom-0">
+            <h6 class="mb-0 fw-bold text-secondary">Case Stages Overview</h6>
+        </div>
+        <div class="card-body pt-0">
+            <canvas id="caseStageChart" style="max-height: 200px;"></canvas>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">Active Cases List</h5>
+        </div>
         <div class="table-responsive">
-          <table class="table table-hover align-middle">
-           <thead>
+          <table class="table table-hover align-middle mb-0">
+           <thead class="bg-light text-uppercase small text-muted">
             <tr>
-                <th>Case Title</th>
-                <th>Current Stage</th>
-                <th>Assigned</th>
-                <th>Date Filed</th>
-                <th class="text-end">Actions</th> 
+                <th class="ps-4 py-2">Case Title</th>
+                <th>Stage</th>
+                <th>Team</th>
+                <th>Filed</th>
+                <th class="text-end pe-4">Actions</th> 
             </tr>
         </thead>
-        <tbody>
+        <tbody class="border-top-0">
             {% for case in cases %}
             <tr>
-                <td>
-                    <a href="{% url 'cases:case-detail' case.pk %}" class="text-decoration-none fw-bold text-dark">
+                <td class="ps-4 fw-bold">
+                    <a href="{% url 'cases:case-detail' case.pk %}" class="text-dark text-decoration-none">
                         {{ case.case_title }}
                     </a>
                 </td>
                 <td>
                     {% if case.current_stage %}
-                        <span class="badge bg-success rounded-pill">{{ case.current_stage.name }}</span>
+                        <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success px-2 py-1">
+                            {{ case.current_stage.name }}
+                        </span>
                     {% else %}
-                        <span class="badge bg-secondary rounded-pill">New</span>
+                        <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border border-secondary px-2 py-1">New</span>
                     {% endif %}
                 </td>
                 <td>
-                    {% for assignment in case.assignments.all %}
-                        <small>{{ assignment.user.username }}{% if not forloop.last %}, {% endif %}</small>
-                    {% endfor %}
+                    <div class="d-flex align-items-center">
+                        {% for assignment in case.assignments.all %}
+                            <div class="rounded-circle bg-white border d-flex align-items-center justify-content-center text-secondary fw-bold me-1 shadow-sm" 
+                                 style="width: 28px; height: 28px; font-size: 0.7rem;"
+                                 title="{{ assignment.user.get_full_name }}">
+                                {{ assignment.user.first_name|first|default:assignment.user.username|first|upper }}
+                            </div>
+                        {% endfor %}
+                    </div>
                 </td>
-                <td>{{ case.date_filed|date:"M. d, Y" }}</td>
+                <td class="text-muted small">{{ case.date_filed|date:"M d, Y" }}</td>
                 
-                <td class="text-end">
-                    <a href="{% url 'cases:case-detail' case.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                <td class="text-end pe-4">
+                    <a href="{% url 'cases:case-detail' case.pk %}" class="btn btn-sm btn-outline-primary border-0 bg-primary bg-opacity-10 text-primary fw-bold me-1">View</a>
                     
                     {% if is_admin_user %}
-                    <form action="{% url 'cases:case-delete' case.pk %}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this case? This cannot be undone.');">
+                    <form action="{% url 'cases:case-delete' case.pk %}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this case?');">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-danger ms-1">
+                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 bg-danger bg-opacity-10 text-danger">
                             <i class="fas fa-trash"></i>
                         </button>
                     </form>
@@ -85,7 +109,9 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" class="text-center py-4 text-muted">No active cases found.</td>
+                <td colspan="5" class="text-center py-5 text-muted">
+                    <p class="mb-0">No active cases found.</p>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -93,57 +119,137 @@
     </div>
     </div>
 
-     
-
-    </div> <div class="col-md-4">
+    </div> <div class="col-lg-4">
       
-      {% if consultations %}
-      <div class="card shadow-sm mb-4 border-warning">
-        <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
-            <span>Incoming Requests</span>
-            <span class="badge bg-dark text-white rounded-pill">{{ consultations.count }}</span>
-        </div>
-        <ul class="list-group list-group-flush">
-            {% for req in consultations %}
-            <li class="list-group-item p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0 fw-bold text-dark">{{ req.name }}</h6>
-                    <small class="text-muted">{{ req.created_at|date:"M d" }}</small>
-                </div>
-                
-                <p class="small text-muted mb-3" style="line-height: 1.4;">
-                    {{ req.service_needed|truncatewords:12 }}
-                </p>
-                
-                <div class="d-grid">
-                    <a href="{% url 'cases:consultation-detail' pk=req.pk %}" class="btn btn-outline-primary btn-sm">
-                        View & Schedule
-                    </a>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title page-title mb-3">Quick Actions</h5>
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body pt-3 pb-3">
+          <h6 class="card-title fw-bold text-muted text-uppercase small mb-3">Quick Actions</h6>
           <div class="d-grid gap-2">
-            <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action">Create New Case</a>
-            <hr class="my-2">
-            <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">+ Schedule Meeting</a>
-            <hr class="my-2">
+            <a href="{% url 'cases:case-create' %}" class="btn btn-light text-start btn-sm py-2 border-0">
+                <i class="fas fa-plus me-2 text-primary"></i> Create New Case
+            </a>
+            <a href="{% url 'cases:create-meeting' %}" class="btn btn-light text-start btn-sm py-2 border-0">
+                <i class="far fa-calendar-plus me-2 text-success"></i> Schedule Meeting
+            </a>
             
             {% if is_admin_user %}
-            <a href="{% url 'cases:template-list' %}" class="btn btn-management">Manage Templates</a>
-            <a href="{% url 'user-list' %}" class="btn btn-management">Manage Users</a>
-            <a href="{% url 'cases:workflow-list' %}" class="btn btn-management">Manage Workflows</a>
+            <a href="{% url 'cases:template-list' %}" class="btn btn-light text-start btn-sm py-2 border-0">
+                <i class="fas fa-file-contract me-2 text-secondary"></i> Manage Templates
+            </a>
+            <a href="{% url 'user-list' %}" class="btn btn-light text-start btn-sm py-2 border-0">
+                <i class="fas fa-users-cog me-2 text-secondary"></i> Manage Users
+            </a>
+            <a href="{% url 'cases:workflow-list' %}" class="btn btn-light text-start btn-sm py-2 border-0">
+                <i class="fas fa-project-diagram me-2 text-secondary"></i> Manage Workflows
+            </a>
             {% endif %}
           </div>
         </div>
       </div>
 
-    </div> ```
+      {% if consultations %}
+      <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-warning bg-opacity-10 text-warning-dark fw-bold d-flex justify-content-between align-items-center py-2">
+            <span class="text-dark small"><i class="fas fa-bell me-2"></i>Requests</span>
+            <span class="badge bg-dark rounded-pill">{{ consultations.count }}</span>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% for req in consultations %}
+                <li class="list-group-item border-0 p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h6 class="mb-0 fw-bold small">{{ req.name }}</h6>
+                        <small class="text-muted" style="font-size: 0.7rem;">{{ req.created_at|date:"M d" }}</small>
+                    </div>
+                    <p class="small text-muted mb-2">{{ req.service_needed|truncatewords:6 }}</p>
+                    <a href="{% url 'cases:consultation-detail' pk=req.pk %}" class="btn btn-outline-dark btn-sm w-100 py-1" style="font-size: 0.75rem;">
+                        View & Schedule
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-white fw-bold border-bottom-0 pt-3 pb-2">
+            <small class="text-uppercase text-muted">Recent Activity</small>
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                {% for activity in recent_activity %}
+                <li class="list-group-item border-0 px-3 py-2">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-history text-muted small"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-0 small line-height-sm">
+                                <strong>{{ activity.case.case_title }}</strong> &rarr; {{ activity.stage.name }}
+                            </p>
+                            <small class="text-muted" style="font-size: 0.65rem;">
+                                {{ activity.timestamp_entered|timesince }} ago
+                            </small>
+                        </div>
+                    </div>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-center text-muted py-3 border-0">
+                    <small>No recent activity.</small>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+      </div>
 
     </div> </div> {% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('caseStageChart');
+    if (ctx) {
+        // Parse data from Django
+        const labels = {{ stage_labels|safe }};
+        const data = {{ stage_counts|safe }};
+
+        new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cases',
+                    data: data,
+                    backgroundColor: '#c4a24c', // Owlery Gold
+                    borderRadius: 4,
+                    barPercentage: 0.5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 },
+                        grid: { 
+                            borderDash: [2, 2],
+                            drawBorder: false,
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
