@@ -6,9 +6,11 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from django.db import models
+from django import forms
 import io
 from django.core.mail import send_mail
 from django.db.models import Q
+from django.conf import settings
 from io import BytesIO
 from docx import Document as DocxDocument
 from rest_framework import generics, status
@@ -891,7 +893,7 @@ def create_meeting_view(request, case_pk=None):
         # If we have a pre-selected case, set it and disable the dropdown
         if case:
             form.fields['case'].initial = case
-            form.fields['case'].widget.attrs['disabled'] = True
+            form.fields['case'].widget = forms.HiddenInput()
             form.fields['case'].help_text = "This case was selected from the case detail page."
             
             # Pre-filter participants to show only users assigned to THIS case
@@ -1156,7 +1158,7 @@ def schedule_consultation_action(request, pk):
                     send_mail(
                         subject,
                         email_body,
-                        'noreply@owlerylegal.com',
+                        settings.DEFAULT_FROM_EMAIL,
                         [consultation.email],
                         fail_silently=False,
                     )

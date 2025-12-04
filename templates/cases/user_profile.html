@@ -22,6 +22,7 @@
 
                 <div>
                     <h2 class="fw-bold mb-1">{{ profile_user.get_full_name }}</h2>
+                    <h2 class="fw-bold mb-1">{{ profile_user.get_full_name|default:profile_user.username }}</h2>
                     <p class="text-muted mb-2">{{ profile_user.email }}</p>
                     <span class="badge bg-primary rounded-pill">
                         {{ profile_user.roles.first.name|default:"User" }}
@@ -80,7 +81,7 @@
 
                             <div>
                                 <a href="{% url 'cases:user-profile' person.pk %}" class="text-decoration-none text-dark fw-bold">
-                                    {{ person.get_full_name }}
+                                    {{ person.get_full_name|default:person.username }}
                                 </a>
                                 <div class="small text-muted" style="font-size: 0.8rem;">{{ person.email }}</div>
                             </div>
