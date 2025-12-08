@@ -69,8 +69,11 @@
   <script>
     // Data injected from the server
     const contractTemplateUrl = "{% url 'cases:contract-template' %}";
-  const contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
+    let contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
     const caseTitle = "{{ case.case_title|escapejs|default:'' }}";
+
+    // Filter to show only base contracts (remove _es duplicates)
+    const baseContracts = contractFiles.filter(f => !f.includes('_es.html'));
     const placeholderMap = JSON.parse('{{ placeholder_map_json|escapejs }}') || {};
     const participants = JSON.parse('{{ participants_json|escapejs }}') || [];
   // Translations
@@ -184,7 +187,7 @@
         fieldsContainer.innerHTML = '<p class="text-muted">No placeholders detected for this template.</p>';
         return;
       }
-      const ROLE_KEYS = ['LESSOR','LESSEE','SELLER','BUYERS','BUYER','BUYER1','BUYER2'];
+      const ROLE_KEYS = [];
       // translations for common placeholder keys
       const placeholderTranslations = {
         CITY: { en: 'CITY', es: 'CIUDAD' },
@@ -214,15 +217,6 @@
           inputHtml = `<select class="form-select" id="${id}"></select>`;
         } else if(ROLE_KEYS.includes(upperKey)){
           // role dropdown populated from participants
-          inputHtml = `<select class="form-select" id="${id}"></select>`;
-        } else if(upperKey === 'DAY'){
-          // day dropdown 1-31
-          inputHtml = `<select class="form-select" id="${id}"></select>`;
-        } else if(upperKey === 'MONTH'){
-          // month name dropdown
-          inputHtml = `<select class="form-select" id="${id}"></select>`;
-        } else if(upperKey === 'YEAR'){
-          // year dropdown (currentYear-5 .. currentYear+10)
           inputHtml = `<select class="form-select" id="${id}"></select>`;
         } else if(upperKey.includes('STATE') || upperKey === 'STATE'){
           // US states dropdown
@@ -424,51 +418,9 @@ async function fetchTemplate(fileName){
       
       const original = await resp.text();
       
-      // If Spanish requested but no Spanish variant was found, attempt simple auto-translation
-      if(lang === 'es'){
-        try{
-          return autoTranslateHtml(original, 'es');
-        }catch(e){
-          console.warn('Auto-translate failed', e);
-          return original;
-        }
-      }
       return original;
     }
 
-      // Lightweight rule-based HTML translator (convenience fallback). Not for production/legal use.
-      function autoTranslateHtml(html, target){
-        if(!html || target !== 'es') return html;
-        let out = html;
-        const monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-        const monthsEs = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-        monthsEn.forEach((m,i)=>{ const re = new RegExp('\\b'+m+'\\b','gi'); out = out.replace(re, monthsEs[i]); });
-        const dict = {
-          'Contract': 'Contrato',
-          'Agreement': 'Acuerdo',
-          'Lessor': 'Arrendador',
-          'Lessee': 'Arrendatario',
-          'Buyer': 'Comprador',
-          'Seller': 'Vendedor',
-          'Start Date': 'Fecha de inicio',
-          'End Date': 'Fecha de término',
-          'Term': 'Plazo',
-          'Signature': 'Firma',
-          'Witness': 'Testigo',
-          'County': 'Condado',
-          'State': 'Estado',
-          'City': 'Ciudad',
-          'Day': 'Día',
-          'Month': 'Mes',
-          'Year': 'Año',
-          'Amount': 'Cantidad'
-        };
-        Object.keys(dict).sort((a,b)=>b.length-a.length).forEach(k=>{ const re = new RegExp('\\b'+k+'\\b','gi'); out = out.replace(re, dict[k]); });
-        out = out.replace(/\bof the\b/gi, 'del');
-        out = out.replace(/\bthe\b/gi, 'el');
-        out = out.replace(/\band\b/gi, 'y');
-        return out;
-      }
 
     htmlSelect.addEventListener('change', async (e) =>{
       const file = e.target.value;
@@ -487,35 +439,50 @@ async function fetchTemplate(fileName){
 
     // re-apply translations and rebuild fields when language changes and on load
     if(langSelectEl){
-      langSelectEl.addEventListener('change', ()=>{
+      langSelectEl.addEventListener('change', async ()=>{
         try{ applyTranslations(); }catch(e){}
-        try{
-          if(currentPlaceholders && currentPlaceholders.length>0){
+        // Reload the current contract with the new language
+        const selectedContract = htmlSelect.value;
+        if(selectedContract){
+          try{
+            currentTemplateText = await fetchTemplate(selectedContract);
+            currentPlaceholders = extractPlaceholders(currentTemplateText);
             buildFields(currentPlaceholders);
             updatePreview();
+          }catch(err){
+            console.error(err);
           }
-        }catch(e){ /* ignore */ }
+        }
       });
     }
-
-    downloadPdfBtn.addEventListener('click', ()=>{
-      if(!currentTemplateText) return alert('No template loaded.');
-      const filled = fillTemplateFromFields(currentTemplateText);
-      // strip tags for simple PDF rendering
-      const text = filled.replace(/<[^>]*>/g, '\n').replace(/&nbsp;/g, ' ');
-      try{
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const lines = doc.splitTextToSize(text, 180);
-        doc.text(lines, 15, 20);
-        const name = `Generated_${(caseTitle||'contract').replace(/\s+/g,'_')}.pdf`;
-        doc.save(name);
-      }catch(e){
-        console.error('PDF generation failed', e);
-        alert('PDF generation failed in this browser. Opening in new tab instead.');
-        const win = window.open(); win.document.open(); win.document.write(filled); win.document.close();
-      }
-    });
+    
+  downloadPdfBtn.addEventListener('click', ()=>{
+    if(!currentTemplateText) return alert('No template loaded.');
+    const filled = fillTemplateFromFields(currentTemplateText);
+    
+    // Open filled HTML in a new window and let user print/save as PDF
+    const win = window.open();
+    win.document.open();
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Generated Document</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head>
+      <body>
+        ${filled}
+      </body>
+      </html>
+    `);
+    win.document.close();
+    // Prompt user to print/save as PDF
+    setTimeout(() => win.print(), 500);
+  });
 
     function fillTemplateFromFields(text){
       let out = text;
@@ -578,9 +545,16 @@ async function fetchTemplate(fileName){
     // If there's at least one HTML contract available, auto-select it so users
     // immediately see the fields (helps when there's a single template).
     document.addEventListener('DOMContentLoaded', async () => {
+      // Filter dropdown options to show only base contracts (no _es)
+      const options = htmlSelect.querySelectorAll('option');
+      options.forEach(opt => {
+        if(opt.value && opt.value.includes('_es.html')){
+          opt.style.display = 'none'; // Hide Spanish variants
+        }
+      });
       try{
-        if(contractFiles && contractFiles.length > 0){
-          htmlSelect.value = contractFiles[0];
+        if(baseContracts && baseContracts.length > 0){
+          htmlSelect.value = baseContracts[0];
           const ev = new Event('change');
           htmlSelect.dispatchEvent(ev);
           // Focus the first field when it appears
