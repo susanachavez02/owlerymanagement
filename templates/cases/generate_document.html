@@ -48,6 +48,32 @@
       </div>
     </div>
   </div>
+  <!-- Sticky Right Sidebar: Progress + Controls -->
+  <div id="controls-sidebar" class="controls-sidebar">
+    <!-- Progress Indicator -->
+    <div class="progress-card">
+      <div class="progress-header">
+        <h6 class="mb-2">📊 Progress</h6>
+        <div class="progress" style="height: 8px;">
+          <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+      </div>
+      <div class="progress-text">
+        <p class="mb-0"><strong id="filled-count">0</strong> of <strong id="total-count">0</strong> fields filled</p>
+        <small class="text-muted" id="progress-percentage">0% complete</small>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button id="undo-btn" type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2">
+        <i class="fas fa-undo me-1"></i> Undo
+      </button>
+      <button id="reset-btn" type="button" class="btn btn-sm btn-outline-danger w-100">
+        <i class="fas fa-refresh me-1"></i> Reset All
+      </button>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
@@ -65,6 +91,113 @@
     .preview-card .card-body { display:flex; flex-direction:column; min-height:0; }
     #inline_preview_area { display:block; flex:1 1 auto; min-height:0; }
     #preview_iframe { flex:1 1 auto; min-height:0; height:100%; }
+
+    /* Field grouping and help text styling */
+    .card-header {
+      font-weight: 600;
+      background-color: #f8f9fa;
+      border-bottom: 2px solid #1a5f7a;
+    }
+
+    .card-header h6 {
+      color: #1a5f7a;
+      letter-spacing: 0.5px;
+    }
+
+    .form-label {
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+      color: #333;
+    }
+
+    .form-label.fw-500 {
+      font-weight: 500;
+    }
+
+    .form-text.text-muted {
+      font-size: 0.85rem;
+      color: #6c757d !important;
+      font-style: italic;
+    }
+
+    .card.border-left-4 {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      transition: box-shadow 0.2s;
+    }
+
+    .card.border-left-4:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    /*----*****----*****----*****----*****----*****---*/
+    /* Sticky right sidebar for progress and controls */
+    .controls-sidebar {
+      position: fixed;
+      right: 20px;
+      top: 100px;
+      width: 280px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      z-index: 999;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 20px;
+    }
+
+    .progress-card {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .progress-header h6 {
+      color: #1a5f7a;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .progress-text {
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .progress-text p {
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-buttons .btn {
+      font-size: 13px;
+      padding: 8px 12px;
+    }
+
+    .action-buttons .btn i {
+      margin-right: 4px;
+    }
+
+    /* Responsive: hide sidebar on small screens */
+    @media (max-width: 1200px) {
+      .controls-sidebar {
+        right: 10px;
+        width: 260px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .controls-sidebar {
+        position: static;
+        width: 100%;
+        max-height: none;
+        margin-top: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+    }
   </style>
   <script>
     // Data injected from the server
@@ -178,8 +311,222 @@
       const filled = fillTemplateFromFields(currentTemplateText);
       inlinePreviewArea.style.display = 'block';
       const doc = previewIframe.contentDocument || previewIframe.contentWindow.document;
-      doc.open(); doc.write(filled); doc.close();
+      
+      const styledHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.8;
+              color: #333;
+              background: #f5f5f5;
+              padding: 20px;
+            }
+            .document {
+              background: white;
+              padding: 60px 50px;
+              max-width: 900px;
+              margin: 0 auto;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              page-break-after: always;
+            }
+            .document-header {
+              border-bottom: 3px solid #1a5f7a;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            h1 { 
+              color: #1a5f7a; 
+              font-size: 28px;
+              margin-bottom: 10px;
+            }
+            h2 { 
+              color: #1a5f7a; 
+              font-size: 20px;
+              margin-top: 25px;
+              margin-bottom: 15px;
+              border-bottom: 1px solid #ddd;
+              padding-bottom: 8px;
+            }
+            h3 { 
+              color: #2c7a99;
+              font-size: 16px;
+              margin-top: 20px;
+              margin-bottom: 10px;
+            }
+            p { 
+              margin-bottom: 12px;
+              text-align: justify;
+            }
+            ul, ol { 
+              margin-left: 30px; 
+              margin-bottom: 15px;
+            }
+            li { 
+              margin-bottom: 8px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th {
+              background-color: #1a5f7a;
+              color: white;
+              padding: 12px;
+              text-align: left;
+            }
+            td {
+              border: 1px solid #ddd;
+              padding: 10px;
+            }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .signature-section {
+              margin-top: 50px;
+              page-break-inside: avoid;
+            }
+            .signature-line {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 60px;
+            }
+            .signature-block {
+              width: 40%;
+              border-top: 1px solid #333;
+              text-align: center;
+            }
+            .signature-block p {
+              margin-top: 5px;
+              font-size: 12px;
+            }
+            .date-line {
+              margin-top: 20px;
+            }
+            strong { color: #1a5f7a; }
+            @media print {
+              body { background: white; padding: 0; }
+              .document { box-shadow: none; padding: 0.5in; margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="document">
+            ${filled}
+          </div>
+        </body>
+        </html>
+      `;
+      
+      doc.open();
+      doc.write(styledHTML);
+      doc.close();
     }
+
+    // ===== PROGRESS TRACKING & UNDO FUNCTIONALITY =====
+    let actionHistory = [];
+    const maxHistorySize = 20;
+
+    function captureState() {
+      const state = {};
+      document.querySelectorAll('#fields_container input, #fields_container select').forEach(el => {
+        state[el.id] = el.value;
+      });
+      return state;
+    }
+
+    function updateProgress() {
+      const allInputs = document.querySelectorAll('#fields_container input, #fields_container select');
+      const filledInputs = Array.from(allInputs).filter(el => el.value && el.value.trim() !== '');
+      const total = allInputs.length;
+      const filled = filledInputs.length;
+      const percentage = total === 0 ? 0 : Math.round((filled / total) * 100);
+      
+      document.getElementById('filled-count').textContent = filled;
+      document.getElementById('total-count').textContent = total;
+      document.getElementById('progress-percentage').textContent = percentage + '% complete';
+      document.getElementById('progress-bar').style.width = percentage + '%';
+      
+      // Change color based on progress
+      const progressBar = document.getElementById('progress-bar');
+      if (percentage < 33) {
+        progressBar.className = 'progress-bar bg-danger';
+      } else if (percentage < 66) {
+        progressBar.className = 'progress-bar bg-warning';
+      } else {
+        progressBar.className = 'progress-bar bg-success';
+      }
+    }
+
+    function recordAction() {
+      const currentState = captureState();
+      actionHistory.push(currentState);
+      
+      // Limit history size
+      if (actionHistory.length > maxHistorySize) {
+        actionHistory.shift();
+      }
+      
+      // Disable undo button if no history
+      document.getElementById('undo-btn').disabled = actionHistory.length === 0;
+    }
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset all fields? This cannot be undone.')) {
+        recordAction(); // Save current state before resetting
+        document.querySelectorAll('#fields_container input, #fields_container select').forEach(el => {
+          el.value = '';
+        });
+        updatePreview();
+        updateProgress();
+      }
+    });
+
+    document.getElementById('undo-btn').addEventListener('click', () => {
+      if (actionHistory.length === 0) return;
+      
+      const previousState = actionHistory.pop();
+      
+      Object.entries(previousState).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.value = value;
+        }
+      });
+      
+      updatePreview();
+      updateProgress();
+      
+      // Disable undo if no more history
+      document.getElementById('undo-btn').disabled = actionHistory.length === 0;
+    });
+
+    // Update progress whenever a field changes
+    document.addEventListener('change', (e) => {
+      if (e.target.closest('#fields_container')) {
+        recordAction();
+        updateProgress();
+        updatePreview();
+      }
+    });
+    // Also update preview on input (for real-time updates as user types)
+    document.addEventListener('input', (e) => {
+      if (e.target.closest('#fields_container')) {
+        updateProgress();
+        updatePreview();
+      }
+    });
+    
+    // Initialize progress on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        updateProgress();
+        document.getElementById('undo-btn').disabled = true;
+      }, 500);
+    });
 
     function buildFields(placeholders){
       fieldsContainer.innerHTML = '';
@@ -201,90 +548,205 @@
         LEASE_AMOUNT: { en: 'LEASE AMOUNT', es: 'MONTO DEL ARRENDAMIENTO' },
         LEASE_AMOUNT_WORDS: { en: 'LEASE AMOUNT (WORDS)', es: 'MONTO EN LETRAS' }
       };
+      // Field grouping and help text
+      const fieldGrouping = {
+        'Party Information': {
+          fields: ['SELLER', 'BUYERS', 'BUYER', 'BUYER1', 'BUYER2', 'LESSOR', 'LESSEE'],
+          icon: '👥'
+        },
+        'Property Details': {
+          fields: ['ADDRESS', 'CITY', 'STATE', 'COUNTY', 'PROPERTY_DESCRIPTION', 'PROPERTY_ID'],
+          icon: '🏠'
+        },
+        'Terms & Conditions': {
+          fields: ['START_DATE', 'END_DATE', 'LEASE_AMOUNT', 'LEASE_AMOUNT_WORDS', 'PRICE', 'TOTAL', 'AMOUNT', 'TERM', 'DURATION'],
+          icon: '📋'
+        },
+        'Dates': {
+          fields: ['DAY', 'MONTH', 'YEAR'],
+          icon: '📅'
+        },
+        'Other': {
+          fields: [],
+          icon: '📝'
+        }
+      };
+
+      const fieldHelpText = {
+        'LEASE_AMOUNT': 'The total monthly or agreed-upon rental payment amount',
+        'LEASE_AMOUNT_WORDS': 'This auto-fills based on the lease amount you enter',
+        'LESSOR': 'The property owner or landlord',
+        'LESSEE': 'The tenant or person renting the property',
+        'SELLER': 'The person or entity selling the property',
+        'BUYERS': 'The person(s) or entity purchasing the property',
+        'BUYER': 'The person or entity purchasing the property',
+        'BUYER1': 'First buyer (if multiple)',
+        'BUYER2': 'Second buyer (if multiple)',
+        'PRICE': 'The total purchase price of the property',
+        'TOTAL': 'The total amount owed or agreed upon',
+        'TOTAL_AREA': 'The total size of the property in hectares (e.g., 5, 10.5, 25)',
+        'AMOUNT': 'The monetary amount for this transaction',
+        'PROPERTY_DESCRIPTION': 'A detailed description of the property being leased or sold (address, size, features)',
+        'PROPERTY_ID': 'Legal description or parcel number of the property',
+        'ADDRESS': 'Full street address of the property',
+        'CITY': 'City where the property is located',
+        'COUNTY': 'County where the property is located',
+        'STATE': 'State/Province where the property is located',
+        'TERM': 'The length of the agreement (e.g., 12 months, 2 years, 3 months)',
+        'DURATION': 'How long the agreement lasts',
+        'DURATION_MINUTES': 'Duration in minutes',
+        'START_DATE': 'The date when the agreement begins or the lease starts',
+        'END_DATE': 'The date when the agreement ends or the lease expires',
+        'DAY': 'Day of the month (1-31)',
+        'MONTH': 'Month of the year',
+        'YEAR': 'Year in 4-digit format (e.g., 2024)',
+        'AGE': 'Age of the person in years',
+        'DATE': 'The specific date for this event or agreement',
+        'SIGNATURE': 'Space for the party to sign the document',
+        'WITNESS': 'A third party who observes and signs as proof',
+        'INITIAL': 'Abbreviation or first initials of the party',
+        'NOTARY': 'Official witness with legal authority',
+        'FEE': 'Additional cost or charge beyond the main amount',
+        'COST': 'The expense or price of something',
+        'DEPOSIT': 'Money paid upfront, often refundable',
+        'DESCRIPTION': 'Details or explanation of something',
+        'LEASE_DURATION': 'How many years the lease lasts (e.g., 1, 2, 3)',
+      };
+      // Categorize placeholders into groups
+      const categorizedFields = {};
+      Object.keys(fieldGrouping).forEach(group => {
+        categorizedFields[group] = [];
+      });
+      categorizedFields['Other'] = [];
+
       placeholders.forEach(key => {
-        const id = 'field_' + key;
-        const wrapper = document.createElement('div');
-        wrapper.className = 'form-group mb-2';
         const upperKey = key.toUpperCase();
-
-        // Decide input type
-        let inputHtml = '';
-        // LEASE_AMOUNT_WORDS should be read-only and auto-filled
-        if(upperKey === 'LEASE_AMOUNT_WORDS'){
-          inputHtml = `<input type="text" class="form-control" id="${id}" readonly>`;
-        } else if(upperKey.includes('AGE')){
-          // age selector 18-100
-          inputHtml = `<select class="form-select" id="${id}"></select>`;
-        } else if(ROLE_KEYS.includes(upperKey)){
-          // role dropdown populated from participants
-          inputHtml = `<select class="form-select" id="${id}"></select>`;
-        } else if(upperKey.includes('STATE') || upperKey === 'STATE'){
-          // US states dropdown
-          inputHtml = `<select class="form-select" id="${id}"></select>`;
-        } else if(upperKey.includes('START') || upperKey.includes('END') || upperKey.includes('DATE')){
-          // date picker for start/end dates or any DATE-like placeholder
-          inputHtml = `<input type="date" class="form-control" id="${id}">`;
-        } else if(upperKey.includes('AMOUNT') || upperKey.includes('PRICE') || upperKey.includes('TOTAL') || upperKey.includes('LEASE') || upperKey.includes('FEE') || upperKey.includes('COST')){
-          // Use a text input so we can format the display but keep numeric parsing
-          inputHtml = `<div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control currency" id="${id}"></div>`;
-        } else {
-          inputHtml = `<input type="text" class="form-control" id="${id}">`;
-        }
-
-  // use translated label when available
-  const labelText = (placeholderTranslations[upperKey] && placeholderTranslations[upperKey][currentLang()]) ? placeholderTranslations[upperKey][currentLang()] : key.replace(/_/g,' ');
-  wrapper.innerHTML = `<label for="${id}">${labelText}</label>` + inputHtml;
-
-        // insert into DOM, then populate/select prefills
-        fieldsContainer.appendChild(wrapper);
-
-        const el = document.getElementById(id);
-        // Prefill logic: first check placeholderMap
-        if(placeholderMap && Object.prototype.hasOwnProperty.call(placeholderMap, upperKey)){
-          if(el && el.tagName === 'SELECT'){
-            // populate options and select matching
-            populateParticipantSelect(el, placeholderMap[upperKey]);
-          } else if(el){
-            el.value = placeholderMap[upperKey] || '';
+        let placed = false;
+        
+        // Find which group this field belongs to
+        for (const [groupName, groupData] of Object.entries(fieldGrouping)) {
+          if (groupData.fields.includes(upperKey)) {
+            categorizedFields[groupName].push(key);
+            placed = true;
+            break;
           }
-        } else if(el && el.tagName === 'SELECT'){
-          if(upperKey === 'DAY') populateDaySelect(el, currentLang());
-          else if(upperKey === 'MONTH') populateMonthSelect(el, currentLang());
-          else if(upperKey === 'YEAR') populateYearSelect(el, currentLang());
-          else if(upperKey.includes('AGE')) populateAgeSelect(el, currentLang());
-          else if(upperKey.includes('STATE') || upperKey === 'STATE') populateStateSelect(el, currentLang());
-          else populateParticipantSelect(el, null);
-        } else if(el && (key.toLowerCase().includes('case') || key.toLowerCase().includes('title'))){
-          el.value = caseTitle || '';
         }
-
-        // Live-update and special wiring
-        if(el){
-          // When amounts change, update the words field if present
-          if(upperKey.includes('AMOUNT') || upperKey.includes('LEASE') || upperKey.includes('PRICE') || upperKey.includes('TOTAL')){
-            el.addEventListener('input', ()=>{
-              // format display but keep numeric value parseable
-              const cleaned = parseNumberFromString(el.value);
-              el.value = cleaned === '' ? '' : formatNumberForDisplay(cleaned);
-              // update words
-              const wordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
-              if(wordsEl){
-                const num = parseFloat(cleaned || 0);
-                if(!isNaN(num) && num !== 0){
-                  wordsEl.value = numberToWords(num);
-                } else {
-                  wordsEl.value = '';
-                }
-              }
-              updatePreview();
-            });
-          } else {
-            el.addEventListener('input', updatePreview);
-          }
-          el.addEventListener('change', updatePreview);
+        
+        if (!placed) {
+          categorizedFields['Other'].push(key);
         }
       });
+
+      // Now render groups with fields inside
+      Object.entries(categorizedFields).forEach(([groupName, groupFields]) => {
+        if (groupFields.length === 0) return; // Skip empty groups
+        
+        const groupData = fieldGrouping[groupName];
+        
+        // Create group card
+        const groupCard = document.createElement('div');
+        groupCard.className = 'card mb-3 border-left-4';
+        groupCard.style.borderLeft = '4px solid #1a5f7a';
+        
+        const groupHeader = document.createElement('div');
+        groupHeader.className = 'card-header bg-light';
+        groupHeader.innerHTML = `<h6 class="mb-0">${groupData.icon} ${groupName}</h6>`;
+        
+        const groupBody = document.createElement('div');
+        groupBody.className = 'card-body';
+        
+        // Create fields within this group
+        groupFields.forEach(key => {
+          const id = 'field_' + key;
+          const wrapper = document.createElement('div');
+          wrapper.className = 'mb-3';
+          const upperKey = key.toUpperCase();
+
+          // Decide input type
+          let inputHtml = '';
+          if(upperKey === 'LEASE_AMOUNT_WORDS'){
+            inputHtml = `<input type="text" class="form-control" id="${id}" readonly>`;
+          } else if(upperKey.includes('AGE')){
+            inputHtml = `<select class="form-select" id="${id}"></select>`;
+          } else if(ROLE_KEYS.includes(upperKey)){
+            inputHtml = `<select class="form-select" id="${id}"></select>`;
+          } else if(upperKey.includes('STATE') || upperKey === 'STATE'){
+            inputHtml = `<select class="form-select" id="${id}"></select>`;
+          } else if(upperKey.includes('START') || upperKey.includes('END') || upperKey.includes('DATE')){
+            inputHtml = `<input type="date" class="form-control" id="${id}">`;
+          } else if((upperKey.includes('AMOUNT') || upperKey.includes('PRICE') || upperKey.includes('TOTAL') || upperKey.includes('LEASE') || upperKey.includes('FEE') || upperKey.includes('COST')) && !upperKey.includes('AREA') && !upperKey.includes('DURATION')){
+            // Use a text input so we can format the display but keep numeric parsing
+            inputHtml = `<div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control currency" id="${id}"></div>`;
+          } else {
+            inputHtml = `<input type="text" class="form-control" id="${id}">`;
+          }
+
+          // Use translated label
+          const labelText = (placeholderTranslations[upperKey] && placeholderTranslations[upperKey][currentLang()]) ? placeholderTranslations[upperKey][currentLang()] : key.replace(/_/g,' ');
+          
+          // Get help text if available
+          const helpText = fieldHelpText[upperKey] || '';
+          const helpHtml = helpText ? `<small class="form-text text-muted d-block mt-1">${helpText}</small>` : '';
+          
+          wrapper.innerHTML = `<label for="${id}" class="form-label fw-500">${labelText}</label>` + inputHtml + helpHtml;
+          groupBody.appendChild(wrapper);
+
+          // Get element for prefilling and event listeners
+          const el = document.getElementById(id);
+          
+          // Prefill logic
+          if(placeholderMap && Object.prototype.hasOwnProperty.call(placeholderMap, upperKey)){
+            if(el && el.tagName === 'SELECT'){
+              populateParticipantSelect(el, placeholderMap[upperKey]);
+            } else if(el){
+              el.value = placeholderMap[upperKey] || '';
+            }
+          } else if(el && el.tagName === 'SELECT'){
+            if(upperKey === 'DAY') populateDaySelect(el, currentLang());
+            else if(upperKey === 'MONTH') populateMonthSelect(el, currentLang());
+            else if(upperKey === 'YEAR') populateYearSelect(el, currentLang());
+            else if(upperKey.includes('AGE')) populateAgeSelect(el, currentLang());
+            else if(upperKey.includes('STATE') || upperKey === 'STATE') populateStateSelect(el, currentLang());
+            else populateParticipantSelect(el, null);
+          } else if(el && (key.toLowerCase().includes('case') || key.toLowerCase().includes('title'))){
+            el.value = caseTitle || '';
+          }
+
+          // Event listeners
+          if(el){
+            if(upperKey.includes('AMOUNT') || upperKey.includes('LEASE') || upperKey.includes('PRICE') || upperKey.includes('TOTAL')){
+              el.addEventListener('input', ()=>{
+                const cleaned = parseNumberFromString(el.value);
+                el.value = cleaned === '' ? '' : formatNumberForDisplay(cleaned);
+                const wordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
+                if(wordsEl){
+                  const num = parseFloat(cleaned || 0);
+                  if(!isNaN(num) && num !== 0){
+                    wordsEl.value = numberToWords(num);
+                  } else {
+                    wordsEl.value = '';
+                  }
+                }
+                updatePreview();
+              });
+            } else {
+              el.addEventListener('input', updatePreview);
+            }
+            el.addEventListener('change', updatePreview);
+          }
+        });
+        
+        groupCard.appendChild(groupHeader);
+        groupCard.appendChild(groupBody);
+        fieldsContainer.appendChild(groupCard);
+      });
     }
+    // TEMPORARY DEBUG CODE - Remove after testing
+    console.log('=== FIELD DEBUG ===');
+    const allInputs = document.querySelectorAll('#fields_container input, #fields_container select');
+    allInputs.forEach(el => {
+      console.log(`Field: ${el.id}, Type: ${el.tagName}, Value: ${el.value}, Has options: ${el.options ? el.options.length : 'N/A'}`);
+    });
 
     function populateDaySelect(selectEl, lang='en'){
       selectEl.innerHTML = '';
@@ -358,6 +820,24 @@
         updatePreview();
       });
     }
+    // Force populate STATE/AGE dropdowns on initial load
+    setTimeout(() => {
+      const allSelects = document.querySelectorAll('#fields_container select');
+      allSelects.forEach(s => {
+        const idUp = (s.id||'').toUpperCase();
+        if(idUp.includes('STATE')) {
+          populateStateSelect(s, currentLang());
+        } else if(idUp.includes('AGE')) {
+          populateAgeSelect(s, currentLang());
+        } else if(idUp.includes('DAY')) {
+          populateDaySelect(s, currentLang());
+        } else if(idUp.includes('MONTH')) {
+          populateMonthSelect(s, currentLang());
+        } else if(idUp.includes('YEAR')) {
+          populateYearSelect(s, currentLang());
+        }
+      });
+    }, 100);
 
     // Parse a user-entered currency string into a plain numeric string (e.g. "1,234.50" -> "1234.50")
     function parseNumberFromString(s){
