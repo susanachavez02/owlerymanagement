@@ -297,7 +297,7 @@
     let currentPlaceholders = [];
 
     function extractPlaceholders(text){
-      const re = /<<([A-Z0-9_]+)>>/gi;
+      const re = /<<([A-Z0-9_\/]+)>>/gi;
       const set = new Set();
       let m;
       while((m = re.exec(text)) !== null){
@@ -555,15 +555,19 @@
           icon: '👥'
         },
         'Property Details': {
-          fields: ['ADDRESS', 'CITY', 'STATE', 'COUNTY', 'PROPERTY_DESCRIPTION', 'PROPERTY_ID'],
+          fields: ['ADDRESS', 'CITY', 'STATE', 'COUNTY', 'PROPERTY_DESCRIPTION', 'PROPERTY_ID', 'PLOT_NUMBER', 'PARCEL_LOCATION', 'TOTAL_AREA', 'LOT_NUMBER', 'BLOCK_NUMBER', 'SECTOR_NUMBER', 'NEIGHBORHOOD', 'MUNICIPALITY', 'AREA', 'AREA_IN_WORDS', 'NORTH_BOUNDARY', 'SOUTH_BOUNDARY', 'EAST_BOUNDARY', 'WEST_BOUNDARY'],
           icon: '🏠'
         },
+        'Locations & Addresses': {
+          fields: ['BIRTH_CITY_STATE', 'BIRTH_CITY_STATE_BUYER1', 'BIRTH_CITY_STATE_BUYER2', 'BIRTH_CITY_STATE_BUYERS', 'CITY_STATE', 'ADDRESS_LESSOR', 'ADDRESS_LESSEE', 'ADDRESS_SELLER', 'ADDRESS_BUYERS'],
+          icon: '📍'
+        },
         'Terms & Conditions': {
-          fields: ['START_DATE', 'END_DATE', 'LEASE_AMOUNT', 'LEASE_AMOUNT_WORDS', 'PRICE', 'TOTAL', 'AMOUNT', 'TERM', 'DURATION'],
+          fields: ['START_DATE', 'END_DATE', 'LEASE_AMOUNT', 'LEASE_AMOUNT_WORDS', 'PRICE', 'TOTAL', 'AMOUNT', 'TERM', 'DURATION', 'TOTAL_PRICE', 'TOTAL_PRICE_IN_WORDS', 'DOWN_PAYMENT', 'DOWN_PAYMENT_IN_WORDS', 'MONTHLY_PAYMENT', 'MONTHLY_PAYMENT_IN_WORDS', 'BALANCE', 'BALANCE_IN_WORDS', 'PAYMENT_DETAILS', 'PAYMENT_DAY'],
           icon: '📋'
         },
         'Dates': {
-          fields: ['DAY', 'MONTH', 'YEAR'],
+          fields: ['DAY', 'MONTH', 'YEAR', 'DATE_OF_BIRTH', 'DATE_OF_BIRTH_BUYER1', 'DATE_OF_BIRTH_BUYER2'],
           icon: '📅'
         },
         'Other': {
@@ -664,17 +668,16 @@
 
           // Decide input type
           let inputHtml = '';
+          //console.log('Creating field:', upperKey); // DEBUG - show ALL fields being created
           if(upperKey === 'LEASE_AMOUNT_WORDS'){
             inputHtml = `<input type="text" class="form-control" id="${id}" readonly>`;
+          } else if(upperKey === 'STATE' || upperKey === 'BIRTH_CITY_STATE' || upperKey === 'BIRTH_CITY_STATE_BUYER1' || upperKey === 'BIRTH_CITY_STATE_BUYER2' || upperKey === 'BIRTH_CITY_STATE_BUYERS' || upperKey === 'CITY_STATE'){
+            inputHtml = `<select class="form-select" id="${id}"></select>`;
           } else if(upperKey.includes('AGE')){
             inputHtml = `<select class="form-select" id="${id}"></select>`;
-          } else if(ROLE_KEYS.includes(upperKey)){
-            inputHtml = `<select class="form-select" id="${id}"></select>`;
-          } else if(upperKey.includes('STATE') || upperKey === 'STATE'){
-            inputHtml = `<select class="form-select" id="${id}"></select>`;
-          } else if(upperKey.includes('START') || upperKey.includes('END') || upperKey.includes('DATE')){
+          } else if(upperKey.includes('START') || upperKey.includes('END') || (upperKey.includes('DATE') && !upperKey.includes('BIRTH'))){
             inputHtml = `<input type="date" class="form-control" id="${id}">`;
-          } else if((upperKey.includes('AMOUNT') || upperKey.includes('PRICE') || upperKey.includes('TOTAL') || upperKey.includes('LEASE') || upperKey.includes('FEE') || upperKey.includes('COST')) && !upperKey.includes('AREA') && !upperKey.includes('DURATION')){
+          } else if((upperKey.includes('AMOUNT') || upperKey.includes('PRICE') || upperKey.includes('TOTAL') || upperKey.includes('LEASE') || upperKey.includes('PAYMENT') || upperKey.includes('BALANCE') || upperKey.includes('FEE') || upperKey.includes('COST')) && !upperKey.includes('AREA') && !upperKey.includes('DURATION')){
             // Use a text input so we can format the display but keep numeric parsing
             inputHtml = `<div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control currency" id="${id}"></div>`;
           } else {
@@ -692,7 +695,9 @@
           groupBody.appendChild(wrapper);
 
           // Get element for prefilling and event listeners
-          const el = document.getElementById(id);
+          // IMPORTANT: Must get the element AFTER appendChild so it's in the DOM
+          // For currency inputs wrapped in input-group, find the actual input
+          const el = wrapper.querySelector('input[id="' + id + '"]') || wrapper.querySelector('select[id="' + id + '"]') || document.getElementById(id);
           
           // Prefill logic
           if(placeholderMap && Object.prototype.hasOwnProperty.call(placeholderMap, upperKey)){
@@ -702,34 +707,101 @@
               el.value = placeholderMap[upperKey] || '';
             }
           } else if(el && el.tagName === 'SELECT'){
-            if(upperKey === 'DAY') populateDaySelect(el, currentLang());
-            else if(upperKey === 'MONTH') populateMonthSelect(el, currentLang());
-            else if(upperKey === 'YEAR') populateYearSelect(el, currentLang());
-            else if(upperKey.includes('AGE')) populateAgeSelect(el, currentLang());
-            else if(upperKey.includes('STATE') || upperKey === 'STATE') populateStateSelect(el, currentLang());
-            else populateParticipantSelect(el, null);
-          } else if(el && (key.toLowerCase().includes('case') || key.toLowerCase().includes('title'))){
+            console.log('SELECT element found:', upperKey, 'Checking conditions...'); // DEBUG
+            if(upperKey === 'DAY') {
+              console.log('  Matched DAY');
+              populateDaySelect(el, currentLang());
+            } else if(upperKey === 'MONTH') {
+              console.log('  Matched MONTH');
+              populateMonthSelect(el, currentLang());
+            } else if(upperKey === 'YEAR') {
+              console.log('  Matched YEAR');
+              populateYearSelect(el, currentLang());
+            } else if(upperKey.includes('AGE')) {
+              console.log('  Matched AGE');
+              populateAgeSelect(el, currentLang());
+            } else if(upperKey === 'STATE' || upperKey === 'BIRTH_CITY_STATE' || upperKey === 'BIRTH_CITY_STATE_BUYER1' || upperKey === 'BIRTH_CITY_STATE_BUYER2' || upperKey === 'BIRTH_CITY_STATE_BUYERS' || upperKey === 'CITY_STATE') {
+              console.log('  Matched STATE/BIRTH_CITY_STATE');
+              populateStateSelect(el, currentLang());
+            } else {
+              console.log('  Matched PARTICIPANT (fallback)');
+              populateParticipantSelect(el, null);
+            } 
+             }else if(el && (key.toLowerCase().includes('case') || key.toLowerCase().includes('title'))){
             el.value = caseTitle || '';
-          }
+            }
 
           // Event listeners
           if(el){
+            console.log('Attaching listeners to:', id, 'Type:', el.tagName, 'Value:', el.value); // DEBUG
             if(upperKey.includes('AMOUNT') || upperKey.includes('LEASE') || upperKey.includes('PRICE') || upperKey.includes('TOTAL')){
-              el.addEventListener('input', ()=>{
-                const cleaned = parseNumberFromString(el.value);
-                el.value = cleaned === '' ? '' : formatNumberForDisplay(cleaned);
-                const wordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
-                if(wordsEl){
+              el.addEventListener('input', function(e){
+                console.log('Currency input event:', id, 'Current value:', this.value); // DEBUG
+                const cleaned = parseNumberFromString(this.value);
+                console.log('  Cleaned value:', cleaned); // DEBUG
+                const formatted = cleaned === '' ? '' : formatNumberForDisplay(cleaned);
+                console.log('  Formatted value:', formatted); // DEBUG
+                this.value = formatted;
+                
+                // Handle TOTAL_PRICE_IN_WORDS
+                const totalWordsEl = document.getElementById('field_TOTAL_PRICE_IN_WORDS');
+                if(totalWordsEl && upperKey === 'TOTAL_PRICE'){
                   const num = parseFloat(cleaned || 0);
+                  console.log('  Setting TOTAL_PRICE_IN_WORDS to:', numberToWords(num)); // DEBUG
                   if(!isNaN(num) && num !== 0){
-                    wordsEl.value = numberToWords(num);
+                    totalWordsEl.value = numberToWords(num);
                   } else {
-                    wordsEl.value = '';
+                    totalWordsEl.value = '';
                   }
                 }
+                
+                // Handle DOWN_PAYMENT_IN_WORDS
+                const downPaymentWordsEl = document.getElementById('field_DOWN_PAYMENT_IN_WORDS');
+                if(downPaymentWordsEl && upperKey === 'DOWN_PAYMENT'){
+                  const num = parseFloat(cleaned || 0);
+                  if(!isNaN(num) && num !== 0){
+                    downPaymentWordsEl.value = numberToWords(num);
+                  } else {
+                    downPaymentWordsEl.value = '';
+                  }
+                }
+                
+                // Handle MONTHLY_PAYMENT_IN_WORDS
+                const monthlyWordsEl = document.getElementById('field_MONTHLY_PAYMENT_IN_WORDS');
+                if(monthlyWordsEl && upperKey === 'MONTHLY_PAYMENT'){
+                  const num = parseFloat(cleaned || 0);
+                  if(!isNaN(num) && num !== 0){
+                    monthlyWordsEl.value = numberToWords(num);
+                  } else {
+                    monthlyWordsEl.value = '';
+                  }
+                }
+                
+                // Handle BALANCE_IN_WORDS
+                const balanceWordsEl = document.getElementById('field_BALANCE_IN_WORDS');
+                if(balanceWordsEl && upperKey === 'BALANCE'){
+                  const num = parseFloat(cleaned || 0);
+                  if(!isNaN(num) && num !== 0){
+                    balanceWordsEl.value = numberToWords(num);
+                  } else {
+                    balanceWordsEl.value = '';
+                  }
+                }
+                
+                // Handle LEASE_AMOUNT_WORDS
+                const leaseWordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
+                if(leaseWordsEl && upperKey === 'LEASE_AMOUNT'){
+                  const num = parseFloat(cleaned || 0);
+                  if(!isNaN(num) && num !== 0){
+                    leaseWordsEl.value = numberToWords(num);
+                  } else {
+                    leaseWordsEl.value = '';
+                  }
+                }
+                
                 updatePreview();
               });
-            } else {
+              } else {
               el.addEventListener('input', updatePreview);
             }
             el.addEventListener('change', updatePreview);
@@ -741,12 +813,6 @@
         fieldsContainer.appendChild(groupCard);
       });
     }
-    // TEMPORARY DEBUG CODE - Remove after testing
-    console.log('=== FIELD DEBUG ===');
-    const allInputs = document.querySelectorAll('#fields_container input, #fields_container select');
-    allInputs.forEach(el => {
-      console.log(`Field: ${el.id}, Type: ${el.tagName}, Value: ${el.value}, Has options: ${el.options ? el.options.length : 'N/A'}`);
-    });
 
     function populateDaySelect(selectEl, lang='en'){
       selectEl.innerHTML = '';
@@ -807,11 +873,11 @@
       langSelectEl.addEventListener('change', ()=>{
         const allSelects = fieldsContainer.querySelectorAll('select');
         allSelects.forEach(s => {
-          if(s.id && s.id.toUpperCase().includes('STATE')){
+          const idUp = (s.id||'').toUpperCase().replace('FIELD_','');
+          if(idUp === 'STATE' || idUp === 'BIRTH_CITY_STATE' || idUp === 'BIRTH_CITY_STATE_BUYER1' || idUp === 'BIRTH_CITY_STATE_BUYER2' || idUp === 'BIRTH_CITY_STATE_BUYERS' || idUp === 'CITY_STATE'){
             populateStateSelect(s, currentLang());
           }
           // update day/month/year/age labels too
-          const idUp = (s.id||'').toUpperCase();
           if(idUp.includes('DAY')) populateDaySelect(s, currentLang());
           if(idUp.includes('MONTH')) populateMonthSelect(s, currentLang());
           if(idUp.includes('YEAR')) populateYearSelect(s, currentLang());
@@ -824,8 +890,11 @@
     setTimeout(() => {
       const allSelects = document.querySelectorAll('#fields_container select');
       allSelects.forEach(s => {
-        const idUp = (s.id||'').toUpperCase();
-        if(idUp.includes('STATE')) {
+        // Extract field name from ID (e.g., "field_BIRTH_CITY_STATE" -> "BIRTH_CITY_STATE")
+        const idUp = s.id.replace(/^field_/, '').toUpperCase();
+        console.log('Populating select:', s.id, '-> extracted:', idUp); // DEBUG
+        if(idUp === 'STATE' || idUp === 'BIRTH_CITY_STATE' || idUp === 'BIRTH_CITY_STATE_BUYER1' || idUp === 'BIRTH_CITY_STATE_BUYER2' || idUp === 'BIRTH_CITY_STATE_BUYERS' || idUp === 'CITY_STATE') {
+          console.log('  -> Populating as STATE'); // DEBUG
           populateStateSelect(s, currentLang());
         } else if(idUp.includes('AGE')) {
           populateAgeSelect(s, currentLang());
@@ -852,7 +921,13 @@
     // Format a numeric string or number into human readable currency with two decimals and commas
     function formatNumberForDisplay(n){
       if(n === null || n === undefined || n === '') return '';
-      const num = typeof n === 'number' ? n : parseFloat(String(n));
+      const str = String(n);
+      // If it looks like a number being typed (no decimal or decimal with only 1-2 digits after it), don't format yet
+      if(!str.includes('.') || str.split('.')[1].length <= 2){
+        return str;
+      }
+      // Only format if there are more than 2 decimal places
+      const num = parseFloat(str);
       if(isNaN(num)) return '';
       return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
