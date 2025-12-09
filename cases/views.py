@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.db import models
 from django import forms
 import io
+import re
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.conf import settings
@@ -436,8 +437,13 @@ def template_generation_view(request):
     # Build prettier labels server-side to avoid using template filters
     contract_choices = []
     for fn in contract_files:
-        # remove suffix and replace underscores with spaces, title-case
-        label = fn.replace('_contract.html', '').replace('_', ' ').title()
+        # remove suffix and replace underscores with spaces
+        label = fn.replace('_contract_es.html', '').replace('_contract.html', '').replace('_', ' ')
+        # Format camelCase words by inserting spaces before uppercase letters
+        # and also insert space before "and" when preceded by lowercase letter
+        label = re.sub(r'([a-z])([A-Z])', r'\1 \2', label)
+        label = re.sub(r'([a-z])(and)', r'\1 \2', label)
+        label = label.title()
         contract_choices.append((fn, label))
 
     context = {
@@ -610,7 +616,12 @@ def generate_document_view(request, case_pk):
             if fn.endswith('_contract.html') or fn.endswith('_contract_es.html'):
                 contract_files.append(fn)
                 # Build the formatted label
-                label = fn.replace('_contract.html', '').replace('_', ' ').title()
+                label = fn.replace('_contract_es.html', '').replace('_contract.html', '').replace('_', ' ')
+                # Format camelCase words by inserting spaces before uppercase letters
+                # and also insert space before "and" when preceded by lowercase letter
+                label = re.sub(r'([a-z])([A-Z])', r'\1 \2', label)
+                label = re.sub(r'([a-z])(and)', r'\1 \2', label)
+                label = label.title()
                 contract_choices.append((fn, label))
 
     context = {
