@@ -19,6 +19,29 @@
     <title>Owlery Legal Portal</title>
 
     <style>
+/* Update the body style to use Flexbox */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8f9fa;
+    color: var(--owl-dark);
+    -webkit-font-smoothing: antialiased;
+    
+    /* --- NEW FLEXBOX STYLES --- */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Forces body to be at least the height of the screen */
+}
+
+/* Update the footer style to push itself to the bottom */
+.footer {
+    background-color: #0c0f19;
+    color: rgba(255,255,255,0.6);
+    padding: 40px 0;
+    font-size: 0.9rem;
+    
+    /* --- NEW PROPERTY --- */
+    margin-top: auto; /* Pushes the footer to the bottom of the flex container */
+}
   /* Theme tokens */
   :root { 
     --owl-dark:#0c0f19; 
@@ -183,11 +206,17 @@
 
     {% block extra_js %}
     {% endblock %}
-<section id="help" class="py-5 bg-white border-top rounded-3">
-      <div class="container text-center">
-        <h2 class="h4 fw-bold mb-3">Need help?</h2>
-        <p class="text-secondary mb-0">Contact support or browse FAQs (coming soon).</p>
-      </div>
-    </section>
+<footer class="footer">
+    <div class="container text-center">
+        <div class="mb-3">
+            <img src="{% static 'images/realowlerypic.png' %}" alt="Logo" height="60" style="filter: invert(1);">
+        </div>
+        <p class="mb-0">&copy; {% now "Y" %} Owlery Legal Portal. All rights reserved.</p>
+        <div class="mt-2">
+            <a href="#" class="me-3">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+        </div>
+    </div>
+</footer>
 </body>
 </html>
