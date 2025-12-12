@@ -172,6 +172,7 @@
       </div>
       {% endif %}
 
+      {% if is_admin_user %}
       <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-white fw-bold border-bottom-0 pt-3 pb-2">
             <small class="text-uppercase text-muted">Recent Activity</small>
@@ -203,7 +204,9 @@
         </div>
       </div>
 
-    </div> </div> {% endblock %}
+    </div> </div> 
+    {% endif %}
+    {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
