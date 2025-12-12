@@ -91,22 +91,28 @@
         </div>
       </div>
 
-    </div> </div> {# --- CLIENT DASHBOARD --- #}
+    </div>
+  </div>
+
+{# --- CLIENT DASHBOARD --- #}
 {% elif is_client %}
     
-    <header class="py-5 bg-white border-bottom rounded-3 mb-4 shadow-sm">
-        <div class="container">
-            <div class="d-flex align-items-center gap-3">
-                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 1.5rem;">
-                    {{ user.first_name|first }}
-                </div>
-                <div>
-                    <h1 class="display-6 fw-bold mb-0">Welcome, {{ user.first_name }}</h1>
-                    <p class="text-muted mb-0">Track your cases and documents.</p>
-                </div>
+    <div class="card border-0 shadow-sm welcome-banner mb-5">
+        <div class="card-body p-4 p-md-5 d-flex align-items-center">
+            <div class="welcome-avatar me-4">
+                {{ user.first_name|first|default:user.username|first|upper }}
+            </div>
+            
+            <div>
+                <h1 class="h2 fw-bold mb-1">Welcome back, {{ user.first_name|default:'Client' }}</h1>
+                <p class="text-muted mb-0">Here is an overview of your active cases and recent updates.</p>
+            </div>
+
+            <div class="ms-auto d-none d-md-block opacity-10">
+                <i class="fas fa-scale-balanced fa-4x"></i> 
             </div>
         </div>
-    </header>
+    </div>
 
     <section id="active-cases" class="mb-5">
       <h4 class="page-title mb-3">Your Active Cases</h4>
@@ -152,9 +158,7 @@
       </div>
     </section>
 
-    
-
-{# --- FALLBACK --- #}
+{# --- FALLBACK (NO ROLE) --- #}
 {% else %}
     <div class="alert alert-info">
         <h4>Welcome to Owlery</h4>
