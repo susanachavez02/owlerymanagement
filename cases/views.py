@@ -3,12 +3,15 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
+from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.utils import timezone
 from django.db import models
 from django import forms
 import io
+import base64
 import re
+import fitz
 from django.core.mail import send_mail
 from django.db.models import Q
 from django.conf import settings
@@ -508,11 +511,49 @@ def template_upload_view(request):
     if request.method == 'POST':
         form = TemplateUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            template = form.save(commit=False)
-            template.uploaded_by = request.user
-            template.save()
-            messages.success(request, f"Template '{template.name}' uploaded successfully.")
-            return redirect('cases:template-list')
+            # 1. Get the file object
+            # Note: check your forms.py to see if the field is named 'file', 'template_file', etc.
+            # Assuming it is 'file' based on standard Django forms:
+            uploaded_file = request.FILES.get('file') 
+            
+            # 2. Check if it is a PDF
+            if uploaded_file and uploaded_file.name.lower().endswith('.pdf'):
+                try:
+                    # --- THE CONVERSION MAGIC ---
+                    # Read the PDF stream from memory
+                    pdf_data = uploaded_file.read()
+                    
+                    # Open with PyMuPDF
+                    with fitz.open(stream=pdf_data, filetype="pdf") as doc:
+                        html_content = ""
+                        # Loop through every page and convert to HTML
+                        for page in doc:
+                            html_content += page.get_text("html")
+                    
+                    # 3. Save to your Database (ContractTemplate)
+                    # This ensures it shows up in your "My Custom Templates" dropdown
+                    ContractTemplate.objects.create(
+                        name=form.cleaned_data.get('name') or uploaded_file.name,
+                        content=html_content,
+                        created_by=request.user,
+                        is_public=False  # Keep private by default
+                    )
+                    
+                    messages.success(request, "PDF converted to HTML and saved as a new template!")
+                    return redirect('cases:case-dashboard') # Or wherever you want to go
+
+                except Exception as e:
+                    messages.error(request, f"Error converting PDF: {e}")
+                    return redirect('cases:template-upload')
+
+            else:
+                # Fallback: If it's not a PDF (e.g., standard file upload), run your old logic
+                template = form.save(commit=False)
+                template.uploaded_by = request.user
+                template.save()
+                messages.success(request, f"Template '{template.name}' uploaded successfully.")
+                return redirect('cases:template-list')
+
     else:
         form = TemplateUploadForm()
     
@@ -521,7 +562,116 @@ def template_upload_view(request):
     }
     return render(request, 'cases/template_upload.html', context)
 
-# ---
+
+@login_required
+@require_POST
+def convert_pdf_api_view(request):
+    """
+    Smart Analyzer v5 (Native Scale):
+    - REMOVED ZOOM: Analyzes PDF at 100% (1:1) scale to match frontend perfectly.
+    - Keeps the improved 'Text Overlap' and 'Margin' filters.
+    """
+    uploaded_file = request.FILES.get('pdf_file')
+    
+    if not uploaded_file or not uploaded_file.name.lower().endswith('.pdf'):
+        return JsonResponse({'error': 'Invalid file'}, status=400)
+
+    try:
+        pdf_data = uploaded_file.read()
+        pages_data = []
+        
+        with fitz.open(stream=pdf_data, filetype="pdf") as doc:
+            for page_num, page in enumerate(doc):
+                # 1. RENDER PAGE AT NATIVE 1x SCALE (No Zoom)
+                # This ensures coordinates match the PDF's internal 'Point' system exactly
+                pix = page.get_pixmap() 
+                img_data = base64.b64encode(pix.tobytes("png")).decode("utf-8")
+                
+                # These dimensions are now the standard PDF points (e.g. 612x792 for Letter)
+                page_w = page.rect.width
+                page_h = page.rect.height
+                
+                # SETTINGS
+                MARGIN_X_PCT = 0.10   
+                TEXT_Y_OFFSET = 0     # With 1x scale, we likely don't need a manual offset anymore
+                
+                fields = []
+
+                def is_valid_field(rect):
+                    # Margin Check
+                    if rect.x0 < (page_w * MARGIN_X_PCT): return False
+                    if rect.x1 > (page_w * (1 - MARGIN_X_PCT)): return False
+                    
+                    # Text Overlap Check
+                    check_rect = fitz.Rect(rect.x0, rect.y0 - 2, rect.x1, rect.y0)
+                    text_inside = page.get_text("text", clip=check_rect).strip()
+                    if len(text_inside) > 0: 
+                        return False 
+                    return True
+
+                def add_field(rect, f_type):
+                    for existing in fields:
+                        if rect.intersects(existing['rect']): return
+
+                    # Label Guessing
+                    search_rect = fitz.Rect(rect.x0 - 150, rect.y0 - 10, rect.x0, rect.y1 + 5)
+                    text_nearby = page.get_text("text", clip=search_rect).strip()
+                    label = text_nearby.replace(':', '').replace('\n', ' ').strip()
+                    
+                    fields.append({
+                        # Coordinates are now purely 1:1 with the rendered image
+                        'left': (rect.x0 / page_w) * 100,
+                        'top': (rect.y0 / page_h) * 100,
+                        'width': (rect.width / page_w) * 100,
+                        'height': (rect.height / page_h) * 100,
+                        'type': f_type,
+                        'label': label,
+                        'rect': rect
+                    })
+
+                # A. Detect Drawings
+                for shape in page.get_drawings():
+                    rect = shape['rect']
+                    
+                    # TEXT INPUTS (Horizontal Lines)
+                    # Note: width > 25 is still safe at 1x scale
+                    if rect.width > 25 and rect.height < 5: 
+                        # Box sits ON the line
+                        input_rect = fitz.Rect(rect.x0, rect.y0 - 12, rect.x1, rect.y0)
+                        if is_valid_field(input_rect):
+                            add_field(input_rect, 'text')
+                    
+                    # CHECKBOXES (Squares)
+                    # Note: Adjusted min size slightly for 1x scale
+                    elif 8 < rect.width < 25 and 8 < rect.height < 25:
+                        ratio = rect.width / rect.height
+                        if 0.8 < ratio < 1.2:
+                             if is_valid_field(rect):
+                                add_field(rect, 'checkbox')
+
+                # B. Legacy "___"
+                for rect in page.search_for("___"):
+                    add_field(rect, 'text')
+                
+                # C. Checkbox Characters
+                for char in ["☐", "☑", "☒"]:
+                    for rect in page.search_for(char):
+                        add_field(rect, 'checkbox')
+
+                for f in fields:
+                    if 'rect' in f: del f['rect']
+
+                pages_data.append({
+                    'image': img_data,
+                    'width': page_w,
+                    'height': page_h,
+                    'fields': fields
+                })
+        
+        return JsonResponse({'pages': pages_data})
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 # --- STEP 19: DOCUMENT GENERATION VIEW (UPGRADED)
 # ---
 @login_required
@@ -629,7 +779,9 @@ def generate_document_view(request, case_pk):
         'templates': templates,
         'contract_files': contract_files,
         'contract_choices': contract_choices,
-        'contract_files_json': json.dumps(contract_files)
+        'contract_files_json': json.dumps(contract_files),
+
+    'db_templates': db_templates,
     }
     # Build a small, opinionated placeholder mapping so the frontend can autofill common keys
     placeholder_map = {}

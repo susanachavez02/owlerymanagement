@@ -1,1128 +1,299 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <a id="back_link" href="{% url 'cases:case-detail' pk=case.pk %}">&larr; Back to Case Details</a>
-  <h2 id="page_heading" class="mt-2">Generate Document for: {{ case.case_title }}</h2>
-  <p id="html_section_instructions">Select an HTML contract template to preview and fill placeholders inline.</p>
-  <div class="row contract-row">
-    <div class="col-md-5">
-      <div class="card mb-3">
-        <div class="card-body">
-          <div class="mb-3">
-            <label id="html_contract_label" for="html_contract_select">Choose a contract</label>
-            <select class="form-control" id="html_contract_select">
-              <option value="" selected disabled>--- Select an HTML contract ---</option>
-              {% for choice in contract_choices %}
-                <option value="{{ choice.0 }}">{{ choice.1 }}</option>
-              {% empty %}
-                <option value="" disabled>No HTML contract templates found.</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-3">
-            <label id="lang_select_label" for="lang_select">Language</label>
-            <select class="form-control" id="lang_select">
-              <option value="en" selected>English</option>
-              <option value="es">Español</option>
-            </select>
-          </div>
-
-          <hr />
-          <h5 id="fill_fields_heading" class="mb-3">Fill Contract Fields</h5>
-          <div id="fields_container"></div>
-          <div class="d-flex" style="gap:.5rem; margin-top:12px;">
-            <!-- Controls removed per request: Preview and Open modal/tab removed. Keep Download for export if needed. -->
-            <button id="download_pdf" type="button" class="btn btn-secondary">Download PDF</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-7">
-      <div class="card mb-3 preview-card">
-        <div class="card-body">
-          <div id="inline_preview_area" style="display:none;">
-            <h5 id="preview_heading">Preview</h5>
-            <iframe id="preview_iframe" style="width:100%; border:1px solid #ccc;"></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Sticky Right Sidebar: Progress + Controls -->
-  <div id="controls-sidebar" class="controls-sidebar">
-    <!-- Progress Indicator -->
-    <div class="progress-card">
-      <div class="progress-header">
-        <h6 class="mb-2">📊 Progress</h6>
-        <div class="progress" style="height: 8px;">
-          <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
-      </div>
-      <div class="progress-text">
-        <p class="mb-0"><strong id="filled-count">0</strong> of <strong id="total-count">0</strong> fields filled</p>
-        <small class="text-muted" id="progress-percentage">0% complete</small>
-      </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-      <button id="undo-btn" type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2">
-        <i class="fas fa-undo me-1"></i> Undo
-      </button>
-      <button id="reset-btn" type="button" class="btn btn-sm btn-outline-danger w-100">
-        <i class="fas fa-refresh me-1"></i> Reset All
-      </button>
-    </div>
-  </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    /* Equal-height two-column layout for the generate page.
-       Align tops, make cards fill height, and let card bodies scroll.
-       Increase preview height so users scroll less. */
-    .contract-row { align-items: stretch; }
-    .contract-row > .col-md-5, .contract-row > .col-md-7 { display:flex; flex-direction:column; }
-    .contract-row .card { display:flex; flex-direction:column; height:100%; margin-top:0; }
-    .contract-row .card .card-body { flex:1 1 auto; min-height:0; overflow:auto; }
-    /* Leave room for headers/controls (~100px) and use the rest of the viewport */
-    .contract-row .card .card-body { max-height: calc(100vh - 100px); }
-
-    /* Make the preview iframe stretch to fill the right card body */
-    .preview-card .card-body { display:flex; flex-direction:column; min-height:0; }
-    #inline_preview_area { display:block; flex:1 1 auto; min-height:0; }
-    #preview_iframe { flex:1 1 auto; min-height:0; height:100%; }
-
-    /* Field grouping and help text styling */
-    .card-header {
-      font-weight: 600;
-      background-color: #f8f9fa;
-      border-bottom: 2px solid #1a5f7a;
-    }
-
-    .card-header h6 {
-      color: #1a5f7a;
-      letter-spacing: 0.5px;
-    }
-
-    .form-label {
-      font-size: 0.95rem;
-      margin-bottom: 0.4rem;
-      color: #333;
-    }
-
-    .form-label.fw-500 {
-      font-weight: 500;
-    }
-
-    .form-text.text-muted {
-      font-size: 0.85rem;
-      color: #6c757d !important;
-      font-style: italic;
-    }
-
-    .card.border-left-4 {
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      transition: box-shadow 0.2s;
-    }
-
-    .card.border-left-4:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    }
-    /*----*****----*****----*****----*****----*****---*/
-    /* Sticky right sidebar for progress and controls */
-    .controls-sidebar {
-      position: fixed;
-      right: 20px;
-      top: 100px;
-      width: 280px;
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
-      z-index: 999;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 20px;
-    }
-
-    .progress-card {
-      margin-bottom: 20px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .progress-header h6 {
-      color: #1a5f7a;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .progress-text {
-      margin-top: 12px;
-      text-align: center;
-    }
-
-    .progress-text p {
-      font-size: 14px;
-      margin: 0;
-    }
-
-    .action-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .action-buttons .btn {
-      font-size: 13px;
-      padding: 8px 12px;
-    }
-
-    .action-buttons .btn i {
-      margin-right: 4px;
-    }
-
-    /* Responsive: hide sidebar on small screens */
-    @media (max-width: 1200px) {
-      .controls-sidebar {
-        right: 10px;
-        width: 260px;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .controls-sidebar {
-        position: static;
-        width: 100%;
-        max-height: none;
-        margin-top: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-    }
-  </style>
-  <script>
-    // Data injected from the server
-    const contractTemplateUrl = "{% url 'cases:contract-template' %}";
-    let contractFiles = JSON.parse('{{ contract_files_json|escapejs }}') || [];
-    const caseTitle = "{{ case.case_title|escapejs|default:'' }}";
-
-    // Filter to show only base contracts (remove _es duplicates)
-    const baseContracts = contractFiles.filter(f => !f.includes('_es.html'));
-    const placeholderMap = JSON.parse('{{ placeholder_map_json|escapejs }}') || {};
-    const participants = JSON.parse('{{ participants_json|escapejs }}') || [];
-  // Translations
-  const translations = {
-    en: {
-      back: '\u2190 Back to Case Details',
-      pageHeadingPrefix: 'Generate Document for',
-      pageInstructions: 'Select a template to generate a new document. The system will pre-fill the document with this case\'s data.',
-      availableTemplates: 'Available Templates',
-      generate: 'Generate',
-      htmlSectionTitle: 'HTML Contract Templates (preview & fill)',
-      htmlSectionInstructions: 'Select an HTML contract template to preview and fill placeholders inline.',
-      chooseContract: 'Choose a contract',
-      languageLabel: 'Language',
-      fillFieldsHeading: 'Fill Contract Fields',
-      downloadPdf: 'Download PDF',
-      previewHeading: 'Preview',
-      selectHtmlPlaceholder: '--- Select an HTML contract ---',
-      noTemplatesFound: 'No HTML contract templates found.'
-    },
-    es: {
-      back: '\u2190 Volver a detalles del caso',
-      pageHeadingPrefix: 'Generar documento para',
-      pageInstructions: 'Seleccione una plantilla para generar un nuevo documento. El sistema completará automáticamente los datos del caso.',
-      availableTemplates: 'Plantillas disponibles',
-      generate: 'Generar',
-      htmlSectionTitle: 'Plantillas HTML de Contrato (vista previa y completar)',
-      htmlSectionInstructions: 'Seleccione una plantilla HTML para ver y completar los campos en línea.',
-      chooseContract: 'Elegir un contrato',
-      languageLabel: 'Idioma',
-      fillFieldsHeading: 'Complete los campos del contrato',
-      downloadPdf: 'Descargar PDF',
-      previewHeading: 'Vista previa',
-      selectHtmlPlaceholder: '--- Seleccione una plantilla HTML ---',
-      noTemplatesFound: 'No se encontraron plantillas HTML.'
-    }
-  };
-
-  function applyTranslations(){
-    const lang = currentLang();
-    const t = translations[lang] || translations.en;
-    const back = document.getElementById('back_link'); if(back) back.textContent = t.back;
-    const heading = document.getElementById('page_heading'); if(heading) heading.textContent = t.pageHeadingPrefix + ': ' + ("{{ case.case_title|escapejs|default:'' }}");
-    const pinfo = document.getElementById('page_instructions'); if(pinfo) pinfo.textContent = t.pageInstructions;
-    const avail = document.getElementById('availableTemplatesLabel'); if(avail) avail.textContent = t.availableTemplates;
-    const genBtn = document.getElementById('generate_btn'); if(genBtn) genBtn.textContent = t.generate;
-    const sectionTitle = document.getElementById('html_section_title'); if(sectionTitle) sectionTitle.textContent = t.htmlSectionTitle;
-    const sectionInstr = document.getElementById('html_section_instructions'); if(sectionInstr) sectionInstr.textContent = t.htmlSectionInstructions;
-    const htmlLabel = document.getElementById('html_contract_label'); if(htmlLabel) htmlLabel.textContent = t.chooseContract;
-    const langLabel = document.getElementById('lang_select_label'); if(langLabel) langLabel.textContent = t.languageLabel;
-    const fillHeading = document.getElementById('fill_fields_heading'); if(fillHeading) fillHeading.textContent = t.fillFieldsHeading;
-    const downloadBtn = document.getElementById('download_pdf'); if(downloadBtn) downloadBtn.textContent = t.downloadPdf;
-    const previewH = document.getElementById('preview_heading'); if(previewH) previewH.textContent = t.previewHeading;
-    // update html select placeholder
-    if(htmlSelect && htmlSelect.options && htmlSelect.options.length>0){
-      htmlSelect.options[0].text = t.selectHtmlPlaceholder;
-    }
-    // update any disabled 'no templates' option
-    for(let i=0;i<htmlSelect.options.length;i++){ const opt = htmlSelect.options[i]; if(opt.disabled && opt.value==='') opt.text = t.noTemplatesFound; }
-  }
-  // language control: prefer global site language if present
-  let langSelectEl = document.getElementById('lang_select');
-  const globalLangEl = document.getElementById('language');
-  if(globalLangEl){
-    // hide the local control if site-wide exists
-    if(langSelectEl) langSelectEl.style.display = 'none';
-    langSelectEl = globalLangEl;
-  }
-  const currentLang = () => {
-    if(!langSelectEl) return 'en';
-    const v = (langSelectEl.value || '').toString().toLowerCase();
-    if(v === 'es' || v === 'spanish') return 'es';
-    return 'en';
-  };
-
-  // State lists
-  const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'];
-  const MX_STATES = ['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua','Coahuila','Colima','Durango','Guanajuato','Guerrero','Hidalgo','Jalisco','México','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco','Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas','Ciudad de México'];
-
-    // DOM refs
-    const htmlSelect = document.getElementById('html_contract_select');
-    const fieldsContainer = document.getElementById('fields_container');
-    const downloadPdfBtn = document.getElementById('download_pdf');
-    const inlinePreviewArea = document.getElementById('inline_preview_area');
-    const previewIframe = document.getElementById('preview_iframe');
-
-    let currentTemplateText = null;
-    let currentPlaceholders = [];
-
-    function extractPlaceholders(text){
-      const re = /<<([A-Z0-9_\/]+)>>/gi;
-      const set = new Set();
-      let m;
-      while((m = re.exec(text)) !== null){
-        set.add(m[1]);
-      }
-      return Array.from(set);
-    }
-
-    function updatePreview(){
-      if(!currentTemplateText) return;
-      const filled = fillTemplateFromFields(currentTemplateText);
-      inlinePreviewArea.style.display = 'block';
-      const doc = previewIframe.contentDocument || previewIframe.contentWindow.document;
-      
-      const styledHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.8;
-              color: #333;
-              background: #f5f5f5;
-              padding: 20px;
-            }
-            .document {
-              background: white;
-              padding: 60px 50px;
-              max-width: 900px;
-              margin: 0 auto;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-              page-break-after: always;
-            }
-            .document-header {
-              border-bottom: 3px solid #1a5f7a;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
-            }
-            h1 { 
-              color: #1a5f7a; 
-              font-size: 28px;
-              margin-bottom: 10px;
-            }
-            h2 { 
-              color: #1a5f7a; 
-              font-size: 20px;
-              margin-top: 25px;
-              margin-bottom: 15px;
-              border-bottom: 1px solid #ddd;
-              padding-bottom: 8px;
-            }
-            h3 { 
-              color: #2c7a99;
-              font-size: 16px;
-              margin-top: 20px;
-              margin-bottom: 10px;
-            }
-            p { 
-              margin-bottom: 12px;
-              text-align: justify;
-            }
-            ul, ol { 
-              margin-left: 30px; 
-              margin-bottom: 15px;
-            }
-            li { 
-              margin-bottom: 8px;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 20px 0;
-            }
-            th {
-              background-color: #1a5f7a;
-              color: white;
-              padding: 12px;
-              text-align: left;
-            }
-            td {
-              border: 1px solid #ddd;
-              padding: 10px;
-            }
-            tr:nth-child(even) { background-color: #f9f9f9; }
-            .signature-section {
-              margin-top: 50px;
-              page-break-inside: avoid;
-            }
-            .signature-line {
-              display: flex;
-              justify-content: space-between;
-              margin-top: 60px;
-            }
-            .signature-block {
-              width: 40%;
-              border-top: 1px solid #333;
-              text-align: center;
-            }
-            .signature-block p {
-              margin-top: 5px;
-              font-size: 12px;
-            }
-            .date-line {
-              margin-top: 20px;
-            }
-            strong { color: #1a5f7a; }
-            @media print {
-              body { background: white; padding: 0; }
-              .document { box-shadow: none; padding: 0.5in; margin: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="document">
-            ${filled}
-          </div>
-        </body>
-        </html>
-      `;
-      
-      doc.open();
-      doc.write(styledHTML);
-      doc.close();
-    }
-
-    // ===== PROGRESS TRACKING & UNDO FUNCTIONALITY =====
-    let actionHistory = [];
-    const maxHistorySize = 20;
-
-    function captureState() {
-      const state = {};
-      document.querySelectorAll('#fields_container input, #fields_container select').forEach(el => {
-        state[el.id] = el.value;
-      });
-      return state;
-    }
-
-    function updateProgress() {
-      const allInputs = document.querySelectorAll('#fields_container input, #fields_container select');
-      const filledInputs = Array.from(allInputs).filter(el => el.value && el.value.trim() !== '');
-      const total = allInputs.length;
-      const filled = filledInputs.length;
-      const percentage = total === 0 ? 0 : Math.round((filled / total) * 100);
-      
-      document.getElementById('filled-count').textContent = filled;
-      document.getElementById('total-count').textContent = total;
-      document.getElementById('progress-percentage').textContent = percentage + '% complete';
-      document.getElementById('progress-bar').style.width = percentage + '%';
-      
-      // Change color based on progress
-      const progressBar = document.getElementById('progress-bar');
-      if (percentage < 33) {
-        progressBar.className = 'progress-bar bg-danger';
-      } else if (percentage < 66) {
-        progressBar.className = 'progress-bar bg-warning';
-      } else {
-        progressBar.className = 'progress-bar bg-success';
-      }
-    }
-
-    function recordAction() {
-      const currentState = captureState();
-      actionHistory.push(currentState);
-      
-      // Limit history size
-      if (actionHistory.length > maxHistorySize) {
-        actionHistory.shift();
-      }
-      
-      // Disable undo button if no history
-      document.getElementById('undo-btn').disabled = actionHistory.length === 0;
-    }
-
-    document.getElementById('reset-btn').addEventListener('click', () => {
-      if (confirm('Are you sure you want to reset all fields? This cannot be undone.')) {
-        recordAction(); // Save current state before resetting
-        document.querySelectorAll('#fields_container input, #fields_container select').forEach(el => {
-          el.value = '';
-        });
-        updatePreview();
-        updateProgress();
-      }
-    });
-
-    document.getElementById('undo-btn').addEventListener('click', () => {
-      if (actionHistory.length === 0) return;
-      
-      const previousState = actionHistory.pop();
-      
-      Object.entries(previousState).forEach(([id, value]) => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.value = value;
-        }
-      });
-      
-      updatePreview();
-      updateProgress();
-      
-      // Disable undo if no more history
-      document.getElementById('undo-btn').disabled = actionHistory.length === 0;
-    });
-
-    // Update progress whenever a field changes
-    document.addEventListener('change', (e) => {
-      if (e.target.closest('#fields_container')) {
-        recordAction();
-        updateProgress();
-        updatePreview();
-      }
-    });
-    // Also update preview on input (for real-time updates as user types)
-    document.addEventListener('input', (e) => {
-      if (e.target.closest('#fields_container')) {
-        updateProgress();
-        updatePreview();
-      }
-    });
+<div class="container-fluid bg-light min-vh-100 d-flex flex-column align-items-center py-4">
     
-    // Initialize progress on page load
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        updateProgress();
-        document.getElementById('undo-btn').disabled = true;
-      }, 500);
-    });
-
-    function buildFields(placeholders){
-      fieldsContainer.innerHTML = '';
-      if(placeholders.length === 0){
-        fieldsContainer.innerHTML = '<p class="text-muted">No placeholders detected for this template.</p>';
-        return;
-      }
-      const ROLE_KEYS = [];
-      // translations for common placeholder keys
-      const placeholderTranslations = {
-        CITY: { en: 'CITY', es: 'CIUDAD' },
-        STATE: { en: 'STATE', es: 'ESTADO' },
-        DAY: { en: 'DAY', es: 'DÍA' },
-        MONTH: { en: 'MONTH', es: 'MES' },
-        YEAR: { en: 'YEAR', es: 'AÑO' },
-        AGE: { en: 'AGE', es: 'EDAD' },
-        LESSOR: { en: 'LESSOR', es: 'ARRENDADOR' },
-        LESSEE: { en: 'LESSEE', es: 'ARRENDATARIO' },
-        LEASE_AMOUNT: { en: 'LEASE AMOUNT', es: 'MONTO DEL ARRENDAMIENTO' },
-        LEASE_AMOUNT_WORDS: { en: 'LEASE AMOUNT (WORDS)', es: 'MONTO EN LETRAS' }
-      };
-      // Field grouping and help text
-      const fieldGrouping = {
-        'Party Information': {
-          fields: ['SELLER', 'BUYERS', 'BUYER', 'BUYER1', 'BUYER2', 'LESSOR', 'LESSEE'],
-          icon: '👥'
-        },
-        'Property Details': {
-          fields: ['ADDRESS', 'CITY', 'STATE', 'COUNTY', 'PROPERTY_DESCRIPTION', 'PROPERTY_ID', 'PLOT_NUMBER', 'PARCEL_LOCATION', 'TOTAL_AREA', 'LOT_NUMBER', 'BLOCK_NUMBER', 'SECTOR_NUMBER', 'NEIGHBORHOOD', 'MUNICIPALITY', 'AREA', 'AREA_IN_WORDS', 'NORTH_BOUNDARY', 'SOUTH_BOUNDARY', 'EAST_BOUNDARY', 'WEST_BOUNDARY'],
-          icon: '🏠'
-        },
-        'Locations & Addresses': {
-          fields: ['BIRTH_CITY_STATE', 'BIRTH_CITY_STATE_BUYER1', 'BIRTH_CITY_STATE_BUYER2', 'BIRTH_CITY_STATE_BUYERS', 'CITY_STATE', 'ADDRESS_LESSOR', 'ADDRESS_LESSEE', 'ADDRESS_SELLER', 'ADDRESS_BUYERS'],
-          icon: '📍'
-        },
-        'Terms & Conditions': {
-          fields: ['START_DATE', 'END_DATE', 'LEASE_AMOUNT', 'LEASE_AMOUNT_WORDS', 'PRICE', 'TOTAL', 'AMOUNT', 'TERM', 'DURATION', 'TOTAL_PRICE', 'TOTAL_PRICE_IN_WORDS', 'DOWN_PAYMENT', 'DOWN_PAYMENT_IN_WORDS', 'MONTHLY_PAYMENT', 'MONTHLY_PAYMENT_IN_WORDS', 'BALANCE', 'BALANCE_IN_WORDS', 'PAYMENT_DETAILS', 'PAYMENT_DAY'],
-          icon: '📋'
-        },
-        'Dates': {
-          fields: ['DAY', 'MONTH', 'YEAR', 'DATE_OF_BIRTH', 'DATE_OF_BIRTH_BUYER1', 'DATE_OF_BIRTH_BUYER2'],
-          icon: '📅'
-        },
-        'Other': {
-          fields: [],
-          icon: '📝'
-        }
-      };
-
-      const fieldHelpText = {
-        'LEASE_AMOUNT': 'The total monthly or agreed-upon rental payment amount',
-        'LEASE_AMOUNT_WORDS': 'This auto-fills based on the lease amount you enter',
-        'LESSOR': 'The property owner or landlord',
-        'LESSEE': 'The tenant or person renting the property',
-        'SELLER': 'The person or entity selling the property',
-        'BUYERS': 'The person(s) or entity purchasing the property',
-        'BUYER': 'The person or entity purchasing the property',
-        'BUYER1': 'First buyer (if multiple)',
-        'BUYER2': 'Second buyer (if multiple)',
-        'PRICE': 'The total purchase price of the property',
-        'TOTAL': 'The total amount owed or agreed upon',
-        'TOTAL_AREA': 'The total size of the property in hectares (e.g., 5, 10.5, 25)',
-        'AMOUNT': 'The monetary amount for this transaction',
-        'PROPERTY_DESCRIPTION': 'A detailed description of the property being leased or sold (address, size, features)',
-        'PROPERTY_ID': 'Legal description or parcel number of the property',
-        'ADDRESS': 'Full street address of the property',
-        'CITY': 'City where the property is located',
-        'COUNTY': 'County where the property is located',
-        'STATE': 'State/Province where the property is located',
-        'TERM': 'The length of the agreement (e.g., 12 months, 2 years, 3 months)',
-        'DURATION': 'How long the agreement lasts',
-        'DURATION_MINUTES': 'Duration in minutes',
-        'START_DATE': 'The date when the agreement begins or the lease starts',
-        'END_DATE': 'The date when the agreement ends or the lease expires',
-        'DAY': 'Day of the month (1-31)',
-        'MONTH': 'Month of the year',
-        'YEAR': 'Year in 4-digit format (e.g., 2024)',
-        'AGE': 'Age of the person in years',
-        'DATE': 'The specific date for this event or agreement',
-        'SIGNATURE': 'Space for the party to sign the document',
-        'WITNESS': 'A third party who observes and signs as proof',
-        'INITIAL': 'Abbreviation or first initials of the party',
-        'NOTARY': 'Official witness with legal authority',
-        'FEE': 'Additional cost or charge beyond the main amount',
-        'COST': 'The expense or price of something',
-        'DEPOSIT': 'Money paid upfront, often refundable',
-        'DESCRIPTION': 'Details or explanation of something',
-        'LEASE_DURATION': 'How many years the lease lasts (e.g., 1, 2, 3)',
-      };
-      // Categorize placeholders into groups
-      const categorizedFields = {};
-      Object.keys(fieldGrouping).forEach(group => {
-        categorizedFields[group] = [];
-      });
-      categorizedFields['Other'] = [];
-
-      placeholders.forEach(key => {
-        const upperKey = key.toUpperCase();
-        let placed = false;
+    <div class="w-100 max-w-4xl d-flex justify-content-between align-items-center mb-3 px-3">
+        <div>
+            <a href="{% url 'cases:case-detail' pk=case.pk %}" class="text-decoration-none text-secondary mb-1 d-block">
+                &larr; Back to Case
+            </a>
+            <h4 class="m-0 text-dark">Generate: {{ case.case_title }}</h4>
+        </div>
         
-        // Find which group this field belongs to
-        for (const [groupName, groupData] of Object.entries(fieldGrouping)) {
-          if (groupData.fields.includes(upperKey)) {
-            categorizedFields[groupName].push(key);
-            placed = true;
-            break;
-          }
-        }
+        <div class="d-flex gap-2">
+            <select class="form-select w-auto" id="html_contract_select" style="min-width: 250px;">
+                <option value="" selected disabled>Select a Template...</option>
+                {% if db_templates %}
+                <optgroup label="My Custom Templates">
+                    {% for t in db_templates %}
+                        <option value="db-{{ t.id }}">{{ t.name }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
+                <optgroup label="Standard Forms">
+                    {% for choice in contract_choices %}
+                        <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                    {% endfor %}
+                </optgroup>
+            </select>
+
+            <button id="download_pdf" class="btn btn-primary">
+                <i class="fas fa-print me-2"></i> Download PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3 p-2 d-flex flex-row gap-3 align-items-center user-select-none" style="position: sticky; top: 10px; z-index: 1000;">
         
-        if (!placed) {
-          categorizedFields['Other'].push(key);
-        }
-      });
+        <div class="d-flex align-items-center pe-3">
+            <span class="text-muted fw-bold small text-uppercase me-2">Zoom:</span>
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" id="zoomOutBtn"><i class="fas fa-minus"></i></button>
+                <span class="btn btn-outline-secondary disabled text-dark fw-bold" id="zoomLevelDisplay" style="width: 60px;">100%</span>
+                <button class="btn btn-outline-secondary" id="zoomInBtn"><i class="fas fa-plus"></i></button>
+            </div>
+        </div>
 
-      // Now render groups with fields inside
-      Object.entries(categorizedFields).forEach(([groupName, groupFields]) => {
-        if (groupFields.length === 0) return; // Skip empty groups
-        
-        const groupData = fieldGrouping[groupName];
-        
-        // Create group card
-        const groupCard = document.createElement('div');
-        groupCard.className = 'card mb-3 border-left-4';
-        groupCard.style.borderLeft = '4px solid #1a5f7a';
-        
-        const groupHeader = document.createElement('div');
-        groupHeader.className = 'card-header bg-light';
-        groupHeader.innerHTML = `<h6 class="mb-0">${groupData.icon} ${groupName}</h6>`;
-        
-        const groupBody = document.createElement('div');
-        groupBody.className = 'card-body';
-        
-        // Create fields within this group
-        groupFields.forEach(key => {
-          const id = 'field_' + key;
-          const wrapper = document.createElement('div');
-          wrapper.className = 'mb-3';
-          const upperKey = key.toUpperCase();
+        <div class="vr mx-2"></div>
+        <small class="text-muted ms-auto">
+            <strong>Click</strong> highlighted boxes to fill.
+        </small>
+    </div>
 
-          // Decide input type
-          let inputHtml = '';
-          //console.log('Creating field:', upperKey); // DEBUG - show ALL fields being created
-          if(upperKey === 'LEASE_AMOUNT_WORDS'){
-            inputHtml = `<input type="text" class="form-control" id="${id}" readonly>`;
-          } else if(upperKey === 'STATE' || upperKey === 'BIRTH_CITY_STATE' || upperKey === 'BIRTH_CITY_STATE_BUYER1' || upperKey === 'BIRTH_CITY_STATE_BUYER2' || upperKey === 'BIRTH_CITY_STATE_BUYERS' || upperKey === 'CITY_STATE'){
-            inputHtml = `<select class="form-select" id="${id}"></select>`;
-          } else if(upperKey.includes('AGE')){
-            inputHtml = `<select class="form-select" id="${id}"></select>`;
-          } else if(upperKey.includes('START') || upperKey.includes('END') || (upperKey.includes('DATE') && !upperKey.includes('BIRTH'))){
-            inputHtml = `<input type="date" class="form-control" id="${id}">`;
-          } else if((upperKey.includes('AMOUNT') || upperKey.includes('PRICE') || upperKey.includes('TOTAL') || upperKey.includes('LEASE') || upperKey.includes('PAYMENT') || upperKey.includes('BALANCE') || upperKey.includes('FEE') || upperKey.includes('COST')) && !upperKey.includes('AREA') && !upperKey.includes('DURATION')){
-            // Use a text input so we can format the display but keep numeric parsing
-            inputHtml = `<div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control currency" id="${id}"></div>`;
-          } else {
-            inputHtml = `<input type="text" class="form-control" id="${id}">`;
-          }
+    <div class="card shadow-sm border-0 overflow-auto" style="width: 100%; max-width: 100%;">
+        <div class="card-body p-0 bg-white min-vh-100 d-flex flex-column align-items-center pt-5 pb-5" id="document_canvas" style="transform-origin: top center; transition: transform 0.1s ease-out;">
+            <div id="placeholder_msg" class="text-center text-muted py-5 mt-5">
+                <i class="fas fa-file-alt fa-3x mb-3 text-secondary opacity-50"></i>
+                <h5>Select a template above to begin</h5>
+            </div>
+        </div>
+    </div>
+</div>
 
-          // Use translated label
-          const labelText = (placeholderTranslations[upperKey] && placeholderTranslations[upperKey][currentLang()]) ? placeholderTranslations[upperKey][currentLang()] : key.replace(/_/g,' ');
-          
-          // Get help text if available
-          const helpText = fieldHelpText[upperKey] || '';
-          const helpHtml = helpText ? `<small class="form-text text-muted d-block mt-1">${helpText}</small>` : '';
-          
-          wrapper.innerHTML = `<label for="${id}" class="form-label fw-500">${labelText}</label>` + inputHtml + helpHtml;
-          groupBody.appendChild(wrapper);
+<style>
+    /* --- DOCUMENT STYLES --- */
+    body { overflow-y: scroll; }
+    
+    .pdf-page { 
+        position: relative; 
+        user-select: none; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        margin-bottom: 30px;
+        z-index: 1; 
+        line-height: 0; 
+    }
+    
+    .pdf-page img { 
+        pointer-events: none; 
+        width: 100%; 
+        height: 100%;
+        display: block; 
+    } 
 
-          // Get element for prefilling and event listeners
-          // IMPORTANT: Must get the element AFTER appendChild so it's in the DOM
-          // For currency inputs wrapped in input-group, find the actual input
-          const el = wrapper.querySelector('input[id="' + id + '"]') || wrapper.querySelector('select[id="' + id + '"]') || document.getElementById(id);
-          
-          // Prefill logic
-          if(placeholderMap && Object.prototype.hasOwnProperty.call(placeholderMap, upperKey)){
-            if(el && el.tagName === 'SELECT'){
-              populateParticipantSelect(el, placeholderMap[upperKey]);
-            } else if(el){
-              el.value = placeholderMap[upperKey] || '';
-            }
-          } else if(el && el.tagName === 'SELECT'){
-            console.log('SELECT element found:', upperKey, 'Checking conditions...'); // DEBUG
-            if(upperKey === 'DAY') {
-              console.log('  Matched DAY');
-              populateDaySelect(el, currentLang());
-            } else if(upperKey === 'MONTH') {
-              console.log('  Matched MONTH');
-              populateMonthSelect(el, currentLang());
-            } else if(upperKey === 'YEAR') {
-              console.log('  Matched YEAR');
-              populateYearSelect(el, currentLang());
-            } else if(upperKey.includes('AGE')) {
-              console.log('  Matched AGE');
-              populateAgeSelect(el, currentLang());
-            } else if(upperKey === 'STATE' || upperKey === 'BIRTH_CITY_STATE' || upperKey === 'BIRTH_CITY_STATE_BUYER1' || upperKey === 'BIRTH_CITY_STATE_BUYER2' || upperKey === 'BIRTH_CITY_STATE_BUYERS' || upperKey === 'CITY_STATE') {
-              console.log('  Matched STATE/BIRTH_CITY_STATE');
-              populateStateSelect(el, currentLang());
-            } else {
-              console.log('  Matched PARTICIPANT (fallback)');
-              populateParticipantSelect(el, null);
-            } 
-             }else if(el && (key.toLowerCase().includes('case') || key.toLowerCase().includes('title'))){
-            el.value = caseTitle || '';
-            }
-
-          // Event listeners
-          if(el){
-            console.log('Attaching listeners to:', id, 'Type:', el.tagName, 'Value:', el.value); // DEBUG
-            if(upperKey.includes('AMOUNT') || upperKey.includes('LEASE') || upperKey.includes('PRICE') || upperKey.includes('TOTAL')){
-              el.addEventListener('input', function(e){
-                console.log('Currency input event:', id, 'Current value:', this.value); // DEBUG
-                const cleaned = parseNumberFromString(this.value);
-                console.log('  Cleaned value:', cleaned); // DEBUG
-                const formatted = cleaned === '' ? '' : formatNumberForDisplay(cleaned);
-                console.log('  Formatted value:', formatted); // DEBUG
-                this.value = formatted;
-                
-                // Handle TOTAL_PRICE_IN_WORDS
-                const totalWordsEl = document.getElementById('field_TOTAL_PRICE_IN_WORDS');
-                if(totalWordsEl && upperKey === 'TOTAL_PRICE'){
-                  const num = parseFloat(cleaned || 0);
-                  console.log('  Setting TOTAL_PRICE_IN_WORDS to:', numberToWords(num)); // DEBUG
-                  if(!isNaN(num) && num !== 0){
-                    totalWordsEl.value = numberToWords(num);
-                  } else {
-                    totalWordsEl.value = '';
-                  }
-                }
-                
-                // Handle DOWN_PAYMENT_IN_WORDS
-                const downPaymentWordsEl = document.getElementById('field_DOWN_PAYMENT_IN_WORDS');
-                if(downPaymentWordsEl && upperKey === 'DOWN_PAYMENT'){
-                  const num = parseFloat(cleaned || 0);
-                  if(!isNaN(num) && num !== 0){
-                    downPaymentWordsEl.value = numberToWords(num);
-                  } else {
-                    downPaymentWordsEl.value = '';
-                  }
-                }
-                
-                // Handle MONTHLY_PAYMENT_IN_WORDS
-                const monthlyWordsEl = document.getElementById('field_MONTHLY_PAYMENT_IN_WORDS');
-                if(monthlyWordsEl && upperKey === 'MONTHLY_PAYMENT'){
-                  const num = parseFloat(cleaned || 0);
-                  if(!isNaN(num) && num !== 0){
-                    monthlyWordsEl.value = numberToWords(num);
-                  } else {
-                    monthlyWordsEl.value = '';
-                  }
-                }
-                
-                // Handle BALANCE_IN_WORDS
-                const balanceWordsEl = document.getElementById('field_BALANCE_IN_WORDS');
-                if(balanceWordsEl && upperKey === 'BALANCE'){
-                  const num = parseFloat(cleaned || 0);
-                  if(!isNaN(num) && num !== 0){
-                    balanceWordsEl.value = numberToWords(num);
-                  } else {
-                    balanceWordsEl.value = '';
-                  }
-                }
-                
-                // Handle LEASE_AMOUNT_WORDS
-                const leaseWordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
-                if(leaseWordsEl && upperKey === 'LEASE_AMOUNT'){
-                  const num = parseFloat(cleaned || 0);
-                  if(!isNaN(num) && num !== 0){
-                    leaseWordsEl.value = numberToWords(num);
-                  } else {
-                    leaseWordsEl.value = '';
-                  }
-                }
-                
-                updatePreview();
-              });
-              } else {
-              el.addEventListener('input', updatePreview);
-            }
-            el.addEventListener('change', updatePreview);
-          }
-        });
-        
-        groupCard.appendChild(groupHeader);
-        groupCard.appendChild(groupBody);
-        fieldsContainer.appendChild(groupCard);
-      });
+    /* --- FIELD WRAPPER --- */
+    .field-wrapper {
+        position: absolute;
+        border: 1px dashed rgba(0, 0, 0, 0.3);
+        background: rgba(255, 255, 0, 0.1); 
+        box-sizing: border-box;
+        z-index: 10; 
+        display: flex; 
+        align-items: center; 
+        justify-content: flex-start; 
+        cursor: text;
+    }
+    
+    /* --- SELECTED STATE --- */
+    .field-wrapper.selected {
+        border: 2px solid #0d6efd; 
+        background: rgba(13, 110, 253, 0.05);
+        z-index: 20; 
     }
 
-    function populateDaySelect(selectEl, lang='en'){
-      selectEl.innerHTML = '';
-      const empty = document.createElement('option'); empty.value = ''; empty.textContent = (lang==='es') ? '-- Día --' : '-- Day --'; selectEl.appendChild(empty);
-      for(let d=1; d<=31; d++){ const o=document.createElement('option'); o.value = String(d); o.textContent = String(d); selectEl.appendChild(o);}    
+    /* --- INPUT STYLES --- */
+    .pdf-input {
+        width: 100%; 
+        height: 100%;
+        background: transparent;
+        border: none; 
+        outline: none;
+        font-family: 'Courier New', monospace;
+        font-weight: bold; 
+        font-size: 14px;
+        padding: 4px; 
+        margin: 0; 
+        resize: none; 
+        cursor: text; 
+        user-select: auto; 
+        box-sizing: border-box; 
     }
-
-    function populateMonthSelect(selectEl, lang='en'){
-      const months_en = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-      const months_es = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-      const months = (lang === 'es') ? months_es : months_en;
-      selectEl.innerHTML = '';
-      const empty = document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')? '-- Mes --' : '-- Month --'; selectEl.appendChild(empty);
-      months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; selectEl.appendChild(o); });
+    
+    /* --- CHECKBOX SPECIFIC --- */
+    input[type="checkbox"].pdf-input {
+        margin: 0;
+        cursor: pointer;
+        width: 100%; 
+        height: 100%;
     }
+</style>
 
-    function populateYearSelect(selectEl, lang='en'){
-      const nowYear = new Date().getFullYear();
-      const start = nowYear - 5; const end = nowYear + 10;
-      selectEl.innerHTML = '';
-      const empty = document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')? '-- Año --' : '-- Year --'; selectEl.appendChild(empty);
-      for(let y=start;y<=end;y++){ const o=document.createElement('option'); o.value=String(y); o.textContent=String(y); selectEl.appendChild(o); }
-    }
+<script>
+    const contractTemplateUrl = "{% url 'cases:contract-template' %}";
+    const selectEl = document.getElementById('html_contract_select');
+    const canvas = document.getElementById('document_canvas');
+    const downloadBtn = document.getElementById('download_pdf');
+    
+    // ZOOM VARIABLES
+    let currentZoom = 1.0;
+    const zoomStep = 0.1;
+    const maxZoom = 2.0;
+    const minZoom = 0.5;
+    const zoomDisplay = document.getElementById('zoomLevelDisplay');
 
-    function populateAgeSelect(selectEl, lang='en'){
-      selectEl.innerHTML = '';
-      const empty = document.createElement('option'); empty.value=''; empty.textContent=(lang==='es')? '-- Edad --' : '-- Age --'; selectEl.appendChild(empty);
-      for(let a=18; a<=100; a++){ const o=document.createElement('option'); o.value=String(a); o.textContent=String(a); selectEl.appendChild(o); }
-    }
+    let selectedField = null; 
 
-    function populateStateSelect(selectEl, lang='en'){
-      selectEl.innerHTML = '';
-      const empty = document.createElement('option'); empty.value=''; empty.textContent = (lang==='es')? '-- Seleccione Estado --' : '-- Select State --'; selectEl.appendChild(empty);
-      const list = (lang === 'es') ? MX_STATES : US_STATES;
-      list.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; selectEl.appendChild(o); });
-    }
-
-    function populateParticipantSelect(selectEl, prefillName){
-      // clear
-      selectEl.innerHTML = '';
-      const emptyOpt = document.createElement('option');
-      emptyOpt.value = '';
-      emptyOpt.textContent = (currentLang()==='es')? '-- Seleccione participante --' : '-- Select Participant --';
-      selectEl.appendChild(emptyOpt);
-      participants.forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.name;
-        o.textContent = p.name;
-        selectEl.appendChild(o);
-      });
-      if(prefillName){
-        selectEl.value = prefillName;
-      }
-    }
-
-    // When language changes, repopulate any existing STATE selects
-    if(langSelectEl){
-      langSelectEl.addEventListener('change', ()=>{
-        const allSelects = fieldsContainer.querySelectorAll('select');
-        allSelects.forEach(s => {
-          const idUp = (s.id||'').toUpperCase().replace('FIELD_','');
-          if(idUp === 'STATE' || idUp === 'BIRTH_CITY_STATE' || idUp === 'BIRTH_CITY_STATE_BUYER1' || idUp === 'BIRTH_CITY_STATE_BUYER2' || idUp === 'BIRTH_CITY_STATE_BUYERS' || idUp === 'CITY_STATE'){
-            populateStateSelect(s, currentLang());
-          }
-          // update day/month/year/age labels too
-          if(idUp.includes('DAY')) populateDaySelect(s, currentLang());
-          if(idUp.includes('MONTH')) populateMonthSelect(s, currentLang());
-          if(idUp.includes('YEAR')) populateYearSelect(s, currentLang());
-          if(idUp.includes('AGE')) populateAgeSelect(s, currentLang());
-        });
-        updatePreview();
-      });
-    }
-    // Force populate STATE/AGE dropdowns on initial load
-    setTimeout(() => {
-      const allSelects = document.querySelectorAll('#fields_container select');
-      allSelects.forEach(s => {
-        // Extract field name from ID (e.g., "field_BIRTH_CITY_STATE" -> "BIRTH_CITY_STATE")
-        const idUp = s.id.replace(/^field_/, '').toUpperCase();
-        console.log('Populating select:', s.id, '-> extracted:', idUp); // DEBUG
-        if(idUp === 'STATE' || idUp === 'BIRTH_CITY_STATE' || idUp === 'BIRTH_CITY_STATE_BUYER1' || idUp === 'BIRTH_CITY_STATE_BUYER2' || idUp === 'BIRTH_CITY_STATE_BUYERS' || idUp === 'CITY_STATE') {
-          console.log('  -> Populating as STATE'); // DEBUG
-          populateStateSelect(s, currentLang());
-        } else if(idUp.includes('AGE')) {
-          populateAgeSelect(s, currentLang());
-        } else if(idUp.includes('DAY')) {
-          populateDaySelect(s, currentLang());
-        } else if(idUp.includes('MONTH')) {
-          populateMonthSelect(s, currentLang());
-        } else if(idUp.includes('YEAR')) {
-          populateYearSelect(s, currentLang());
-        }
-      });
-    }, 100);
-
-    // Parse a user-entered currency string into a plain numeric string (e.g. "1,234.50" -> "1234.50")
-    function parseNumberFromString(s){
-      if(s === null || s === undefined) return '';
-      const cleaned = String(s).replace(/[^0-9.\-]/g, '');
-      // If multiple dots, keep only the first
-      const parts = cleaned.split('.');
-      if(parts.length <= 1) return cleaned;
-      return parts[0] + '.' + parts.slice(1).join('').slice(0,2);
-    }
-
-    // Format a numeric string or number into human readable currency with two decimals and commas
-    function formatNumberForDisplay(n){
-      if(n === null || n === undefined || n === '') return '';
-      const str = String(n);
-      // If it looks like a number being typed (no decimal or decimal with only 1-2 digits after it), don't format yet
-      if(!str.includes('.') || str.split('.')[1].length <= 2){
-        return str;
-      }
-      // Only format if there are more than 2 decimal places
-      const num = parseFloat(str);
-      if(isNaN(num)) return '';
-      return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    }
-
-async function fetchTemplate(fileName){
-      // --- 1. NEW: Check for Database Templates (Starts with 'db-') ---
+    // --- 1. LOAD TEMPLATE ---
+    async function fetchTemplate(fileName){
       if (fileName && fileName.startsWith('db-')) {
         const id = fileName.replace('db-', '');
-        // Fetch from the new Django view we created in the previous step
         try {
-          const response = await fetch(`/cases/api/contract-template/${id}/content/`, {credentials: 'same-origin'});
-          if (!response.ok) throw new Error("Failed to load database template");
-          return await response.text();
-        } catch (e) {
-          console.error("Error fetching database template:", e);
-          return "Error loading template. Please check the console.";
+          const response = await fetch(`/cases/api/templates/${id}/`);
+          if (!response.ok) throw new Error("Failed");
+          const data = await response.json();
+          return data.content; 
+        } catch (e) { 
+            return "<div class='p-5 text-danger text-center'>Error loading template.</div>"; 
         }
       }
-      // ---------------------------------------------------------------
-
-      // --- 2. Existing Logic for File System Templates ---
-      const lang = currentLang();
-      if(lang === 'es'){
-        // try spanish variants first
-        const tryNames = [];
-        if(fileName.endsWith('.html')){
-          const base = fileName.replace(/\.html$/,'');
-          tryNames.push(base + '_es.html');
-          tryNames.push(base.replace('_contract','_contract_es') + '.html');
-        }
-        for(const fn of tryNames){
-          try{
-            // Ensure contractTemplateUrl is defined in your script or replace with '/cases/contract-template/'
-            const r = await fetch(contractTemplateUrl + '?file=' + encodeURIComponent(fn), {credentials: 'same-origin'});
-            if(r.ok) return await r.text();
-          }catch(e){ /* ignore */ }
-        }
-        // fall through to original
-      }
-      
-      const resp = await fetch(contractTemplateUrl + '?file=' + encodeURIComponent(fileName), {credentials: 'same-origin'});
-      if(!resp.ok) throw new Error('Unable to fetch template: ' + resp.status);
-      
-      const original = await resp.text();
-      
-      return original;
+      const resp = await fetch(contractTemplateUrl + '?file=' + encodeURIComponent(fileName));
+      return await resp.text();
     }
 
+    selectEl.addEventListener('change', async (e) => {
+        const file = e.target.value;
+        if(!file) return;
+        canvas.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+        
+        currentZoom = 1.0;
+        updateZoomUI();
 
-    htmlSelect.addEventListener('change', async (e) =>{
-      const file = e.target.value;
-      if(!file) return;
-      try{
-        currentTemplateText = await fetchTemplate(file);
-        currentPlaceholders = extractPlaceholders(currentTemplateText);
-        buildFields(currentPlaceholders);
-        // immediately render preview with current (prefilled) values
-        updatePreview();
-      }catch(err){
-        console.error(err);
-        alert('Error loading template. See console for details.');
-      }
+        const content = await fetchTemplate(file);
+        canvas.innerHTML = content;
     });
 
-    // re-apply translations and rebuild fields when language changes and on load
-    if(langSelectEl){
-      langSelectEl.addEventListener('change', async ()=>{
-        try{ applyTranslations(); }catch(e){}
-        // Reload the current contract with the new language
-        const selectedContract = htmlSelect.value;
-        if(selectedContract){
-          try{
-            currentTemplateText = await fetchTemplate(selectedContract);
-            currentPlaceholders = extractPlaceholders(currentTemplateText);
-            buildFields(currentPlaceholders);
-            updatePreview();
-          }catch(err){
-            console.error(err);
-          }
-        }
-      });
+    // --- 2. ZOOM LOGIC ---
+    function updateZoomUI() {
+        canvas.style.transform = `scale(${currentZoom})`;
+        zoomDisplay.textContent = Math.round(currentZoom * 100) + '%';
     }
-    
-  downloadPdfBtn.addEventListener('click', ()=>{
-    if(!currentTemplateText) return alert('No template loaded.');
-    const filled = fillTemplateFromFields(currentTemplateText);
-    
-    // Open filled HTML in a new window and let user print/save as PDF
-    const win = window.open();
-    win.document.open();
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Generated Document</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-          @media print { body { margin: 0; } }
-        </style>
-      </head>
-      <body>
-        ${filled}
-      </body>
-      </html>
-    `);
-    win.document.close();
-    // Prompt user to print/save as PDF
-    setTimeout(() => win.print(), 500);
-  });
 
-    function fillTemplateFromFields(text){
-      let out = text;
-      currentPlaceholders.forEach(key =>{
-        const id = 'field_' + key;
-        const el = document.getElementById(id);
-        let value = '';
-        if(!el){
-          value = '';
-        } else {
-          value = el.value || '';
+    document.getElementById('zoomInBtn').addEventListener('click', () => {
+        if (currentZoom < maxZoom) { currentZoom += zoomStep; updateZoomUI(); }
+    });
+
+    document.getElementById('zoomOutBtn').addEventListener('click', () => {
+        if (currentZoom > minZoom) { currentZoom -= zoomStep; updateZoomUI(); }
+    });
+
+    // --- 3. MOUSE HANDLING ---
+    canvas.addEventListener('mousedown', function(e) {
+        
+        // CLICK FIELD -> SELECT & FOCUS
+        const wrapper = e.target.closest('.field-wrapper');
+        if (wrapper) {
+            selectField(wrapper);
+            const input = wrapper.querySelector('input');
+            if(input) input.focus();
+            return;
         }
-        // replace all occurrences of <<KEY>> (case-sensitive)
-        const re = new RegExp('<<' + key + '>>', 'g');
-        out = out.replace(re, value);
-      });
 
-      // Special handling: if lease amount provided, also replace LEASE_AMOUNT_WORDS if present
-      try{
-        const amtEl = document.getElementById('field_LEASE_AMOUNT');
-        const wordsEl = document.getElementById('field_LEASE_AMOUNT_WORDS');
-        if(amtEl){
-          const raw = amtEl.value || '';
-          const cleaned = parseNumberFromString(raw);
-          const num = parseFloat(cleaned || 0);
-          if(wordsEl){
-            if(!isNaN(num) && num !== 0){
-              wordsEl.value = numberToWords(num);
+        // CLICK ELSEWHERE -> DESELECT
+        if (selectedField) {
+            deselectField();
+        }
+    });
+
+    // --- 4. SELECTION HELPERS ---
+    function selectField(wrapper) {
+        if (selectedField && selectedField !== wrapper) {
+            selectedField.classList.remove('selected');
+        }
+        selectedField = wrapper;
+        wrapper.classList.add('selected');
+    }
+
+    function deselectField() {
+        if (selectedField) {
+            selectedField.classList.remove('selected');
+            selectedField = null;
+        }
+    }
+
+    // --- 5. DOWNLOAD (ACCURATE PRINT) ---
+    downloadBtn.addEventListener('click', () => {
+        if(!canvas.querySelector('.pdf-page')) return alert("Select template first.");
+        
+        deselectField();
+        
+        // Reset zoom for accurate cloning
+        const oldZoom = currentZoom;
+        canvas.style.transform = 'scale(1)'; 
+        const printContent = canvas.cloneNode(true);
+        canvas.style.transform = `scale(${oldZoom})`; 
+
+        // Convert Inputs to Static Text
+        const wrappers = printContent.querySelectorAll('.field-wrapper');
+        wrappers.forEach(w => {
+            const liveWrapper = canvas.querySelectorAll('.field-wrapper')[Array.from(wrappers).indexOf(w)];
+            const liveInput = liveWrapper.querySelector('input');
+            
+            const span = document.createElement('span');
+            span.style.position = 'absolute';
+            span.style.left = w.style.left;
+            span.style.top = w.style.top;
+            span.style.width = w.style.width;
+            span.style.height = w.style.height;
+            span.style.fontFamily = 'Courier New';
+            span.style.fontWeight = 'bold';
+            span.style.zIndex = '50';
+            span.style.display = 'flex';
+            span.style.alignItems = 'center'; 
+            
+            if (liveInput.type === 'checkbox') {
+                span.textContent = liveInput.checked ? "X" : "";
+                span.style.justifyContent = 'center';
+                span.style.fontSize = '1.2em';
             } else {
-              wordsEl.value = '';
+                span.textContent = liveInput.value;
+                span.style.fontSize = '12px'; 
+                span.style.paddingLeft = '5px';
+                span.style.whiteSpace = 'nowrap';
             }
-            out = out.replace(new RegExp('<<LEASE_AMOUNT_WORDS>>','g'), wordsEl.value || '');
-          }
-        }
-      }catch(e){ /* ignore */ }
-      return out;
-    }
+            
+            span.style.border = 'none';
+            span.style.background = 'transparent';
+            
+            w.parentNode.replaceChild(span, w);
+        });
 
-    // simple number to words (handles up to millions, with cents)
-    function numberToWords(amount){
-      if(amount === null || amount === undefined) return '';
-      const integer = Math.floor(amount);
-      const cents = Math.round((amount - integer) * 100);
-      const smallNumbers = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
-      const tens = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
-      function intToWords(n){
-        if(n < 20) return smallNumbers[n];
-        if(n < 100) return tens[Math.floor(n/10)] + (n%10 ? '-' + smallNumbers[n%10] : '');
-        if(n < 1000) return intToWords(Math.floor(n/100)) + ' hundred' + (n%100 ? ' ' + intToWords(n%100) : '');
-        if(n < 1000000) return intToWords(Math.floor(n/1000)) + ' thousand' + (n%1000 ? ' ' + intToWords(n%1000) : '');
-        return intToWords(Math.floor(n/1000000)) + ' million' + (n%1000000 ? ' ' + intToWords(n%1000000) : '');
-      }
-      const dollars = integer === 0 ? 'zero' : intToWords(integer);
-      if(cents){
-        return (dollars + ' dollars and ' + (cents<10? '0'+cents : cents) + '/100').toUpperCase();
-      }
-      return (dollars + ' dollars').toUpperCase();
-    }
-
-    // If there's at least one HTML contract available, auto-select it so users
-    // immediately see the fields (helps when there's a single template).
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Filter dropdown options to show only base contracts (no _es)
-      const options = htmlSelect.querySelectorAll('option');
-      options.forEach(opt => {
-        if(opt.value && opt.value.includes('_es.html')){
-          opt.style.display = 'none'; // Hide Spanish variants
-        }
-      });
-      try{
-        if(baseContracts && baseContracts.length > 0){
-          htmlSelect.value = baseContracts[0];
-          const ev = new Event('change');
-          htmlSelect.dispatchEvent(ev);
-          // Focus the first field when it appears
-          setTimeout(()=>{
-            const firstInput = fieldsContainer.querySelector('input, select');
-            if(firstInput) firstInput.focus();
-          }, 250);
-        }
-      }catch(e){
-        console.warn('Auto-select contract failed', e);
-      }
-      // apply translations initially
-      applyTranslations();
+        // Print Window
+        const win = window.open('', '', 'height=900,width=800');
+        win.document.write('<html><head><title>Print Document</title>');
+        win.document.write(`
+            <style>
+                @page { margin: 0; size: auto; } 
+                body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                .pdf-page { 
+                    position: relative; 
+                    page-break-after: always; 
+                    overflow: hidden;
+                    margin: 0 auto; 
+                }
+                img { width: 100%; height: 100%; display: block; }
+            </style>
+        `);
+        win.document.write('</head><body>');
+        win.document.write(printContent.innerHTML);
+        win.document.write('</body></html>');
+        
+        win.document.close();
+        
+        setTimeout(() => { 
+            win.focus();
+            win.print(); 
+            win.close(); 
+        }, 500);
     });
-  </script>
+</script>
 {% endblock %}

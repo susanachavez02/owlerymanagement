@@ -50,6 +50,7 @@ urlpatterns = [
     path('api/templates/', ContractTemplateListCreateView.as_view(), name='template-list-create'),
     path('api/templates/<int:pk>/', ContractTemplateRetrieveUpdateDestroyView.as_view(), name='template-detail' ),
     path('templates/', views.template_list, name='template-list'),
+    path('api/convert-pdf/', views.convert_pdf_api_view, name='api-convert-pdf'),   
     path('api/templates/<int:pk>/download/', views.ContractTemplateDownloadView.as_view(), name='template-download'),
     path('api/contract-template/<int:pk>/content/', views.get_db_template_content, name='db-template-content'),
 
