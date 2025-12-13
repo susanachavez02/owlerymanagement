@@ -163,13 +163,25 @@
     selectEl.addEventListener('change', async (e) => {
         const file = e.target.value;
         if(!file) return;
+        
+        // Show loading spinner
         canvas.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
         
+        // Reset Zoom
         currentZoom = 1.0;
         updateZoomUI();
 
+        // Load Content
         const content = await fetchTemplate(file);
         canvas.innerHTML = content;
+
+        // --- THE FIX: UNLOCK ALL FIELDS ---
+        // The creator saves them as 'readonly' by default. We must remove that here.
+        canvas.querySelectorAll('.pdf-input').forEach(input => {
+            input.removeAttribute('readonly');
+            // Also ensure checkboxes are clickable
+            input.style.pointerEvents = 'auto'; 
+        });
     });
 
     // --- 2. ZOOM LOGIC ---
@@ -194,7 +206,11 @@
         if (wrapper) {
             selectField(wrapper);
             const input = wrapper.querySelector('input');
-            if(input) input.focus();
+            
+            // Force focus to enable typing immediately
+            if(input) {
+                input.focus();
+            }
             return;
         }
 
@@ -232,7 +248,7 @@
         const printContent = canvas.cloneNode(true);
         canvas.style.transform = `scale(${oldZoom})`; 
 
-        // Convert Inputs to Static Text
+        // Convert Inputs to Static Text for Print
         const wrappers = printContent.querySelectorAll('.field-wrapper');
         wrappers.forEach(w => {
             const liveWrapper = canvas.querySelectorAll('.field-wrapper')[Array.from(wrappers).indexOf(w)];
@@ -267,7 +283,7 @@
             w.parentNode.replaceChild(span, w);
         });
 
-        // Print Window
+        // Open Print Window
         const win = window.open('', '', 'height=900,width=800');
         win.document.write('<html><head><title>Print Document</title>');
         win.document.write(`
