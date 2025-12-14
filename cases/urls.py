@@ -26,7 +26,8 @@ urlpatterns = [
 
     # --- Meeting Management ---
     path('create-meeting/', views.create_meeting_view, name='create-meeting'),  # From dashboard
-    path('<int:case_pk>/create-meeting/', views.create_meeting_view, name='create-meeting'),  # From case detail
+    path('<int:case_pk>/create-meeting/', views.create_meeting_view, name='create-meeting'),
+    path('<int:meeting_pk>/edit-meeting/', views.edit_meeting_view, name='edit-meeting'),  # From case detail
 
     # --- NEW: Admin Template Management ---
     path('templates/generate/', views.generate_document_view, name='template-generation'),

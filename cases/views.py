@@ -243,14 +243,15 @@ def case_detail_view(request, pk):
     assignments = case.assignments.all()
     upload_form = DocumentUploadForm()
     
+    # 1. FETCH MEETINGS (The Fix)
+    meetings = Meeting.objects.filter(case=case).order_by('scheduled_time')
+    
     # Get all stages for the case's workflow
     all_stages = None
-    if case.workflow and case.current_stage: # Check both exist
+    if case.workflow and case.current_stage: 
         all_stages = case.workflow.stages.all()
-        # --- Calculate next_stage HERE ---
         current_order = case.current_stage.order
         next_stage = all_stages.filter(order=current_order + 1).first()
-
 
     context = {
         'case': case,
@@ -259,6 +260,7 @@ def case_detail_view(request, pk):
         'upload_form': upload_form,
         'all_stages': all_stages,
         'next_stage': next_stage,
+        'meetings': meetings,  # <--- PASS TO TEMPLATE
     }
     return render(request, 'cases/case_detail.html', context)
 
@@ -1072,6 +1074,31 @@ def create_meeting_view(request, case_pk=None):
         'case': case,
     }
     return render(request, 'cases/create_meeting.html', context)
+
+@login_required
+def edit_meeting_view(request, meeting_pk):
+    meeting = get_object_or_404(Meeting, pk=meeting_pk)
+
+    # --- Permission Check: Only Admins and the Organizer can edit ---
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    if not (is_admin or meeting.organizer == request.user):
+        messages.error(request, "You do not have permission to edit this meeting.")
+        return redirect('users:dashboard')
+
+    if request.method == 'POST':
+        form = MeetingForm(request.POST, instance=meeting)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Meeting '{meeting.title}' updated successfully!")
+            return redirect('cases:case-detail', pk=meeting.case.pk)
+    else:
+        form = MeetingForm(instance=meeting)
+
+    context = {
+        'form': form,
+        'meeting': meeting,
+    }
+    return render(request, 'cases/edit_meeting.html', context)
 
 def calendar_view(request):
     return render(request, 'cases/calendar.html', {})

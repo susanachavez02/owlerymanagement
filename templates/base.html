@@ -4,95 +4,268 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+
+    {# Set theme ASAP to avoid flash #}
+    <script>
+      (function () {
+        const stored = localStorage.getItem("theme"); // "light" | "dark" | null
+        const systemPrefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = stored ? stored : (systemPrefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
       integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
       crossorigin="anonymous">
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+
     <title>Owlery Legal Portal</title>
 
     <style>
-/* Update the body style to use Flexbox */
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #f8f9fa;
-    color: var(--owl-dark);
-    -webkit-font-smoothing: antialiased;
-    
-    /* --- NEW FLEXBOX STYLES --- */
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh; /* Forces body to be at least the height of the screen */
-}
+        /* =========================================================
+           THEME VARIABLES
+           Switch theme by setting: <html data-theme="dark|light">
+           ========================================================= */
 
-/* Update the footer style to push itself to the bottom */
-.footer {
-    background-color: #0c0f19;
-    color: rgba(255,255,255,0.6);
-    padding: 40px 0;
-    font-size: 0.9rem;
-    
-    /* --- NEW PROPERTY --- */
-    margin-top: auto; /* Pushes the footer to the bottom of the flex container */
-}
-  /* Theme tokens */
-  :root { 
-    --owl-dark:#0c0f19; 
-    --owl-gold:#c4a24c; 
-    --owl-gold-hover:#e2b857; 
-  }
+        :root {
+            /* Brand */
+            --owl-dark: #0c0f19;
+            --owl-gold: #c4a24c;
+            --owl-gold-hover: #e2b857;
+            --primary: #3b82f6;
 
-  /* Custom Styles */
-  .btn-gold { background:var(--owl-gold); color:var(--owl-dark); border:none; }
-  .btn-gold:hover { background:var(--owl-gold-hover); color:var(--owl-dark); }
-  
-  .btn-outline-gold { color:var(--owl-gold); border:1px solid var(--owl-gold); background:transparent; }
-  .btn-outline-gold:hover, .btn-outline-gold:focus { background:var(--owl-gold); color:var(--owl-dark); border-color:var(--owl-gold); }
+            /* Defaults (LIGHT) */
+            --bg-body: #f4f6fb;
+            --bg-card: #ffffff;
+            --bg-nav:  #ffffff;
+            --bg-input: #ffffff;
 
-  .page-title { font-family: "Inter", sans-serif; font-weight: 700; letter-spacing:.2px; margin-bottom:.25rem; }
-  .page-subtitle { color:#526575; }
+            --text-main: #0f172a;
+            --text-muted: #64748b;
 
-  .badge { border-radius: 999px; padding:.4rem .6rem; font-weight:600; }
+            --border-color: #e2e8f0;
 
-  /* Navbar Styles */
-  .navbar-light .navbar-nav .nav-link { font-weight: 600; color: #343a40; padding: 0.5rem 1rem; border-radius: 6px; transition: background-color 0.2s ease-in-out; }
-  .navbar-light .navbar-nav .nav-link:hover { background-color: #f8f9fa; color: var(--owl-dark); }
-  .navbar-light .navbar-nav .nav-link.active { color: var(--owl-gold); }
+            --shadow-sm: 0 4px 10px rgba(2, 6, 23, 0.08);
 
-  .dropdown-menu { border: none; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.07); }
-  .dropdown-item { font-weight: 500; padding: 0.5rem 1.25rem; transition: all 0.2s; }
-  .dropdown-item:hover, .dropdown-item:focus { background-color: var(--owl-gold-hover); color: var(--owl-dark); border-radius: 4px; }
-  
-  /* Buttons */
-  .btn-management { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
-  .btn-management:hover { background: #5a6268; color: white; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3); }
+            --table-hover: #f1f5f9;
+            --bg-light: #f8fafc; /* used for .bg-light overrides if needed */
+        }
 
-  .btn-reports { background: var(--owl-gold); color: var(--owl-dark); border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
-  .btn-reports:hover { background: var(--owl-gold-hover); color: var(--owl-dark); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(196, 162, 76, 0.4); }
+        :root[data-theme="dark"] {
+            --bg-body: #0f172a;     /* Deep Navy Background */
+            --bg-card: #1e293b;     /* Lighter Navy for Cards */
+            --bg-nav:  #1e293b;     /* Navbar Color */
+            --bg-input: #334155;    /* Input Fields */
 
-  .btn-primary-action { background: #1e40af; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
-  .btn-primary-action:hover { background: #1e3a8a; color: white; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3); }
-</style>
+            --text-main: #f8fafc;   /* Bright Text */
+            --text-muted: #94a3b8;  /* Muted Text */
+
+            --border-color: #334155;
+
+            --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.45);
+
+            --table-hover: #334155;
+            --bg-light: #020617;
+        }
+
+        /* =========================================================
+           BASE STYLES
+           ========================================================= */
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body) !important;
+            color: var(--text-main) !important;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: var(--bg-nav) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+            box-shadow: var(--shadow-sm) !important;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            z-index: 1000;
+        }
+
+        /* Make logo invert only in dark mode */
+        :root[data-theme="dark"] .navbar-brand img {
+            filter: brightness(0) invert(1);
+        }
+        :root[data-theme="light"] .navbar-brand img {
+            filter: none;
+        }
+
+        /* Navbar links (keep your styling, but variable-driven) */
+        .navbar-light .navbar-nav .nav-link {
+            color: var(--text-muted) !important;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .navbar-light .navbar-nav .nav-link:hover {
+            background-color: rgba(148, 163, 184, 0.18);
+            color: var(--text-main) !important;
+        }
+        .navbar-light .navbar-nav .nav-link.active {
+            color: var(--owl-gold) !important;
+            background-color: rgba(196, 162, 76, 0.12);
+        }
+
+        /* Toggler icon visibility */
+        :root[data-theme="dark"] .navbar-toggler-icon { filter: invert(1); }
+        :root[data-theme="light"] .navbar-toggler-icon { filter: none; }
+
+        /* Cards, list items, "white" backgrounds */
+        .card, .card-box, .list-group-item, .bg-white {
+            background-color: var(--bg-card) !important;
+            color: var(--text-main) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        .shadow-sm { box-shadow: var(--shadow-sm) !important; }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6, .navbar-text {
+            color: var(--text-main) !important;
+        }
+        .text-muted, .text-secondary, .page-subtitle {
+            color: var(--text-muted) !important;
+        }
+
+        /* IMPORTANT:
+           You previously forced .text-dark to white for dark mode.
+           That breaks semantics in light mode. We make it variable-based. */
+        .text-dark { color: var(--text-main) !important; }
+
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { color: #60a5fa; }
+
+        /* Forms */
+        .form-control, .form-select {
+            background-color: var(--bg-input) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-main) !important;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: var(--bg-input) !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+            border-color: var(--primary);
+        }
+        .form-control::placeholder {
+            color: var(--text-muted) !important;
+            opacity: 0.85;
+        }
+
+        /* Tables */
+        .table {
+            color: var(--text-main) !important;
+            border-color: var(--border-color) !important;
+        }
+        .table thead th {
+            border-color: var(--border-color) !important;
+        }
+        .table tbody td {
+            border-color: var(--border-color) !important;
+        }
+        .table-hover tbody tr:hover {
+            color: var(--text-main) !important;
+            background-color: var(--table-hover) !important;
+        }
+
+        /* Dropdowns */
+        .dropdown-menu {
+            background-color: var(--bg-card) !important;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+        .dropdown-item { color: var(--text-main) !important; }
+        .dropdown-item:hover {
+            background-color: var(--owl-gold);
+            color: var(--owl-dark) !important;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #020617;
+            color: rgba(255,255,255,0.7);
+            padding: 40px 0;
+            font-size: 0.9rem;
+            margin-top: auto;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Buttons */
+        .btn-gold { background: var(--owl-gold); color: var(--owl-dark) !important; border: none; }
+        .btn-gold:hover { background: var(--owl-gold-hover); color: var(--owl-dark) !important; }
+
+        .btn-outline-gold {
+            color: var(--owl-gold) !important;
+            border: 1px solid var(--owl-gold);
+            background: transparent;
+        }
+        .btn-outline-gold:hover, .btn-outline-gold:focus {
+            background: var(--owl-gold) !important;
+            color: var(--owl-dark) !important;
+            border-color: var(--owl-gold);
+        }
+
+        .btn-primary, .btn-primary-action {
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: white !important;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);
+            font-weight: 600;
+        }
+        .btn-primary:hover, .btn-primary-action:hover {
+            background-color: #2563eb !important;
+            box-shadow: 0 6px 12px rgba(59, 130, 246, 0.35);
+        }
+
+        /* Component specific helpers */
+        .bg-light { background-color: var(--bg-light) !important; }
+        hr { border-color: var(--border-color) !important; opacity: 0.6; }
+        .badge { border-radius: 999px; padding: .4rem .6rem; font-weight: 600; }
+
+        /* Theme toggle button style */
+        .theme-toggle-btn {
+            border-color: var(--border-color) !important;
+            color: var(--text-muted) !important;
+            background: transparent !important;
+        }
+        .theme-toggle-btn:hover {
+            color: var(--text-main) !important;
+            background: rgba(148, 163, 184, 0.18) !important;
+        }
+    </style>
 </head>
 
-<body style="background-color: #f0f2f5; min-height: 100vh;">
+<body>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4 shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light mb-4">
         <div class="container">
             <a class="navbar-brand" href="{% url 'homepage' %}">
-              <img src="{% static 'images/realowlerypic.png' %}" alt="Owlery Portal Logo" height="70" class="d-inline-block align-text-top">
+              <img src="{% static 'images/realowlerypic.png' %}" alt="Owlery Portal Logo" height="50" class="d-inline-block align-text-top">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center">
                     {% if request.user.is_authenticated %}
@@ -101,49 +274,26 @@ body {
                         </li>
 
                         <li class="nav-item">
-                          <a class="nav-link" href="{% url 'cases:calendar' %}">
-                            Calendar
-                          </a>
+                          <a class="nav-link" href="{% url 'cases:calendar' %}">Calendar</a>
                         </li>
 
                         {% if is_admin_user or is_attorney_user %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'cases:case-directory' %}">
-                                 Case Directory
-                            </a>
+                            <a class="nav-link" href="{% url 'cases:case-directory' %}">Case Directory</a>
                         </li>
                         {% endif %}
 
-                        {% if is_admin_user %} 
-                        <li class="nav-item">
-                            
-                        </li>
-        
+                        {% if is_admin_user %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="adminManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 User Directory
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="adminManageDropdown">
-                                <li class="nav-item">
-                                <a class="nav-link" href="{% url 'cases:client-list' %}">
-                                    Clients
-                                </a>
-                                    </li>
-
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'cases:attorney-list' %}">
-                                            Attorneys
-                                        </a>
-                                    </li>
+                            <ul class="dropdown-menu" aria-labelledby="adminUserDropdown">
+                                <li><a class="dropdown-item" href="{% url 'cases:client-list' %}">Clients</a></li>
+                                <li><a class="dropdown-item" href="{% url 'cases:attorney-list' %}">Attorneys</a></li>
                             </ul>
                         </li>
-                        {% endif %}
-                        
-                        {% if is_admin_user %} 
-                        <li class="nav-item">
-                            
-                        </li>
-        
+
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Management
@@ -162,17 +312,27 @@ body {
                         </li>
                     {% endif %}
                 </ul>
-                
+
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    {# Theme toggle always visible #}
+                    <li class="nav-item me-2">
+                        <button id="themeToggle" type="button" class="btn btn-sm theme-toggle-btn">
+                            <i id="themeIcon" class="fas fa-moon me-1"></i>
+                            <span id="themeLabel">Dark</span>
+                        </button>
+                    </li>
+
                     {% if request.user.is_authenticated %}
                         <li class="nav-item">
                             <div class="d-flex align-items-center">
-                                <span class="navbar-text me-2">
+                                <span class="navbar-text me-3 small text-muted">
                                     Welcome, {{ user.username }}
                                 </span>
                                 <form action="{% url 'users:logout' %}" method="POST" class="d-inline">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-secondary btn-sm">Logout</button>
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm" style="border-color: var(--border-color); color: var(--text-muted);">
+                                        Logout
+                                    </button>
                                 </form>
                             </div>
                         </li>
@@ -180,12 +340,12 @@ body {
                         <li class="nav-item">
                             <a class="btn btn-outline-gold btn-sm" href="{% url 'users:login' %}">Login</a>
                         </li>
-                    {% endif %} 
+                    {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-    
+
     <main class="container py-4">
         {% if messages %}
             {% for message in messages %}
@@ -195,7 +355,7 @@ body {
                 </div>
             {% endfor %}
         {% endif %}
-        
+
         {% block content %}
         {% endblock %}
     </main>
@@ -204,19 +364,54 @@ body {
             integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
             crossorigin="anonymous"></script>
 
+    {# Theme toggle logic #}
+    <script>
+      (function () {
+        const btn = document.getElementById("themeToggle");
+        const label = document.getElementById("themeLabel");
+        const icon = document.getElementById("themeIcon");
+
+        function getTheme() {
+          return document.documentElement.getAttribute("data-theme") || "light";
+        }
+
+        function setTheme(theme) {
+          document.documentElement.setAttribute("data-theme", theme);
+          localStorage.setItem("theme", theme);
+
+          const isDark = theme === "dark";
+          if (label) label.textContent = isDark ? "Light" : "Dark";
+          if (icon) {
+            icon.classList.remove("fa-moon", "fa-sun");
+            icon.classList.add(isDark ? "fa-sun" : "fa-moon");
+          }
+        }
+
+        // initialize UI from current theme
+        setTheme(getTheme());
+
+        if (btn) {
+          btn.addEventListener("click", function () {
+            setTheme(getTheme() === "dark" ? "light" : "dark");
+          });
+        }
+      })();
+    </script>
+
     {% block extra_js %}
     {% endblock %}
-<footer class="footer">
-    <div class="container text-center">
-        <div class="mb-3">
-            <img src="{% static 'images/realowlerypic.png' %}" alt="Logo" height="60" style="filter: invert(1);">
+
+    <footer class="footer">
+        <div class="container text-center">
+            <div class="mb-3">
+                <img src="{% static 'images/realowlerypic.png' %}" alt="Logo" height="60" style="filter: brightness(0) invert(1);">
+            </div>
+            <p class="mb-0">&copy; {% now "Y" %} Owlery Legal Portal. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="#" class="me-3 text-muted text-decoration-underline">Privacy Policy</a>
+                <a href="#" class="text-muted text-decoration-underline">Terms of Service</a>
+            </div>
         </div>
-        <p class="mb-0">&copy; {% now "Y" %} Owlery Legal Portal. All rights reserved.</p>
-        <div class="mt-2">
-            <a href="#" class="me-3">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-        </div>
-    </div>
-</footer>
+    </footer>
 </body>
 </html>
