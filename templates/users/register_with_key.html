@@ -2,12 +2,108 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <h2>Enter Your Onboarding Key</h2>
-  <p>Please enter the key you received in your email to begin your account setup.</p>
-  
-  <form method="POST" novalidate>
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-primary">Continue</button>
-  </form>
+<style>
+  .onboard-wrap{ max-width: 720px; }
+  .onboard-card{
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 14px 28px rgba(2,6,23,.10);
+    overflow: hidden;
+  }
+  .onboard-hero{
+    background: linear-gradient(135deg, rgba(59,130,246,.14), rgba(196,162,76,.12));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .onboard-hero{
+    background: linear-gradient(135deg, rgba(59,130,246,.18), rgba(196,162,76,.14));
+  }
+
+  .onboard-title{ color: var(--text-main); font-weight: 900; letter-spacing: .01em; }
+  .onboard-sub{ color: var(--text-muted); }
+
+  /* Make Bootstrap form pieces match your theme variables */
+  .onboard-card .form-control,
+  .onboard-card .form-select,
+  .onboard-card textarea{
+    background: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
+  .onboard-card .form-control::placeholder{ color: var(--text-muted) !important; opacity: .9; }
+  .onboard-card .form-control:focus,
+  .onboard-card .form-select:focus,
+  .onboard-card textarea:focus{
+    box-shadow: 0 0 0 .25rem rgba(59,130,246,.18) !important;
+    border-color: rgba(59,130,246,.55) !important;
+  }
+
+  .hint{
+    background: rgba(148,163,184,.08);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    color: var(--text-muted);
+  }
+
+  .btn-continue{
+    background: var(--primary) !important;
+    border: 1px solid rgba(59,130,246,.35) !important;
+    color: #fff !important;
+    font-weight: 900;
+    border-radius: 12px;
+    padding: .7rem 1rem;
+  }
+  .btn-continue:hover{ transform: translateY(-1px); filter: brightness(.97); }
+
+  .btn-back{
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    border-radius: 12px;
+    background: transparent !important;
+    font-weight: 800;
+    padding: .7rem 1rem;
+  }
+  .btn-back:hover{ background: rgba(148,163,184,.10) !important; }
+</style>
+
+<div class="container py-4 onboard-wrap">
+  <div class="onboard-card">
+    <div class="onboard-hero p-4 p-md-5">
+      <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center"
+             style="width:46px;height:46px;border-radius:14px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);color:var(--text-main);">
+          <i class="fas fa-key"></i>
+        </div>
+        <div>
+          <h2 class="onboard-title mb-1">Enter Your Onboarding Key</h2>
+          <div class="onboard-sub">
+            Please enter the key you received in your email to begin your account setup.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 p-md-5">
+      <div class="hint p-3 mb-4">
+        <div class="fw-bold mb-1" style="color: var(--text-main);">Tip</div>
+        <div class="small">
+          Paste the key exactly as shown in the email. If it fails, double-check for extra spaces.
+        </div>
+      </div>
+
+      <form method="POST" novalidate>
+        {% csrf_token %}
+
+        {{ form|crispy }}
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a href="{% url 'users:login' %}" class="btn btn-back">Back</a>
+          <button type="submit" class="btn btn-continue">
+            Continue <i class="fas fa-arrow-right ms-2"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

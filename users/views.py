@@ -182,7 +182,7 @@ def dashboard_view(request):
         'user': user,
         'is_attorney': is_attorney,
         'is_client': is_client,
-        'assigned_cases': assigned_cases,
+        'cases': assigned_cases,
         'consultations': consultations,
     }
     

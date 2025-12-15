@@ -2,16 +2,102 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Create New User</h2>
-    <a href="{% url 'user-list' %}" class="btn btn-secondary">Back to User List</a>
-  </div>
-  <p>Fill in the details below to create a new user account. The user will be created as <strong>inactive</strong> and will need an onboarding link to set their password and activate their account.</p>
-  
-  <form method="POST">
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-success mt-3">Create User and Proceed to Key Generation</button>
-  </form>
+<style>
+  .setup-wrap{ max-width: 720px; }
+  .setup-card{
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 14px 28px rgba(2,6,23,.10);
+    overflow: hidden;
+  }
+  .setup-hero{
+    background: linear-gradient(135deg, rgba(34,197,94,.14), rgba(59,130,246,.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .setup-hero{
+    background: linear-gradient(135deg, rgba(34,197,94,.18), rgba(59,130,246,.14));
+  }
 
+  .setup-title{ color: var(--text-main); font-weight: 900; letter-spacing: .01em; }
+  .setup-sub{ color: var(--text-muted); }
+
+  /* Theme-align Bootstrap inputs rendered by crispy */
+  .setup-card .form-control,
+  .setup-card .form-select,
+  .setup-card textarea{
+    background: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
+  .setup-card .form-control::placeholder{ color: var(--text-muted) !important; opacity: .9; }
+  .setup-card .form-control:focus,
+  .setup-card .form-select:focus,
+  .setup-card textarea:focus{
+    box-shadow: 0 0 0 .25rem rgba(59,130,246,.18) !important;
+    border-color: rgba(59,130,246,.55) !important;
+  }
+
+  /* Help text / validation */
+  .setup-card .form-text,
+  .setup-card .invalid-feedback,
+  .setup-card .text-muted{
+    color: var(--text-muted) !important;
+  }
+
+  .hint{
+    background: rgba(148,163,184,.08);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    color: var(--text-muted);
+  }
+  .hint ul{ margin: 0; padding-left: 1.2rem; }
+  .hint li{ margin: .15rem 0; }
+
+  .btn-submit{
+    background: rgba(34,197,94,.18) !important;
+    border: 1px solid rgba(34,197,94,.35) !important;
+    color: var(--text-main) !important;
+    font-weight: 900;
+    border-radius: 12px;
+    padding: .7rem 1rem;
+  }
+  .btn-submit:hover{ transform: translateY(-1px); filter: brightness(.97); }
+</style>
+
+<div class="container py-4 setup-wrap">
+  <div class="setup-card">
+    <div class="setup-hero p-4 p-md-5">
+      <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center"
+             style="width:46px;height:46px;border-radius:14px;background:rgba(34,197,94,.18);border:1px solid rgba(34,197,94,.35);color:var(--text-main);">
+          <i class="fas fa-lock"></i>
+        </div>
+        <div>
+          <h2 class="setup-title mb-1">Create An Account</h2>
+          <div class="setup-sub"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 p-md-5">
+      <div class="hint p-3 mb-4">
+            <div class="fw-bold mb-1" style="color: var(--text-main);">Account guidelines</div>
+            <ul class="mb-0">
+              <li>Use a valid email address.</li>
+              <li>Use a username that is unique and not already taken.</li>
+              </div>
+      <form method="POST" novalidate>
+        {% csrf_token %}
+        {{ form|crispy }}
+
+        <div class="d-flex justify-content-end mt-4">
+          <button type="submit" class="btn btn-submit">
+            <i class="fas fa-check me-2"></i>Create Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

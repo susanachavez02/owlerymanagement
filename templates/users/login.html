@@ -2,12 +2,94 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <h2>Login</h2>
-  <p>Please log in to access your dashboard.</p>
-  
-  <form method="POST" novalidate>
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-primary">Login</button>
-  </form>
+<style>
+  .auth-shell{ max-width: 460px; }
+  .auth-card{
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(2,6,23,.12);
+  }
+  .auth-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .auth-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.14));
+  }
+
+  #login-page .form-control,
+  #login-page .form-select{
+    background: rgba(148,163,184,.08) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    border-radius: 12px !important;
+  }
+  #login-page .form-control:focus,
+  #login-page .form-select:focus{
+    border-color: rgba(59,130,246,.55) !important;
+    box-shadow: 0 0 0 .25rem rgba(59,130,246,.15) !important;
+  }
+  #login-page label{
+    color: var(--text-muted) !important;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+  #login-page .form-text, #login-page .text-muted{
+    color: var(--text-muted) !important;
+  }
+
+  .auth-divider{
+    height: 1px;
+    background: var(--border-color);
+    opacity: .9;
+  }
+
+  /* Scoped utility overrides so theme variables win */
+  #login-page .bg-white, #login-page .bg-light{ background-color: transparent !important; }
+  #login-page .text-dark{ color: var(--text-main) !important; }
+</style>
+
+<div class="container-fluid py-5" id="login-page">
+  <div class="container auth-shell">
+
+    <div class="auth-card">
+      <div class="auth-hero p-4 p-md-5">
+        <div class="d-flex align-items-start gap-3">
+          <div class="d-flex align-items-center justify-content-center"
+               style="width:48px;height:48px;border-radius:14px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);color:var(--text-main);">
+            <i class="fas fa-lock"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h2 class="fw-bold mb-1" style="color: var(--text-main);">Login</h2>
+            <p class="mb-0" style="color: var(--text-muted);">
+              Sign in to access your dashboard.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 p-md-5">
+        <form method="POST" novalidate>
+          {% csrf_token %}
+          {{ form|crispy }}
+
+          <div class="d-grid mt-3">
+            <button type="submit" class="btn btn-primary py-2 fw-bold">
+              <i class="fas fa-arrow-right-to-bracket me-2"></i>Login
+            </button>
+          </div>
+        </form>
+
+        <div class="auth-divider my-4"></div>
+
+        <div class="small text-center" style="color: var(--text-muted);">
+          Having trouble logging in? Contact an administrator to reset your access.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
 {% endblock %}

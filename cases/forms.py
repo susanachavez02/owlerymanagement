@@ -127,3 +127,16 @@ class ConsultationForm(forms.ModelForm):
         # Filter the attorney dropdown to only show users with the 'Attorney' role
         self.fields['attorney'].queryset = User.objects.filter(roles__name='Attorney')
         self.fields['attorney'].empty_label = "Select an Attorney (Optional)"
+
+
+class CaseReassignForm(forms.Form):
+    new_attorney = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        empty_label="Select an attorney...",
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+
+    def __init__(self, *args, attorney_qs=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if attorney_qs is not None:
+            self.fields["new_attorney"].queryset = attorney_qs

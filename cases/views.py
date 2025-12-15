@@ -61,6 +61,77 @@ from datetime import datetime
 import os
 import json
 
+
+
+@login_required
+def case_reassign_management(request, case_pk=None):
+    # --- 0. Permission Check (Adjust based on your roles/groups) ---
+    if not request.user.is_superuser:
+        messages.error(request, "Access denied. Only administrators can reassign cases.")
+        return redirect('users:dashboard')
+
+    # --- 1. Fetch data for the template dropdowns ---
+    all_cases = Case.objects.all().order_by('-pk')
+    all_attorneys = User.objects.filter(roles__name='Attorney').distinct()
+    
+    selected_case = None
+
+    # --- 2. Determine the Case to Display ---
+    
+    # Check for case_pk from URL
+    if case_pk:
+        selected_case = get_object_or_404(Case, pk=case_pk)
+    
+    # Check for case selected via the GET form submission (the "Load" button)
+    elif 'case_pk' in request.GET and request.GET['case_pk']:
+        try:
+            pk_from_get = request.GET['case_pk']
+            selected_case = Case.objects.get(pk=pk_from_get)
+            # Redirect to the canonical URL to prevent form issues and ensure clear URL
+            return redirect('cases:case-reassign', case_pk=selected_case.pk)
+        except Case.DoesNotExist:
+            messages.error(request, "The selected case could not be found.")
+            # Continue to render with no selected_case
+    
+    # --- 3. Handle POST Request (Reassignment Logic) ---
+    if request.method == 'POST' and selected_case:
+        to_attorney_id = request.POST.get('to_attorney_id')
+        
+        try:
+            new_attorney = User.objects.get(pk=to_attorney_id)
+            
+            # Logic to find and update the primary attorney assignment
+            primary_assignment = selected_case.assignments.filter(user__roles__name='Attorney').first()            
+            if primary_assignment:
+                primary_assignment.user = new_attorney
+                primary_assignment.save()
+            else:
+                # Create a new primary assignment if one didn't exist
+                CaseAssignment.objects.create(
+                    case=selected_case,
+                    user=new_attorney,
+                    is_primary=True
+                )
+
+            messages.success(request, f"Case #{selected_case.pk} successfully reassigned to {new_attorney.get_full_name()}.")
+            return redirect('cases:case-detail', pk=selected_case.pk)
+            
+        except User.DoesNotExist:
+            messages.error(request, "The selected attorney could not be found.")
+        except Exception as e:
+            messages.error(request, f"An error occurred during reassignment: {e}")
+
+    # --- 4. Prepare context for template rendering ---
+    context = {
+        'cases': all_cases,        # For the "Select a case..." dropdown
+        'selected_case': selected_case,
+        'attorneys': all_attorneys, # For the "New Attorney" dropdown
+        # Note: 'current_attorney' and 'client' are not defined here, 
+        # so they will be empty in the template unless you add logic to fetch them.
+    }
+    
+    return render(request, 'users/client_reassignment.html', context)
+
 # --- HELPER FUNCTION FOR DOCX ---
 def docx_find_and_replace(doc, context):
     """

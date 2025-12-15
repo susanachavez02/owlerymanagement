@@ -7,22 +7,58 @@
 <style>
   /* =========================
      FULLCALENDAR THEME-AWARE STYLES
-     Uses your base.html CSS variables:
+     Uses base.html CSS variables:
      --bg-body --bg-card --bg-input --text-main --text-muted --border-color --primary
      ========================= */
 
-  #calendar {
+  .cal-shell{
     background-color: var(--bg-card);
     color: var(--text-main);
-    padding: 20px;
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     box-shadow: var(--shadow-sm, 0 4px 10px rgba(2, 6, 23, 0.08));
+    overflow: hidden;
+  }
+
+  .cal-toolbar{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(148,163,184,0.06);
+  }
+
+  .cal-filters{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(148,163,184,0.03);
+  }
+
+  .cal-filters .form-control,
+  .cal-filters .form-select{
+    background: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
+  .cal-filters .form-control::placeholder{ color: var(--text-muted) !important; opacity: .9; }
+  .cal-filters label{ color: var(--text-muted); font-weight: 700; font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
+
+  .cal-legend{
+    display:flex; flex-wrap:wrap; gap:10px;
+    align-items:center;
+    color: var(--text-muted);
+    font-size: .85rem;
+  }
+  .legend-dot{
+    width:10px;height:10px;border-radius:999px;display:inline-block;margin-right:6px;border:1px solid var(--border-color);
+  }
+
+  #calendar {
+    padding: 16px;
   }
 
   /* Toolbar Title */
   .fc .fc-toolbar-title {
     color: var(--text-main);
-    font-weight: 700;
+    font-weight: 800;
   }
 
   /* Header backgrounds + borders */
@@ -39,7 +75,7 @@
     color: var(--text-main) !important;
     text-decoration: none !important;
     padding: 10px 0;
-    font-weight: 600;
+    font-weight: 700;
   }
   .fc-col-header-cell-cushion:hover {
     color: var(--primary) !important;
@@ -59,12 +95,6 @@
     padding: 8px;
   }
 
-  /* Day cell backgrounds (ensure readability in both themes) */
-  .fc .fc-daygrid-day,
-  .fc .fc-timegrid-col {
-    background-color: transparent;
-  }
-
   /* Timegrid axis + labels */
   .fc-timegrid-axis-cushion,
   .fc-timegrid-axis {
@@ -72,45 +102,33 @@
     color: var(--text-muted) !important;
     border-color: var(--border-color) !important;
   }
+  .fc .fc-timegrid-slot-label-cushion { color: var(--text-muted) !important; }
+  .fc .fc-timegrid-slot { border-bottom: 1px solid var(--border-color) !important; }
 
-  .fc .fc-timegrid-slot-label-cushion {
-    color: var(--text-muted) !important;
-  }
+  /* "Today" highlight */
+  :root[data-theme="light"] .fc .fc-day-today { background-color: rgba(59, 130, 246, 0.08) !important; }
+  :root[data-theme="dark"] .fc .fc-day-today { background-color: rgba(59, 130, 246, 0.14) !important; }
 
-  .fc .fc-timegrid-slot {
-    border-bottom: 1px solid var(--border-color) !important;
-  }
-
-  /* "Today" highlight: slightly different for dark vs light */
-  :root[data-theme="light"] .fc .fc-day-today {
-    background-color: rgba(59, 130, 246, 0.08) !important;
-  }
-  :root[data-theme="dark"] .fc .fc-day-today {
-    background-color: rgba(59, 130, 246, 0.14) !important;
-  }
-
-  /* Buttons (Prev/Next/Today + view buttons) */
+  /* Buttons */
   .fc .fc-button-primary {
     background-color: var(--bg-input) !important;
     border-color: var(--border-color) !important;
     color: var(--text-main) !important;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: capitalize;
-    transition: all 0.2s;
+    transition: all 0.15s ease;
   }
-
   .fc .fc-button-primary:hover {
     background-color: var(--primary) !important;
     border-color: var(--primary) !important;
     color: #ffffff !important;
+    transform: translateY(-1px);
   }
-
   .fc .fc-button-primary:disabled {
     background-color: var(--bg-body) !important;
     border-color: var(--border-color) !important;
-    opacity: 0.7;
+    opacity: 0.75;
   }
-
   .fc .fc-button-primary:not(:disabled).fc-button-active {
     background-color: var(--primary) !important;
     border-color: var(--primary) !important;
@@ -123,11 +141,11 @@
     border: none !important;
     padding: 2px 4px;
     font-size: 0.85rem;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    border-radius: 7px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.14);
   }
 
-  /* Popover (more-events / event detail popovers) */
+  /* Popover */
   .fc .fc-popover {
     background-color: var(--bg-card) !important;
     border: 1px solid var(--border-color) !important;
@@ -139,18 +157,29 @@
     color: var(--text-main) !important;
   }
 
-  /* Links inside calendar should follow theme */
-  .fc a {
-    color: var(--text-main);
+  /* Links inside calendar */
+  .fc a { color: var(--text-main); }
+
+  /* Small helper text */
+  .cal-help{
+    color: var(--text-muted);
+    font-size: .85rem;
   }
+
+  /* Make bootstrap bg classes not fight theme */
+  .bg-white, .bg-light { background-color: transparent !important; }
+  .text-dark { color: var(--text-main) !important; }
 </style>
 
 <section class="mb-5">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="page-title fw-bold mb-0">Calendar</h2>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2 class="page-title fw-bold mb-1">Calendar</h2>
+        <div class="cal-help">Drag to reschedule, resize to change duration, or drag-select to create a meeting.</div>
+      </div>
       <div class="d-flex gap-2">
-        {# Remove text-white so it adapts in light mode #}
         <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary">
           <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
         </a>
@@ -160,68 +189,359 @@
       </div>
     </div>
 
-    <div id="calendar"></div>
+    <div class="cal-shell">
+
+      <div class="cal-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="cal-legend">
+          <span><span class="legend-dot" style="background:#3b82f6;border-color:#3b82f6;"></span>Meeting</span>
+          <span><span class="legend-dot" style="background:#f59e0b;border-color:#f59e0b;"></span>Consultation</span>
+          <span><span class="legend-dot" style="background:#22c55e;border-color:#22c55e;"></span>Internal</span>
+          <span><span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span>Hearing/Deadline</span>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-secondary btn-sm" id="btnToggleWeekends" type="button">
+            <i class="fas fa-calendar-week me-2"></i><span id="weekendLabel">Hide Weekends</span>
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" id="btnToday" type="button">
+            <i class="fas fa-location-crosshairs me-2"></i>Today
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" id="btnExportCsv" type="button">
+            <i class="fas fa-file-csv me-2"></i>Export CSV
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" id="btnSubscribe" type="button" title="Copy iCal subscription link">
+            <i class="fas fa-rss me-2"></i>Subscribe (iCal)
+          </button>
+        </div>
+      </div>
+
+      <div class="cal-filters">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label for="calSearch" class="form-label mb-1">Search</label>
+            <input id="calSearch" type="text" class="form-control" placeholder="Search title, case, location…">
+          </div>
+
+          <div class="col-md-3">
+            <label for="calCase" class="form-label mb-1">Case</label>
+            <select id="calCase" class="form-select">
+              <option value="">All cases</option>
+              {# Optional: if you pass cases to template, populate them #}
+              {% if cases %}
+                {% for c in cases %}
+                  <option value="{{ c.pk }}">{{ c.case_title }}</option>
+                {% endfor %}
+              {% endif %}
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label for="calType" class="form-label mb-1">Type</label>
+            <select id="calType" class="form-select">
+              <option value="">All types</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Consultation">Consultation</option>
+              <option value="Internal">Internal</option>
+              <option value="Hearing">Hearing</option>
+              <option value="Deadline">Deadline</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label for="calMine" class="form-label mb-1">Participants</label>
+            <select id="calMine" class="form-select">
+              <option value="">All</option>
+              <option value="mine">Mine only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="calendar"></div>
+    </div>
+
   </div>
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 
 <script>
-  let calendar; // keep reference so we can update on theme toggle
+  let calendar;
+
+  // You can wire this to a real ICS endpoint in Django.
+  // Example server route you can implement later: /cases/api/calendar.ics/
+  const ICAL_SUBSCRIBE_URL = '/cases/api/calendar.ics/';
 
   function getCssVar(name, fallback) {
     const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return v || fallback;
   }
 
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+
+  function debounce(fn, delay) {
+    let t;
+    return function() {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, arguments), delay);
+    };
+  }
+
+  function mapTypeToColor(type) {
+    // Set colors consistent with the legend; you can adjust to match your brand palette.
+    if (!type) return null;
+    const t = String(type).toLowerCase();
+    if (t.includes('consult')) return '#f59e0b';
+    if (t.includes('internal')) return '#22c55e';
+    if (t.includes('hearing') || t.includes('deadline')) return '#ef4444';
+    return getCssVar('--primary', '#3b82f6'); // default
+  }
+
   function buildCalendarOptions() {
     const primary = getCssVar('--primary', '#3b82f6');
-    const textMain = getCssVar('--text-main', '#0f172a');
 
-    // If you ever want dynamic text color based on theme, you can compute it here.
     return {
       initialView: 'dayGridMonth',
       themeSystem: 'standard',
+
       headerToolbar: {
-        left: 'prev,next today',
+        left: 'prev,next',
         center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
       },
-      events: '/cases/api/calendar-events/',
+
+      timeZone: 'local',
+      nowIndicator: true,
+
+      height: 'auto',
+      dayMaxEvents: true,
+      moreLinkClick: 'popover',
+
+      weekends: true,
+
+      businessHours: {
+        daysOfWeek: [1,2,3,4,5],
+        startTime: '08:00',
+        endTime: '18:00'
+      },
+      slotMinTime: '07:00:00',
+      slotMaxTime: '20:00:00',
+
+      // Create by drag-select
+      selectable: true,
+      selectMirror: true,
+      select: function(selectionInfo) {
+        const start = selectionInfo.startStr;
+        const end = selectionInfo.endStr;
+        // Redirect to your existing schedule page with prefilled query params (server can read these)
+        window.location.href = `{% url 'cases:create-meeting' %}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+      },
+
+      // Drag/drop + resize to reschedule
+      editable: true,
+      eventStartEditable: true,
+      eventDurationEditable: true,
+
+      eventDrop: function(info) { updateEventTime(info.event, info); },
+      eventResize: function(info) { updateEventTime(info.event, info); },
+
+      // Fetch events with filters
+      events: {
+        url: '/cases/api/calendar-events/',
+        extraParams: function() {
+          return {
+            q: document.getElementById('calSearch')?.value || '',
+            case_id: document.getElementById('calCase')?.value || '',
+            type: document.getElementById('calType')?.value || '',
+            scope: document.getElementById('calMine')?.value || ''
+          };
+        }
+      },
+
+      // Default colors; can be overridden per-event by API or eventDidMount below
       eventColor: primary,
       eventTextColor: '#ffffff',
-      height: 'auto',
+
+      // Click into event url (if API returns url)
       eventClick: function(info) {
         if (info.event.url) {
           window.location.href = info.event.url;
           info.jsEvent.preventDefault();
         }
+      },
+
+      // Tooltips + per-type coloring
+      eventDidMount: function(info) {
+        const props = info.event.extendedProps || {};
+        const type = props.meeting_type || props.type || '';
+        const caseTitle = props.case_title || props.case || '';
+        const location = props.location || '';
+        const owner = props.owner_name || props.owner || '';
+
+        // Tooltip (simple, works everywhere)
+        const lines = [
+          info.event.title,
+          type ? `Type: ${type}` : null,
+          caseTitle ? `Case: ${caseTitle}` : null,
+          location ? `Location: ${location}` : null,
+          owner ? `With: ${owner}` : null
+        ].filter(Boolean);
+        info.el.setAttribute('title', lines.join('\n'));
+
+        // Per-event coloring:
+        // - If server already provides colors, keep them
+        // - Otherwise color by type
+        const hasServerColor = props.backgroundColor || props.color || info.event.backgroundColor;
+        if (!hasServerColor) {
+          const c = mapTypeToColor(type);
+          if (c) {
+            info.el.style.backgroundColor = c;
+            info.el.style.borderColor = c;
+            info.el.style.color = '#fff';
+          }
+        }
       }
     };
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    const calendarEl = document.getElementById('calendar');
-    calendar = new FullCalendar.Calendar(calendarEl, buildCalendarOptions());
-    calendar.render();
+  async function updateEventTime(event, infoObj) {
+    const csrftoken = getCookie('csrftoken');
+    const url = `/cases/api/calendar-events/${event.id}/`; // requires server support
 
-    // Re-apply event colors etc. when theme changes (no refresh required).
-    // We watch the <html data-theme="..."> attribute your base.html toggles.
+    try {
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+          start: event.start ? event.start.toISOString() : null,
+          end: event.end ? event.end.toISOString() : null
+        })
+      });
+
+      if (!res.ok) throw new Error('Update not supported');
+    } catch (e) {
+      // If your backend doesn’t support PATCH yet, revert so users aren’t misled.
+      if (infoObj && typeof infoObj.revert === 'function') infoObj.revert();
+      alert('Rescheduling is not enabled on the server yet (PATCH endpoint missing).');
+    }
+  }
+
+  function exportVisibleEventsToCsv() {
+    if (!calendar) return;
+
+    const view = calendar.view;
+    const start = view.activeStart;
+    const end = view.activeEnd;
+
+    // Events currently loaded in the client
+    const events = calendar.getEvents().filter(ev => {
+      const s = ev.start || new Date(0);
+      return s >= start && s < end;
+    });
+
+    const header = ['Title','Start','End','Type','Case','Location','URL'];
+    const rows = events.map(ev => {
+      const p = ev.extendedProps || {};
+      return [
+        ev.title || '',
+        ev.start ? ev.start.toISOString() : '',
+        ev.end ? ev.end.toISOString() : '',
+        (p.meeting_type || p.type || ''),
+        (p.case_title || p.case || ''),
+        (p.location || ''),
+        (ev.url || '')
+      ].map(v => `"${String(v).replaceAll('"','""')}"`).join(',');
+    });
+
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    const ts = new Date().toISOString().slice(0,10);
+    link.href = url;
+    link.download = `calendar_${ts}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function copyIcalSubscribeLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.origin + ICAL_SUBSCRIBE_URL);
+      alert('iCal subscription link copied to clipboard.');
+    } catch (e) {
+      // Fallback prompt if clipboard is blocked
+      prompt('Copy this iCal subscription link:', window.location.origin + ICAL_SUBSCRIBE_URL);
+    }
+  }
+
+  function wireFilters() {
+    const refetch = debounce(() => { if (calendar) calendar.refetchEvents(); }, 250);
+
+    ['calSearch','calCase','calType','calMine'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', refetch);
+      el.addEventListener('change', refetch);
+    });
+  }
+
+  function wireToolbarButtons() {
+    const btnWeekends = document.getElementById('btnToggleWeekends');
+    const label = document.getElementById('weekendLabel');
+
+    if (btnWeekends) {
+      btnWeekends.addEventListener('click', () => {
+        const current = calendar.getOption('weekends');
+        calendar.setOption('weekends', !current);
+        if (label) label.textContent = current ? 'Show Weekends' : 'Hide Weekends';
+      });
+    }
+
+    const btnToday = document.getElementById('btnToday');
+    if (btnToday) btnToday.addEventListener('click', () => calendar.today());
+
+    const btnExport = document.getElementById('btnExportCsv');
+    if (btnExport) btnExport.addEventListener('click', exportVisibleEventsToCsv);
+
+    const btnSub = document.getElementById('btnSubscribe');
+    if (btnSub) btnSub.addEventListener('click', copyIcalSubscribeLink);
+  }
+
+  function attachThemeObserver() {
     const observer = new MutationObserver(function(mutations) {
       for (const m of mutations) {
         if (m.type === 'attributes' && m.attributeName === 'data-theme') {
-          // Update options that depend on CSS variables
+          // Update options depending on CSS vars
           const opts = buildCalendarOptions();
           calendar.setOption('eventColor', opts.eventColor);
           calendar.setOption('eventTextColor', opts.eventTextColor);
-
-          // Force rerender so the UI picks up new CSS vars immediately
           calendar.render();
         }
       }
     });
-
     observer.observe(document.documentElement, { attributes: true });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+
+    calendar = new FullCalendar.Calendar(calendarEl, buildCalendarOptions());
+    calendar.render();
+
+    wireFilters();
+    wireToolbarButtons();
+    attachThemeObserver();
   });
 </script>
 {% endblock %}

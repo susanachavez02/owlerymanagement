@@ -8,6 +8,6 @@ User = get_user_model()
 @receiver(post_save, sender=User)
 def create_or_update_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance)
+        UserProfile.objects.create(user=instance)
     else:
-        Profile.objects.get_or_create(user=instance)
+        UserProfile.objects.get_or_create(user=instance)

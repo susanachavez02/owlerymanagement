@@ -2,12 +2,110 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <h2>Generate Onboarding Key</h2>
-  <p>Select a user to generate a new, one-time setup link.</p>
-  
-  <form method="POST" novalidate>
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-primary">Generate Key</button>
-  </form>
+<style>
+  .onboard-shell{
+    max-width: 900px;
+  }
+  .onboard-card{
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 12px 28px rgba(2,6,23,.10);
+  }
+  .onboard-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .onboard-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.14));
+  }
+
+  /* Keep Bootstrap from fighting your theme inside this page only */
+  #onboarding-key-page .text-dark{ color: var(--text-main) !important; }
+  #onboarding-key-page .bg-white{ background-color: var(--bg-card) !important; }
+  #onboarding-key-page .bg-light{ background-color: rgba(148,163,184,.06) !important; }
+  #onboarding-key-page .border{ border-color: var(--border-color) !important; }
+
+  /* Form polish */
+  #onboarding-key-page .form-control,
+  #onboarding-key-page .form-select{
+    background: rgba(148,163,184,.08) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    border-radius: 12px !important;
+  }
+  #onboarding-key-page .form-control::placeholder{
+    color: var(--text-muted) !important;
+    opacity: .9;
+  }
+  #onboarding-key-page .form-control:focus,
+  #onboarding-key-page .form-select:focus{
+    border-color: rgba(59,130,246,.55) !important;
+    box-shadow: 0 0 0 .25rem rgba(59,130,246,.15) !important;
+  }
+
+  .hint-box{
+    background: rgba(148,163,184,.06);
+    border: 1px dashed var(--border-color);
+    border-radius: 14px;
+    padding: 12px 14px;
+    color: var(--text-muted);
+    font-size: .9rem;
+  }
+</style>
+
+<div class="container-fluid py-4" id="onboarding-key-page">
+  <div class="container onboard-shell">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-1" style="color: var(--text-main);">Generate Onboarding Key</h2>
+        <p class="mb-0" style="color: var(--text-muted);">
+          Select a user to generate a new, one-time setup link.
+        </p>
+      </div>
+      <a href="javascript:history.back()" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back
+      </a>
+    </div>
+
+    <div class="onboard-card">
+      <div class="onboard-hero p-4 p-md-5">
+        <div class="d-flex align-items-start gap-3">
+          <div class="d-flex align-items-center justify-content-center"
+               style="width:48px;height:48px;border-radius:14px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);color:var(--text-main);">
+            <i class="fas fa-key"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-bold" style="color: var(--text-main); font-size: 1.05rem;">One-time setup link</div>
+            <div class="small" style="color: var(--text-muted);">
+              Use this for initial account setup or re-onboarding. Keys should be treated as sensitive.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 p-md-5">
+        <div class="hint-box mb-4">
+          <i class="fas fa-info-circle me-2"></i>
+          Generating a new key typically invalidates older keys for the same user (depending on your backend logic).
+        </div>
+
+        <form method="POST" novalidate>
+          {% csrf_token %}
+          {{ form|crispy }}
+
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="javascript:history.back()" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="fas fa-link me-2"></i>Generate Key
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
 {% endblock %}

@@ -2,16 +2,114 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Edit User: {{ user_to_edit.username }}</h2>
-    <a href="{% url 'user-list' %}" class="btn btn-secondary">Back to User List</a>
+<style>
+  .edit-wrap{ max-width: 900px; }
+  .edit-card{
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 14px 28px rgba(2,6,23,.10);
+    overflow: hidden;
+  }
+  .edit-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,.14), rgba(59,130,246,.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .edit-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,.18), rgba(59,130,246,.14));
+  }
+
+  .edit-title{ color: var(--text-main); font-weight: 900; letter-spacing: .01em; }
+  .edit-sub{ color: var(--text-muted); }
+
+  /* Crispy-rendered inputs */
+  .edit-card .form-control,
+  .edit-card .form-select,
+  .edit-card textarea{
+    background: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
+  .edit-card .form-control::placeholder{ color: var(--text-muted) !important; opacity: .9; }
+  .edit-card .form-control:focus,
+  .edit-card .form-select:focus,
+  .edit-card textarea:focus{
+    box-shadow: 0 0 0 .25rem rgba(59,130,246,.18) !important;
+    border-color: rgba(59,130,246,.55) !important;
+  }
+  .edit-card .form-text,
+  .edit-card .text-muted,
+  .edit-card .invalid-feedback{
+    color: var(--text-muted) !important;
+  }
+
+  .btn-soft{
+    background: rgba(148,163,184,.10) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    border-radius: 12px;
+    font-weight: 700;
+  }
+  .btn-soft:hover{ filter: brightness(.98); transform: translateY(-1px); }
+
+  .btn-save{
+    background: rgba(34,197,94,.18) !important;
+    border: 1px solid rgba(34,197,94,.35) !important;
+    color: var(--text-main) !important;
+    border-radius: 12px;
+    font-weight: 900;
+    padding: .7rem 1rem;
+  }
+  .btn-save:hover{ transform: translateY(-1px); filter: brightness(.97); }
+</style>
+
+<div class="container py-4 edit-wrap">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h2 class="edit-title mb-1">Edit User</h2>
+      <div class="edit-sub">
+        Update details and assigned roles for <strong style="color: var(--text-main);">{{ user_to_edit.username }}</strong>.
+      </div>
+    </div>
+
+    <a href="{% url 'user-list' %}" class="btn btn-soft">
+      <i class="fas fa-arrow-left me-2"></i>Back to User List
+    </a>
   </div>
-  <p>Update the user's details and assigned roles below.</p>
 
-  <form method="POST">
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-success mt-3">Save Changes</button>
-  </form>
+  <div class="edit-card">
+    <div class="edit-hero p-4">
+      <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center"
+             style="width:46px;height:46px;border-radius:14px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);color:var(--text-main);">
+          <i class="fas fa-user-edit"></i>
+        </div>
+        <div>
+          <div class="fw-bold" style="color: var(--text-main); font-size: 1.05rem;">
+            {{ user_to_edit.get_full_name|default:user_to_edit.username }}
+          </div>
+          <div class="small" style="color: var(--text-muted);">
+            Make changes below and click “Save Changes”.
+          </div>
+        </div>
+      </div>
+    </div>
 
+    <div class="p-4 p-md-5">
+      <form method="POST" novalidate>
+        {% csrf_token %}
+        {{ form|crispy }}
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a href="{% url 'user-list' %}" class="btn btn-soft">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-save">
+            <i class="fas fa-save me-2"></i>Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

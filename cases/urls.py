@@ -57,7 +57,11 @@ urlpatterns = [
 
     # Case Directory
     path('cases/', views.case_directory_view, name='case-directory'),
-   
+    # 1. Initial access, no case_pk provided (shows empty form with dropdown)
+    path('management/reassign/', views.case_reassign_management, name='case-reassign-list'),
+
+# 2. Case-specific access, case_pk is provided (after selecting from dropdown or via direct link)
+    path('management/reassign/<int:case_pk>/', views.case_reassign_management, name='case-reassign'),
     # --- Advance Case Stage ---
     path('<int:case_pk>/advance-stage/', views.advance_stage_view, name='advance-stage'),
 

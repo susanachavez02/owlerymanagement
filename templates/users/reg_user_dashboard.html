@@ -3,214 +3,347 @@
 
 {% block content %}
 <style>
-    /* --- DASHBOARD SPECIFIC STYLES --- */
-    
-    /* Make all primary headers white */
-    .dashboard-header, h4 {
-        color: var(--text-main) !important;
-    }
+  .dash {
+    --dash-card: var(--bg-card, #ffffff);
+    --dash-border: var(--border-color, rgba(148,163,184,.25));
+    --dash-text: var(--text-main, #0f172a);
+    --dash-muted: var(--text-muted, #64748b);
+    --dash-soft: rgba(148,163,184,.10);
+    --dash-soft-2: rgba(148,163,184,.06);
+    --dash-primary: var(--primary, #3b82f6);
+    --dash-gold: var(--owl-gold, #c4a24c);
+    --dash-gold-hover: var(--owl-gold-hover, #b89233);
+  }
 
-    /* Fix table header text color */
-    .active-cases-list table thead th {
-        color: var(--text-muted) !important;
-        font-weight: 600;
-        border-bottom: 1px solid var(--border-color);
-        padding-top: 15px;
-        padding-bottom: 15px;
-    }
-    
-    /* Fix table body text color and links */
-    .active-cases-list table tbody td {
-        color: var(--text-main) !important;
-        border-color: var(--border-color) !important;
-        padding: 15px 12px;
-    }
-    
-    /* Force links in the table to be white/primary */
-    .active-cases-list table tbody a {
-        color: var(--text-main) !important;
-        font-weight: 600;
-        text-decoration: none;
-    }
-    .active-cases-list table tbody a:hover {
-        color: var(--primary) !important;
-        text-decoration: underline;
-    }
+  :root[data-theme="dark"] .dash {
+    --dash-card: var(--bg-card, #0f172a);
+    --dash-border: var(--border-color, rgba(148,163,184,.22));
+    --dash-text: var(--text-main, #e5e7eb);
+    --dash-muted: var(--text-muted, #94a3b8);
+    --dash-soft: rgba(148,163,184,.12);
+    --dash-soft-2: rgba(148,163,184,.08);
+  }
 
-    /* Stat Card Styling */
-    .stat-card {
-        background-color: var(--bg-card) !important;
-    }
-    .stat-card h4 {
-        color: var(--text-main) !important;
-    }
-    .stat-card small {
-        color: var(--text-muted) !important;
-    }
-    
-    /* Request Card Styling (Fixes near-invisible text) */
-    .request-card h6 {
-        color: var(--text-main) !important;
-    }
-    .request-card .text-main, .request-card p {
-        color: var(--text-main) !important;
-    }
-    .request-card .small {
-        color: var(--text-muted) !important;
-    }
-    
-    /* Ensure icons are visible */
-    .stat-card i {
-        color: var(--primary) !important;
-    }
+  .dash .page-title { color: var(--dash-text) !important; font-weight: 800; letter-spacing: .01em; }
+  .dash .card {
+    background: var(--dash-card) !important;
+    border: 1px solid var(--dash-border) !important;
+    border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(2,6,23,.08);
+  }
+  .dash .text-muted { color: var(--dash-muted) !important; }
 
-    /* Active Cases List Background/Border */
-    .active-cases-list .table-hover tbody tr:hover {
-        background-color: var(--bg-input) !important;
-    }
+  .dash .dash-alert {
+    background: rgba(59,130,246,.12) !important;
+    border: 1px solid rgba(59,130,246,.25) !important;
+    color: var(--dash-text) !important;
+    border-radius: 14px;
+  }
+  :root[data-theme="dark"] .dash .btn-close { filter: invert(1); }
 
-    /* --- BUTTON CONTRAST FIXES --- */
+  .dash .stat { display:flex; align-items:center; gap:14px; padding:14px 16px; }
+  .dash .stat-ico{
+    width:46px;height:46px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    background: var(--dash-soft);
+    border: 1px solid var(--dash-border);
+  }
+  .dash .stat small{
+    font-weight:800; letter-spacing:.06em; font-size:.72rem;
+    color: var(--dash-muted) !important;
+  }
+  .dash .stat .value{
+    font-size: 1.6rem; font-weight: 900; line-height: 1.1;
+    color: var(--dash-text);
+  }
 
-    /* 1. Quick Action: Schedule Meeting (Using Gold for distinction) */
-    .btn-quick-gold {
-        background-color: var(--owl-gold) !important; 
-        color: var(--owl-dark) !important; 
-        border: none !important;
-        font-weight: 600;
-    }
-    .btn-quick-gold:hover {
-        background-color: var(--owl-gold-hover) !important;
-        transform: translateY(-1px);
-    }
-    
-    /* 2. Request Card: View & Schedule (Using Primary Blue) */
-    .btn-request-primary {
-        background-color: var(--primary) !important; 
-        color: white !important; 
-        border: none !important;
-        font-weight: 600;
-        box-shadow: 0 4px 6px rgba(59, 130, 246, 0.4);
-    }
-    .btn-request-primary:hover {
-        background-color: #2563eb !important;
-        transform: translateY(-1px);
-    }
-    
+  .dash .btn-primary-action{
+    background: var(--dash-primary) !important;
+    border: 1px solid rgba(59,130,246,.35) !important;
+    color:#fff !important;
+    font-weight:800;
+    border-radius: 12px;
+  }
+  .dash .btn-primary-action:hover{ transform: translateY(-1px); filter: brightness(.97); }
+
+  .dash .btn-quick-gold{
+    background: var(--dash-gold) !important;
+    border: 1px solid rgba(196,162,76,.55) !important;
+    color:#0b1220 !important;
+    font-weight:900;
+    border-radius: 12px;
+  }
+  .dash .btn-quick-gold:hover{ background: var(--dash-gold-hover) !important; transform: translateY(-1px); }
+
+  .dash .request-item{
+    background: var(--dash-soft-2);
+    border: 1px solid var(--dash-border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .dash .btn-request-primary{
+    background: var(--dash-primary) !important;
+    border: 1px solid rgba(59,130,246,.35) !important;
+    color:#fff !important;
+    font-weight:900;
+    border-radius: 12px;
+  }
+  .dash .btn-request-primary:hover{ transform: translateY(-1px); filter: brightness(.97); }
+
+  .dash .table-shell{
+    overflow:hidden;
+    border-radius: 14px;
+    border: 1px solid var(--dash-border);
+  }
+  .dash thead th{
+    color: var(--dash-muted) !important;
+    font-weight: 900;
+    letter-spacing: .06em;
+    font-size: .72rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--dash-border) !important;
+    padding: 14px !important;
+    background: rgba(148,163,184,.06) !important;
+  }
+  .dash tbody td{
+    border-color: var(--dash-border) !important;
+    padding: 14px !important;
+    vertical-align: middle;
+    color: var(--dash-text) !important;
+  }
+  .dash .table-hover tbody tr:hover{ background: rgba(148,163,184,.10) !important; }
+
+  .dash .case-link{
+    color: var(--dash-text) !important;
+    font-weight: 900;
+    text-decoration:none;
+  }
+  .dash .case-link:hover{ color: var(--dash-primary) !important; text-decoration: underline; }
+
+  .dash .btn-view{
+    background: rgba(59,130,246,.16) !important;
+    border: 1px solid rgba(59,130,246,.25) !important;
+    color: var(--dash-text) !important;
+    font-weight: 900;
+    border-radius: 10px;
+    padding: .35rem .7rem;
+  }
+  .dash .btn-view:hover{ transform: translateY(-1px); }
+
+  .dash .chart-shell{
+    height: 220px;
+    border-radius: 14px;
+    background: var(--dash-soft-2);
+    border: 1px dashed var(--dash-border);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--dash-muted);
+  }
 </style>
 
-<div class="container-fluid py-4">
+<div class="dash container-fluid py-4">
 
-    <div class="alert alert-info border-0 shadow-sm mb-4" style="background-color: #3b82f633 !important; color: #60a5fa !important;">
-        Only admins and attorneys can schedule meetings.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  {# CLIENT CHECK (no parentheses) #}
+  {% if is_client or 'Client' in user_roles %}
+    {# Client: no admin/attorney alert #}
+  {% else %}
+    <div class="alert dash-alert shadow-sm mb-4 d-flex justify-content-between align-items-center gap-3">
+      <div><strong>Note:</strong> Only admins and attorneys can schedule meetings.</div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+  {% endif %}
 
-    <h2 class="dashboard-header fw-bold mb-4">Case Dashboard</h2>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0">
+      {% if is_client or 'Client' in user_roles %}My Cases{% else %}Case Dashboard{% endif %}
+    </h2>
+  </div>
 
-    <div class="row mb-4">
-        
-        <div class="col-lg-8">
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <div class="card stat-card p-3 border-0 shadow-sm h-100 d-flex flex-row align-items-center">
-                        <i class="fas fa-archive fa-2x me-3 text-primary"></i>
-                        <div>
-                            <small class="text-uppercase fw-bold">ACTIVE CASES</small>
-                            <h4 class="mb-0 fw-bold">2</h4>
-                        </div>
-                    </div>
+  {# ===== ADMIN/ATTORNEY ONLY AREA ===== #}
+  {% if is_client or 'Client' in user_roles %}
+    {# Client: hide stats, pending signatures, requests, quick actions, chart #}
+  {% else %}
+
+    <div class="row g-3 mb-4">
+
+      <div class="col-lg-8">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="stat">
+                <div class="stat-ico"><i class="fas fa-briefcase fa-lg" style="color: var(--dash-primary)"></i></div>
+                <div>
+                  <small>ACTIVE CASES</small>
+                  <div class="value">{{ active_case_count|default:0 }}</div>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card stat-card p-3 border-0 shadow-sm h-100 d-flex flex-row align-items-center">
-                        <i class="fas fa-pen-nib fa-2x me-3 text-warning"></i>
-                        <div>
-                            <small class="text-uppercase fw-bold">PENDING SIGNATURES</small>
-                            <h4 class="mb-0 fw-bold">0</h4>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4 mb-3">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <small class="text-uppercase fw-bold mb-2 text-muted">QUICK ACTIONS</small>
-                        
-                        <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action mb-2 w-100">
-                            <i class="fas fa-plus me-2"></i>Create New Case
-                        </a>
-                        
-                        <a href="{% url 'cases:create-meeting' %}" class="btn btn-quick-gold w-100">
-                            <i class="fas fa-calendar-check me-2"></i>Schedule Meeting
-                        </a>
-                    </div>
-                </div>
+              </div>
             </div>
+          </div>
 
-            <div class="card p-4 border-0 shadow-sm mb-4">
-                <h5 class="fw-bold mb-3">Case Stages Overview</h5>
-                {# Placeholder for Chart/Visuals - Updated BG #}
-                <div style="height: 200px; background-color: #334155; border-radius: 8px;">
-                     <p class="text-center text-muted pt-5">Chart visualization area</p>
+          <div class="col-md-4">
+            <div class="card h-100">
+              <div class="stat">
+                <div class="stat-ico"><i class="fas fa-file-signature fa-lg" style="color: var(--dash-gold)"></i></div>
+                <div>
+                  <small>PENDING SIGNATURES</small>
+                  <div class="value">{{ pending_signature_count|default:0 }}</div>
                 </div>
+              </div>
             </div>
+          </div>
 
+          <div class="col-md-4">
+            <div class="card h-100 p-3">
+              <small class="text-uppercase fw-bold mb-2 text-muted">Quick Actions</small>
+
+              <a href="{% url 'cases:case-create' %}" class="btn btn-primary-action w-100 mb-2">
+                <i class="fas fa-plus me-2"></i>Create New Case
+              </a>
+
+              <a href="{% url 'cases:create-meeting' %}" class="btn btn-quick-gold w-100">
+                <i class="fas fa-calendar-check me-2"></i>Schedule Meeting
+              </a>
+            </div>
+          </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card request-card p-3 border-0 shadow-sm h-100">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0"><i class="fas fa-bell me-2 text-warning"></i> Requests</h6>
-                    <span class="badge bg-primary text-white">1</span>
-                </div>
-                
-                <div class="border p-3 rounded" style="border-color: var(--border-color) !important;">
-                    <div class="d-flex justify-content-between small text-muted mb-1">
-                        <span class="fw-bold text-main">John Doe</span>
-                        <span class="text-muted">Nov 24</span>
-                    </div>
-                    <p class="mb-2 text-main">Case file review required: case test</p>
-                    
-                    <a href="{% url 'cases:case-detail' pk=42 %}" class="btn btn-sm btn-request-primary w-100">
-                        View & Schedule
-                    </a>
-                </div>
-                
-            </div>
+        <div class="card p-4 mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="fw-bold mb-0">Case Stages Overview</h5>
+            <span class="text-muted small">Summary</span>
+          </div>
+
+          <div class="chart-shell">
+            Chart visualization area
+          </div>
         </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card p-3 h-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0">
+              <i class="fas fa-bell me-2" style="color: var(--dash-gold)"></i> Requests
+            </h6>
+            <span class="badge" style="background: rgba(59,130,246,.18); color: var(--dash-text); border: 1px solid var(--dash-border);">
+              {{ consultations.count|default:0 }}
+            </span>
+          </div>
+
+          {% if consultations %}
+            <div class="d-grid gap-2">
+              {% for req in consultations %}
+                <div class="request-item">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div class="fw-bold" style="color: var(--dash-text);">{{ req.name }}</div>
+                    <div class="small text-muted">{{ req.created_at|date:"M d" }}</div>
+                  </div>
+                  <div class="small text-muted mb-2">{{ req.service_needed|truncatewords:10 }}</div>
+                  <a href="{% url 'cases:consultation-detail' pk=req.pk %}" class="btn btn-sm btn-request-primary w-100">
+                    View &amp; Schedule
+                  </a>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5 text-muted" style="opacity:.9;">
+              <i class="far fa-bell-slash fa-2x mb-2"></i>
+              <div class="fw-bold" style="color: var(--dash-text);">No requests</div>
+              <div class="small">You’re all caught up.</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
     </div>
 
-    <div class="card p-4 border-0 shadow-sm active-cases-list">
-        <h4 class="fw-bold mb-3">Active Cases List</h4>
-        
-        <div class="table-responsive">
-            <table class="table table-borderless table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th class="small text-uppercase">CASE TITLE</th>
-                        <th class="small text-uppercase">STAGE</th>
-                        <th class="small text-uppercase">TEAM</th>
-                        <th class="small text-uppercase">FILED</th>
-                        <th class="small text-uppercase text-end">ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><a href="{% url 'cases:case-detail' pk=2 %}" class="text-white">test case. 2</a></td>
-                        <td><span class="badge bg-success text-white">client login</span></td>
-                        <td class="text-muted">A C</td>
-                        <td class="text-muted">Nov 24, 2025</td>
-                        <td class="text-end"><a href="{% url 'cases:case-detail' pk=2 %}" class="btn btn-sm btn-link text-primary p-0">View</a></td>
-                    </tr>
-                    <tr>
-                        <td><a href="{% url 'cases:case-detail' pk=1 %}" class="text-white">test 1</a></td>
-                        <td><span class="badge bg-info text-dark">client case</span></td>
-                        <td class="text-muted">A C</td>
-                        <td class="text-muted">Nov 20, 2025</td>
-                        <td class="text-end"><a href="{% url 'cases:case-detail' pk=1 %}" class="btn btn-sm btn-link text-primary p-0">View</a></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+  {% endif %}
+
+  {# ===== EVERYONE: cases list (clients should receive only their cases from the view) ===== #}
+  <div class="card p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold mb-0">
+        {% if is_client or 'Client' in user_roles %}My Active Cases{% else %}Active Cases List{% endif %}
+      </h4>
+      <span class="text-muted small">Showing {{ cases|length }} case(s)</span>
     </div>
+
+    <div class="table-responsive table-shell">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Case Title</th>
+            <th>Stage</th>
+            <th>Team</th>
+            <th>Filed</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for case in cases %}
+            <tr>
+              <td>
+                <a href="{% url 'cases:case-detail' case.pk %}" class="case-link">
+                  {{ case.case_title }}
+                </a>
+                {% if case.case_number %}
+                  <div class="small text-muted">{{ case.case_number }}</div>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if case.current_stage %}
+                  <span class="badge" style="background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.25); color: var(--dash-text);">
+                    {{ case.current_stage.name }}
+                  </span>
+                {% else %}
+                  <span class="text-muted small">New</span>
+                {% endif %}
+              </td>
+
+              <td class="text-muted">
+                {% if case.assignments.all %}
+                  {% for assignment in case.assignments.all %}
+                    {{ assignment.user.first_name|first|default:assignment.user.username|first|upper }}{{ assignment.user.last_name|first|default:""|upper }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <span class="small text-muted">—</span>
+                {% endif %}
+              </td>
+
+              <td class="text-muted">
+                {{ case.date_filed|date:"M d, Y" }}
+              </td>
+
+              <td class="text-end">
+                <a href="{% url 'cases:case-detail' case.pk %}" class="btn btn-sm btn-view">View</a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="text-center py-5 text-muted">
+                <i class="far fa-folder-open fa-2x mb-2" style="opacity:.6;"></i>
+                <div class="fw-bold" style="color: var(--dash-text);">
+                  {% if is_client or 'Client' in user_roles %}
+                    No cases assigned to you yet
+                  {% else %}
+                    No active cases found
+                  {% endif %}
+                </div>
+                <div class="small">
+                  {% if is_client or 'Client' in user_roles %}
+                    Check back later or contact your attorney.
+                  {% else %}
+                    Create a case to get started.
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 </div>
 {% endblock %}
