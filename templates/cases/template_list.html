@@ -10,6 +10,7 @@
     border: 1px solid var(--border-color);
     border-radius: 16px;
     overflow: hidden;
+    background: var(--bg-card);
   }
 
   .tpl-hero{
@@ -31,7 +32,42 @@
     color: var(--text-muted);
     font-size: .85rem;
     font-weight: 600;
+    line-height: 1;
   }
+
+  /* ===== Table alignment fixes ===== */
+  .tpl-table thead th{
+    font-weight: 800;
+    font-size: .85rem;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: var(--text-muted) !important;
+    background: rgba(148,163,184,.06) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    vertical-align: middle;
+    padding: 14px 16px !important;
+    white-space: nowrap;
+  }
+
+  .tpl-table tbody td{
+    vertical-align: middle;
+    padding: 14px 16px !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main);
+  }
+
+  .tpl-table .actions-cell{
+    white-space: nowrap;
+  }
+
+  /* Make tbody rows not fight theme */
+  .tpl-table .table-hover tbody tr:hover{
+    background-color: rgba(148,163,184,.06) !important;
+  }
+
+  /* Make bootstrap "bg-light/bg-white/text-dark" not fight your theme */
+  .bg-white, .bg-light { background-color: transparent !important; }
+  .text-dark { color: var(--text-main) !important; }
 
   /* =========================
      MODAL THEME ALIGNMENT
@@ -54,6 +90,13 @@
   .editor-sidebar{
     background: rgba(148,163,184,0.08);
     border-right: 1px solid var(--border-color);
+    flex: 0 0 320px; /* fixed, prevents weird stretch */
+  }
+
+  /* Editor column should fill remaining width cleanly */
+  .editor-main{
+    min-width: 0; /* prevents overflow causing misalignment */
+    flex: 1 1 auto;
   }
 
   /* Top toolbar inside editor */
@@ -63,25 +106,18 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    min-height: 48px;
   }
 
   /* Preview zone */
   .preview-zone{
     background: rgba(148,163,184,0.08);
+    min-height: 0; /* allows flex overflow to work */
   }
   .preview-surface{
     display: inline-block;
     transform-origin: top center;
     transition: transform 0.1s;
-  }
-
-  /* Make table header consistent */
-  .table thead th{
-    font-weight: 800;
-    font-size: .85rem;
-    letter-spacing: .02em;
-    text-transform: uppercase;
-    color: var(--text-muted) !important;
   }
 
   /* =========================
@@ -143,8 +179,8 @@
     <div class="tpl-hero p-4 p-md-5">
       <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-          <h2 class="fw-bold mb-2">Contract Templates</h2>
-          <p class="text-muted mb-0">Manage your smart templates.</p>
+          <h2 class="fw-bold mb-2" style="color: var(--text-main);">Contract Templates</h2>
+          <p class="mb-0" style="color: var(--text-muted);">Manage your smart templates.</p>
 
           <div class="d-flex flex-wrap gap-2 mt-3">
             <span class="hint-chip"><i class="fas fa-file-contract"></i> Build fillable PDFs</span>
@@ -161,17 +197,17 @@
 
     <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" id="templateTable">
-          <thead class="bg-light">
+        <table class="table table-hover align-middle mb-0 tpl-table" id="templateTable">
+          <thead>
             <tr>
-              <th>Name</th>
-              <th>Last Updated</th>
-              <th>Created By</th>
-              <th class="text-end">Actions</th>
+              <th style="width: 40%;">Name</th>
+              <th style="width: 18%;">Last Updated</th>
+              <th style="width: 22%;">Created By</th>
+              <th class="text-end" style="width: 20%;">Actions</th>
             </tr>
           </thead>
           <tbody id="templateTableBody">
-            <tr><td colspan="4" class="text-center py-5 text-muted">Loading...</td></tr>
+            <tr><td colspan="4" class="text-center py-5" style="color: var(--text-muted);">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -182,8 +218,8 @@
 
 <!-- CREATE MODAL -->
 <div class="modal fade" id="addTemplateModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content h-100">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
 
       <div class="modal-header brand">
         <div>
@@ -194,10 +230,10 @@
       </div>
 
       <div class="modal-body p-0">
-        <div class="d-flex h-100">
+        <div class="d-flex" style="min-height: 80vh;">
 
           <!-- SIDEBAR -->
-          <div class="col-md-3 editor-sidebar p-3 overflow-auto" style="max-height: 80vh;">
+          <aside class="editor-sidebar p-3 overflow-auto">
             <form id="templateCreateForm">
               {% csrf_token %}
 
@@ -214,9 +250,10 @@
                 <input type="text" class="form-control" id="newTemplateName" required placeholder="e.g. NDA Agreement">
               </div>
 
-              <div class="p-3 rounded border" style="background: rgba(59,130,246,0.10); border-color: var(--border-color) !important;">
-                <div class="fw-bold mb-2">Instructions</div>
-                <ol class="small text-muted mb-0 ps-3">
+              <div class="p-3 rounded border"
+                   style="background: rgba(59,130,246,0.10); border-color: var(--border-color) !important;">
+                <div class="fw-bold mb-2" style="color: var(--text-main);">Instructions</div>
+                <ol class="small mb-0 ps-3" style="color: var(--text-muted);">
                   <li>Upload a PDF</li>
                   <li>Auto-detected fields will appear</li>
                   <li>Draw missing fields, resize, or delete</li>
@@ -224,11 +261,10 @@
                 </ol>
               </div>
             </form>
-          </div>
+          </aside>
 
           <!-- EDITOR -->
-          <div class="col-md-9 d-flex flex-column" style="height: 80vh;">
-
+          <main class="editor-main d-flex flex-column">
             <div class="editor-toolbar p-2 d-flex align-items-center gap-3">
               <div class="btn-group btn-group-sm" role="group">
                 <input type="radio" class="btn-check" name="editor-tool" id="tool-text" autocomplete="off" checked>
@@ -244,7 +280,7 @@
 
               <div class="vr"></div>
 
-              <div class="btn-group btn-group-sm">
+              <div class="btn-group btn-group-sm" role="group">
                 <button class="btn btn-outline-secondary" id="zoomOutBtn" type="button"><i class="fas fa-minus"></i></button>
                 <span class="btn btn-outline-secondary disabled fw-bold" id="zoomDisplay" style="width:56px;">100%</span>
                 <button class="btn btn-outline-secondary" id="zoomInBtn" type="button"><i class="fas fa-plus"></i></button>
@@ -264,8 +300,8 @@
                 </div>
               </div>
             </div>
+          </main>
 
-          </div>
         </div>
       </div>
 
@@ -351,7 +387,7 @@
       let fullHtml = '';
       data.pages.forEach(page => {
         let pageHtml = `<div class="pdf-page" style="position: relative; width: ${page.width}px; height: ${page.height}px;">`;
-        pageHtml += `<img src="data:image/png;base64,${page.image}">`;
+        pageHtml += `<img src="data:image/png;base64,${page.image}" alt="PDF page">`;
 
         page.fields.forEach(field => {
           const isCheck = field.type === 'checkbox';
@@ -479,12 +515,41 @@
     const pageRect = wrapper.closest('.pdf-page').getBoundingClientRect();
     const startRect = wrapper.getBoundingClientRect();
     const startX = e.clientX; const startY = e.clientY;
+
+    // support all corners for better alignment feel
     const isSE = handle.classList.contains('handle-se');
+    const isSW = handle.classList.contains('handle-sw');
+    const isNE = handle.classList.contains('handle-ne');
+    const isNW = handle.classList.contains('handle-nw');
+
+    const startLeftPct = parseFloat(wrapper.style.left);
+    const startTopPct  = parseFloat(wrapper.style.top);
+    const startWPct    = parseFloat(wrapper.style.width);
+    const startHPct    = parseFloat(wrapper.style.height);
 
     function onMove(ev) {
-      if(isSE) {
-        wrapper.style.width = (startRect.width + ev.clientX - startX)/pageRect.width*100 + '%';
-        wrapper.style.height = (startRect.height + ev.clientY - startY)/pageRect.height*100 + '%';
+      const dxPct = ((ev.clientX - startX) / pageRect.width) * 100;
+      const dyPct = ((ev.clientY - startY) / pageRect.height) * 100;
+
+      if (isSE) {
+        wrapper.style.width  = Math.max(1, startWPct + dxPct) + '%';
+        wrapper.style.height = Math.max(1, startHPct + dyPct) + '%';
+      }
+      if (isSW) {
+        wrapper.style.left   = (startLeftPct + dxPct) + '%';
+        wrapper.style.width  = Math.max(1, startWPct - dxPct) + '%';
+        wrapper.style.height = Math.max(1, startHPct + dyPct) + '%';
+      }
+      if (isNE) {
+        wrapper.style.top    = (startTopPct + dyPct) + '%';
+        wrapper.style.height = Math.max(1, startHPct - dyPct) + '%';
+        wrapper.style.width  = Math.max(1, startWPct + dxPct) + '%';
+      }
+      if (isNW) {
+        wrapper.style.left   = (startLeftPct + dxPct) + '%';
+        wrapper.style.top    = (startTopPct + dyPct) + '%';
+        wrapper.style.width  = Math.max(1, startWPct - dxPct) + '%';
+        wrapper.style.height = Math.max(1, startHPct - dyPct) + '%';
       }
     }
     function onUp() {
@@ -499,8 +564,8 @@
     canvas.style.transform = `scale(${currentZoom})`;
     document.getElementById('zoomDisplay').textContent = Math.round(currentZoom * 100) + '%';
   }
-  document.getElementById('zoomInBtn').onclick = () => { if(currentZoom < 2.0) { currentZoom += 0.1; updateZoomUI(); } };
-  document.getElementById('zoomOutBtn').onclick = () => { if(currentZoom > 0.5) { currentZoom -= 0.1; updateZoomUI(); } };
+  document.getElementById('zoomInBtn').onclick = () => { if(currentZoom < 2.0) { currentZoom = +(currentZoom + 0.1).toFixed(2); updateZoomUI(); } };
+  document.getElementById('zoomOutBtn').onclick = () => { if(currentZoom > 0.5) { currentZoom = +(currentZoom - 0.1).toFixed(2); updateZoomUI(); } };
 
   // --- 3. SAVE TEMPLATE ---
   document.getElementById('saveNewTemplateBtn').addEventListener('click', async () => {
@@ -529,14 +594,14 @@
 
   // --- 4. FETCH LIST ---
   function fetchTemplates() {
-    tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Loading...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-5" style="color: var(--text-muted);">Loading...</td></tr>';
     fetch('/cases/api/templates/')
       .then(r => r.json())
       .then(data => {
         const list = Array.isArray(data) ? data : (data.results || []);
         tableBody.innerHTML = '';
         if (list.length === 0) {
-          tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No templates found.</td></tr>';
+          tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-4" style="color: var(--text-muted);">No templates found.</td></tr>';
           return;
         }
         list.forEach(t => {
@@ -545,10 +610,18 @@
             <td class="fw-semibold">${t.name}</td>
             <td class="text-muted">${new Date(t.updated_at).toLocaleDateString()}</td>
             <td class="text-muted">${t.created_by_username || 'System'}</td>
-            <td class="text-end">
-              <button class="btn btn-sm btn-outline-secondary me-2 edit-btn" data-id="${t.id}"><i class="fas fa-pen me-1"></i>Edit</button>
-              <button class="btn btn-sm btn-outline-success me-2 download-btn" data-id="${t.id}"><i class="fas fa-download me-1"></i>Download</button>
-              <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="fas fa-trash me-1"></i>Delete</button>
+            <td class="text-end actions-cell">
+              <div class="d-inline-flex gap-2 justify-content-end align-items-center">
+                <button type="button" class="btn btn-sm btn-outline-secondary edit-btn" data-id="${t.id}">
+                  <i class="fas fa-pen me-1"></i>Edit
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success download-btn" data-id="${t.id}">
+                  <i class="fas fa-download me-1"></i>Download
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}">
+                  <i class="fas fa-trash me-1"></i>Delete
+                </button>
+              </div>
             </td>`;
         });
       })
@@ -616,6 +689,8 @@
       </div>`;
     document.getElementById('saveNewTemplateBtn').disabled = true;
     document.getElementById('deleteFieldBtn').disabled = true;
+    currentZoom = 1.0;
+    updateZoomUI();
     addModal.show();
   };
 
