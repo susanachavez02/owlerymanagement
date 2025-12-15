@@ -1,48 +1,139 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+  .dir-shell{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .dir-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .dir-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.14));
+  }
+
+  .user-card{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    overflow: hidden;
+  }
+  .user-card:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 14px 24px rgba(2,6,23,0.16);
+    border-color: rgba(59,130,246,0.45);
+  }
+
+  .avatar{
+    width: 84px;
+    height: 84px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    letter-spacing: .02em;
+    border: 1px solid var(--border-color);
+    background: rgba(148,163,184,0.10);
+    color: var(--text-main);
+  }
+
+  .meta-row{
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    color: var(--text-muted);
+    font-size: .9rem;
+  }
+
+  .card-footer{
+    border-top: 1px solid var(--border-color) !important;
+    background: transparent !important;
+  }
+
+  .muted-strong strong{ color: var(--text-main); }
+</style>
+
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="page-title"><i class="{{ icon }} me-2"></i>{{ page_title }} Directory</h2>
+  <div class="dir-shell card shadow-sm border-0">
+
+    <div class="dir-hero p-4 p-md-5">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <h2 class="fw-bold mb-1">
+            <i class="{{ icon }} me-2 text-muted"></i>{{ page_title }} Directory
+          </h2>
+          <p class="text-muted mb-0">Browse profiles and current case assignments.</p>
+        </div>
+      </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="card-body p-4 p-md-5">
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+
         {% for user in users %}
         <div class="col">
-            <div class="card h-100 shadow-sm hover-card">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
-                            <span class="h1 text-secondary mb-0">{{ user.first_name|first }}{{ user.last_name|first }}</span>
-                        </div>
-                    </div>
-                    <h5 class="card-title fw-bold mb-1">{{ user.get_full_name }}</h5>
-                    <h5 class="card-title fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h5>
-                    <p class="text-muted small mb-3">{{ user.email }}</p>
-                    
-                    {% if user.profile.phone %}
-                        <p class="small mb-2"><i class="fas fa-phone me-2"></i>{{ user.profile.phone }}</p>
-                    {% endif %}
-                    
-                    <a href="{% url 'cases:user-profile' user.pk %}" class="btn btn-outline-gold btn-sm mt-2">View Profile</a>
+          <div class="card user-card h-100 shadow-sm border-0">
+            <div class="card-body text-center p-4">
+
+              <div class="mb-3">
+                <div class="avatar mx-auto">
+                  <span style="font-size: 1.65rem;">
+                    {{ user.first_name|first|default:user.username|first|upper }}{{ user.last_name|first|default:""|upper }}
+                  </span>
                 </div>
-                <div class="card-footer bg-white border-top-0 text-center pb-3">
-                    <small class="text-muted">
-                        Active Cases: <strong>{{ user.case_assignments.count }}</strong>
-                    </small>
+              </div>
+
+              <h5 class="fw-bold mb-1">
+                {{ user.get_full_name|default:user.username }}
+              </h5>
+
+              {% if user.email %}
+                <div class="meta-row mb-2">
+                  <i class="fas fa-envelope"></i>
+                  <span>{{ user.email }}</span>
                 </div>
+              {% else %}
+                <div class="text-muted small mb-2">No email on file</div>
+              {% endif %}
+
+              {% if user.profile.phone %}
+                <div class="meta-row mb-2">
+                  <i class="fas fa-phone"></i>
+                  <span>{{ user.profile.phone }}</span>
+                </div>
+              {% endif %}
+
+              <div class="mt-3">
+                <a href="{% url 'cases:user-profile' user.pk %}" class="btn btn-outline-gold btn-sm px-3">
+                  View Profile
+                </a>
+              </div>
             </div>
+
+            <div class="card-footer text-center py-3">
+              <small class="text-muted muted-strong">
+                Active Cases: <strong>{{ user.case_assignments.count }}</strong>
+              </small>
+            </div>
+          </div>
         </div>
         {% empty %}
         <div class="col-12 text-center py-5">
-            <h4 class="text-muted">No {{ page_title|lower }} found in the database.</h4>
+          <div class="text-muted">
+            <i class="far fa-folder-open fa-3x mb-3 opacity-50"></i>
+            <h4 class="mb-1">No {{ page_title|lower }} found</h4>
+            <div class="small">Try adjusting your filters or check back later.</div>
+          </div>
         </div>
         {% endfor %}
-    </div>
-</div>
 
-<style>
-.hover-card { transition: transform 0.2s; }
-.hover-card:hover { transform: translateY(-5px); }
-</style>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

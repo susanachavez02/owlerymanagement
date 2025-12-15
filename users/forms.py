@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import SetPasswordForm
-from .models import OnboardingKey, Role
+from .models import OnboardingKey, Role, UserProfile
 import uuid
 
 class AdminCreateKeyForm(forms.Form):
@@ -170,3 +170,21 @@ class UserDeleteAdminForm(forms.Form):
         if self.user_instance and entered_username != self.user_instance.username:
             raise forms.ValidationError("The username does not match.")
         return entered_username
+    
+
+
+class AvatarUpdateForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ["profile_picture"]
+
+    def clean_profile_picture(self):
+        img = self.cleaned_data.get("profile_picture")
+        if not img:
+            return img
+
+        # Optional: basic validation
+        if img.size > 3 * 1024 * 1024:  # 3MB
+            raise forms.ValidationError("Image file too large (max 3MB).")
+
+        return img

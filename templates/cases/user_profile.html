@@ -1,100 +1,278 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card shadow-sm mb-4">
-        <div class="card-body p-4">
-            <div class="d-flex align-items-center">
-                
-                <div class="me-4">
-                    {% if profile_user.profile.profile_picture %}
-                        <img src="{{ profile_user.profile.profile_picture.url }}" 
-                             alt="{{ profile_user.username }}" 
-                             class="rounded-circle shadow-sm"
-                             style="width: 100px; height: 100px; object-fit: cover;">
-                    {% else %}
-                        <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center" 
-                             style="width: 100px; height: 100px; font-size: 2.5rem;">
-                            {{ profile_user.first_name|first }}{{ profile_user.last_name|first }}
-                        </div>
-                    {% endif %}
-                </div>
+<style>
+  /* Page wrapper */
+  .profile-wrap { max-width: 1100px; }
 
-                <div>
-                    <h2 class="fw-bold mb-1">{{ profile_user.get_full_name }}</h2>
-                    <h2 class="fw-bold mb-1">{{ profile_user.get_full_name|default:profile_user.username }}</h2>
-                    <p class="text-muted mb-2">{{ profile_user.email }}</p>
-                    <span class="badge bg-primary rounded-pill">
-                        {{ profile_user.roles.first.name|default:"User" }}
-                    </span>
-                    <p class="mb-0 mt-2 small text-muted">
-                        <i class="fas fa-phone me-1"></i> {{ profile_user.profile.phone|default:"No phone listed" }}
-                    </p>
-                </div>
+  /* Header card */
+  .profile-hero{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+  .profile-hero-top{
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(196,162,76,0.12), rgba(59,130,246,0.10));
+  }
+  :root[data-theme="dark"] .profile-hero-top{
+    background: linear-gradient(135deg, rgba(196,162,76,0.16), rgba(59,130,246,0.14));
+  }
+
+  .meta-pill{
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .65rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: rgba(148,163,184,0.08);
+    color: var(--text-muted);
+    font-size: .85rem;
+  }
+
+  /* Section cards */
+  .section-card{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+  .section-card .section-hd{
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 800;
+    color: var(--text-main);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+  }
+  .section-card .section-bd{ padding: 0; }
+
+  /* Table */
+  .table thead th{
+    color: var(--text-muted) !important;
+    border-color: var(--border-color) !important;
+    background: rgba(148,163,184,0.06) !important;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: .75rem;
+  }
+  .table tbody td{
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+  }
+  .table-hover tbody tr:hover{
+    background: rgba(59,130,246,0.08) !important;
+  }
+
+  /* User chips */
+  .user-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .4rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: rgba(148,163,184,0.06);
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: .9rem;
+    margin: 0 .35rem .35rem 0;
+  }
+  .chip-avatar{
+    width: 26px; height: 26px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(148,163,184,0.16);
+    color: var(--text-main);
+    font-weight: 800;
+    font-size: .75rem;
+    border: 1px solid var(--border-color);
+  }
+</style>
+
+<div class="container profile-wrap py-3">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Profile</h2>
+      <div class="text-muted">Overview, assigned cases, and collaborators.</div>
+    </div>
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-2"></i>Back
+    </a>
+  </div>
+
+  <!-- HERO -->
+  <div class="profile-hero shadow-sm mb-4">
+    <div class="profile-hero-top">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <h3 class="fw-bold mb-1">{{ profile_user.get_full_name|default:profile_user.username }}</h3>
+          <div class="text-muted">
+            {% if profile_user.email %}{{ profile_user.email }}{% else %}No email on file{% endif %}
+          </div>
+
+          {% if profile_user.profile and profile_user.profile.phone %}
+            <div class="mt-2 meta-pill">
+              <i class="fas fa-phone"></i>
+              <span>{{ profile_user.profile.phone }}</span>
             </div>
+          {% endif %}
         </div>
+
+        <div class="d-flex flex-wrap justify-content-end gap-2">
+          {% for r in profile_user.roles.all %}
+            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">
+              {{ r.name }}
+            </span>
+          {% empty %}
+            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">
+              User
+            </span>
+          {% endfor %}
+        </div>
+      </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-8">
-            <h4 class="page-title mb-3">📂 Associated Cases</h4>
-            <div class="list-group shadow-sm mb-4">
-                {% for assignment in assignments %}
-                <a href="{% url 'cases:case-detail' assignment.case.pk %}" class="list-group-item list-group-item-action p-3">
-                    <div class="d-flex w-100 justify-content-between align-items-center">
-                        <h5 class="mb-1 fw-bold text-primary">{{ assignment.case.case_title }}</h5>
-                        <small class="text-muted">{{ assignment.case.date_filed|date:"M d, Y" }}</small>
-                    </div>
-                    <p class="mb-1 text-secondary small">{{ assignment.case.description|truncatewords:20 }}</p>
-                    <span class="badge bg-success rounded-pill mt-2">{{ assignment.case.current_stage.name }}</span>
-                </a>
-                {% empty %}
-                <div class="list-group-item p-4 text-center text-muted">
-                    No active cases found for this user.
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
+    <div class="p-4">
+      <div class="row g-3">
         <div class="col-md-4">
-            {% if related_people %}
-            <h4 class="page-title mb-3">👥 Related {{ related_title }}</h4>
-            <div class="card shadow-sm">
-                <ul class="list-group list-group-flush">
-                    {% for person in related_people %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center p-3">
-                        <div class="d-flex align-items-center">
-                            
-                            <div class="me-3" style="width: 40px; height: 40px;">
-                                {% if person.profile.profile_picture %}
-                                    <img src="{{ person.profile.profile_picture.url }}" 
-                                         class="rounded-circle w-100 h-100 shadow-sm" 
-                                         style="object-fit: cover;">
-                                {% else %}
-                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center w-100 h-100">
-                                        <small class="fw-bold text-secondary">
-                                            {{ person.first_name|first }}{{ person.last_name|first }}
-                                        </small>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div>
-                                <a href="{% url 'cases:user-profile' person.pk %}" class="text-decoration-none text-dark fw-bold">
-                                    {{ person.get_full_name|default:person.username }}
-                                </a>
-                                <div class="small text-muted" style="font-size: 0.8rem;">{{ person.email }}</div>
-                            </div>
-                        </div>
-                        <a href="{% url 'cases:user-profile' person.pk %}" class="btn btn-sm btn-light">
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
+          <div class="meta-pill w-100 justify-content-between">
+            <span class="d-flex align-items-center gap-2">
+              <i class="fas fa-user"></i> Username
+            </span>
+            <strong style="color: var(--text-main);">{{ profile_user.username }}</strong>
+          </div>
         </div>
+        <div class="col-md-4">
+          <div class="meta-pill w-100 justify-content-between">
+            <span class="d-flex align-items-center gap-2">
+              <i class="fas fa-briefcase"></i> Active Cases
+            </span>
+            <strong style="color: var(--text-main);">{{ profile_user.case_assignments.count }}</strong>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="meta-pill w-100 justify-content-between">
+            <span class="d-flex align-items-center gap-2">
+              <i class="fas fa-clock"></i> Member Since
+            </span>
+            <strong style="color: var(--text-main);">
+              {% if profile_user.date_joined %}{{ profile_user.date_joined|date:"M Y" }}{% else %}-{% endif %}
+            </strong>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Associated Cases -->
+  <div class="section-card shadow-sm mb-4">
+    <div class="section-hd">
+      <span><i class="fas fa-folder-open me-2 text-muted"></i>Associated Cases</span>
+      <span class="text-muted small">{{ profile_user.case_assignments.count }} total</span>
+    </div>
+    <div class="section-bd">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-4">Case</th>
+              <th>Status</th>
+              <th>Stage</th>
+              <th>Filed</th>
+              <th class="text-end pe-4">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for assignment in profile_user.case_assignments.all %}
+              {% with c=assignment.case %}
+              <tr>
+                <td class="ps-4">
+                  <div class="fw-bold">{{ c.case_title }}</div>
+                  <div class="text-muted small">{{ c.case_number|default:"" }}</div>
+                </td>
+                <td>
+                  {% if c.is_archived %}
+                    <span class="badge bg-secondary">Archived</span>
+                  {% else %}
+                    <span class="badge bg-success">Active</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if c.current_stage %}
+                    <span class="badge bg-info text-dark bg-opacity-10 border border-info">
+                      {{ c.current_stage.name }}
+                    </span>
+                  {% else %}
+                    <span class="text-muted small">-</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted small">
+                  {% if c.date_filed %}{{ c.date_filed|date:"M d, Y" }}{% else %}-{% endif %}
+                </td>
+                <td class="text-end pe-4">
+                  <a href="{% url 'cases:case-detail' pk=c.pk %}" class="btn btn-sm btn-outline-primary">
+                    View
+                  </a>
+                </td>
+              </tr>
+              {% endwith %}
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center py-5 text-muted">
+                  <i class="far fa-folder-open fa-2x mb-2 opacity-50"></i>
+                  <div>No associated cases found.</div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Associated Users (collaborators from the same cases) -->
+  <div class="section-card shadow-sm">
+    <div class="section-hd">
+      <span><i class="fas fa-users me-2 text-muted"></i>Associated Users</span>
+      <span class="text-muted small">People assigned to the same cases</span>
+    </div>
+    <div class="p-4">
+      {% comment %}
+        This shows users assigned to the same cases.
+        It assumes:
+          - assignment.case.assignments.all exists
+          - assignment.user exists
+      {% endcomment %}
+
+      {% with seen_ids="" %}
+      <div>
+        {% for assignment in profile_user.case_assignments.all %}
+          {% for a in assignment.case.assignments.all %}
+            {% if a.user.pk != profile_user.pk %}
+              <a class="user-chip text-decoration-none" href="{% url 'cases:user-profile' a.user.pk %}">
+                <span class="chip-avatar">
+                  {{ a.user.first_name|first|default:a.user.username|first|upper }}{{ a.user.last_name|first|default:""|upper }}
+                </span>
+                <span>{{ a.user.get_full_name|default:a.user.username }}</span>
+              </a>
+            {% endif %}
+          {% endfor %}
+        {% empty %}
+          <div class="text-muted">No cases, so no collaborators to show.</div>
+        {% endfor %}
+      </div>
+      {% endwith %}
+    </div>
+  </div>
+
 </div>
 {% endblock %}

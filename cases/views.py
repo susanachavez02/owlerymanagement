@@ -23,6 +23,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from users.models import UserProfile
 from .utils import generate_document_from_template
+from communication.models import Message
+from communication.forms import NewMessageForm
 
 # --- WeasyPrint Imports ---
 from weasyprint import HTML, CSS
@@ -262,6 +264,17 @@ def case_detail_view(request, pk):
         'next_stage': next_stage,
         'meetings': meetings,  # <--- PASS TO TEMPLATE
     }
+
+    messages_thread = Message.objects.filter(case=case).filter(
+    Q(sender=request.user) | Q(recipient=request.user)
+    ).order_by("sent_at")
+
+    message_form = NewMessageForm()  # empty form for the input
+
+    context.update({
+        "messages_thread": messages_thread,
+        "message_form": message_form,
+    })
     return render(request, 'cases/case_detail.html', context)
 
 # --- View 4: Document Audit Log (SECURED) ---

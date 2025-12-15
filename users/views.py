@@ -8,11 +8,12 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from django.conf import settings
 from .models import OnboardingKey, UserProfile, Role
-from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm, UserCreationAdminForm, UserEditAdminForm
+from .forms import AdminCreateKeyForm, RegisterWithKeyForm, UserSetPasswordForm, ClientReassignmentForm, UserCreationAdminForm, UserEditAdminForm, AvatarUpdateForm
 from cases.models import Case, CaseAssignment, ConsultationRequest
 from django.urls import reverse
 from django.core.mail import send_mail
 from django.db.models import Q
+from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
 
 # --- NEW: Homepage View ---
@@ -391,47 +392,54 @@ def user_edit_view(request, user_pk):
 
 
 
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
 @login_required
 def profile_view(request, user_pk):
-    # Get the user whose profile is being viewed
-    profile_user = get_object_or_404(User.objects.prefetch_related('roles', 'profile'), pk=user_pk)
-    
-    # Get the user who is doing the viewing
+    # OneToOne -> select_related, ManyToMany -> prefetch_related
+    profile_user = get_object_or_404(
+        User.objects.select_related("profile").prefetch_related("roles"),
+        pk=user_pk
+    )
+
     viewer = request.user
-    
-    # Get roles for easier checking (using the context processor logic here is fine too)
-    viewer_roles = set(viewer.roles.values_list('name', flat=True))
-    profile_roles = set(profile_user.roles.values_list('name', flat=True))
-    
+
+    viewer_roles = set(viewer.roles.values_list("name", flat=True))
+    profile_roles = set(profile_user.roles.values_list("name", flat=True))
+
     # --- Permission Logic ---
     can_view = False
-    
-    if 'Admin' in viewer_roles:
-        # Admins can see everyone
+
+    if "Admin" in viewer_roles:
         can_view = True
-    elif 'Attorney' in viewer_roles:
-        # Attorneys can see Admins and Clients
-        if 'Admin' in profile_roles or 'Client' in profile_roles:
+    elif "Attorney" in viewer_roles:
+        if "Admin" in profile_roles or "Client" in profile_roles:
             can_view = True
-    elif 'Client' in viewer_roles:
-        # Clients can see Attorneys
-        if 'Attorney' in profile_roles:
+    elif "Client" in viewer_roles:
+        if "Attorney" in profile_roles:
             can_view = True
-            
-    # Also allow users to view their own profile
-    if viewer == profile_user:
+
+    # Always allow self-view
+    if viewer.pk == profile_user.pk:
         can_view = True
-        
-    # --- Render or Deny ---
-    if can_view:
-        context = {
-            'profile_user': profile_user,
-        }
-        return render(request, 'users/profile_detail.html', context)
-    else:
+
+    if not can_view:
         messages.error(request, "You do not have permission to view this profile.")
-        # Redirect to the viewer's own dashboard
-        return redirect('users:dashboard')
+        return redirect("users:dashboard")
+
+    # Upload photo permission: self OR Admin
+    can_edit_photo = (viewer.pk == profile_user.pk) or ("Admin" in viewer_roles)
+
+    return render(request, "users/profile_detail.html", {
+        "profile_user": profile_user,
+        "can_edit_photo": can_edit_photo,
+    })
+
     
 def attorneys_firm_view(request):
     return render(request, 'public/attorneys.html')
@@ -444,3 +452,25 @@ def success_stories_view(request):
 
 def contact_page_view(request):
     return render(request, 'public/contact.html')
+
+
+
+User = get_user_model()
+
+@login_required
+@require_POST
+def update_avatar(request, pk):
+    user_obj = get_object_or_404(User, pk=pk)
+
+    # Permission: user can update self, or staff/admin can update anyone
+    if request.user.pk != user_obj.pk and not request.user.is_staff:
+        return HttpResponseForbidden("Not allowed.")
+
+    profile = user_obj.profile  # requires related_name="profile" OR default user.profile
+
+    form = AvatarUpdateForm(request.POST, request.FILES, instance=profile)
+    if form.is_valid():
+        form.save()
+
+    # Redirect back where user came from (nice for modals)
+    return redirect(request.META.get("HTTP_REFERER", "/"))

@@ -1,25 +1,108 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Case Workflows</h2>
+<style>
+  .page-wrap{ max-width: 980px; }
+
+  .wf-shell{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+
+  .wf-hero{
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(196,162,76,0.12), rgba(59,130,246,0.10));
+  }
+  :root[data-theme="dark"] .wf-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.16), rgba(59,130,246,0.14));
+  }
+
+  .wf-sub{ color: var(--text-muted); margin: 0; }
+
+  .wf-item{
+    background: transparent !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+    padding: 16px 18px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 14px;
+    transition: background .12s ease;
+    text-decoration: none;
+  }
+  .wf-item:hover{
+    background: rgba(59,130,246,0.08) !important;
+  }
+
+  .wf-name{
+    font-weight: 800;
+    margin: 0;
+    color: var(--text-main);
+  }
+  .wf-meta{
+    color: var(--text-muted);
+    font-size: .9rem;
+    white-space: nowrap;
+  }
+
+  .empty-state{
+    padding: 32px 18px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+</style>
+
+<div class="container page-wrap py-3">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <a href="{% url 'cases:workflow-create' %}" class="btn btn-primary">Create New Workflow</a>
-      <a href="{% url 'cases:case-dashboard' %}" class="btn btn-secondary">Back to Case Dashboard</a>
+      <h2 class="fw-bold mb-1">Case Workflows</h2>
+      <p class="wf-sub">Manage the sequences of stages for different case types.</p>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap justify-content-end">
+      <a href="{% url 'cases:workflow-create' %}" class="btn btn-primary-action">
+        <i class="fas fa-plus me-2"></i>Create New Workflow
+      </a>
+      <a href="{% url 'cases:case-dashboard' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Case Dashboard
+      </a>
     </div>
   </div>
-  <p>Manage the sequences of stages for different case types.</p>
 
-  <div class="list-group">
-    {% for workflow in workflows %}
-      <a href="{% url 'cases:workflow-detail' pk=workflow.pk %}" class="list-group-item list-group-item-action">
-        <h5 class="mb-1">{{ workflow.name }}</h5>
-        <small>{{ workflow.stages.count }} stage(s)</small>
-      </a>
-    {% empty %}
-      <div class="alert alert-info" role="alert">
-        No workflows have been created yet.
+  <div class="wf-shell shadow-sm">
+    <div class="wf-hero">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fas fa-project-diagram text-muted"></i>
+        <span class="fw-bold" style="color: var(--text-main);">Workflows</span>
       </div>
-    {% endfor %}
+      <div class="text-muted small mt-1">Click a workflow to view and manage its stages.</div>
+    </div>
+
+    <div class="list-group list-group-flush">
+      {% for workflow in workflows %}
+        <a href="{% url 'cases:workflow-detail' pk=workflow.pk %}" class="list-group-item wf-item">
+          <div>
+            <h5 class="wf-name">{{ workflow.name }}</h5>
+            <div class="wf-meta">{{ workflow.stages.count }} stage(s)</div>
+          </div>
+          <div class="wf-meta">
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </a>
+      {% empty %}
+        <div class="empty-state">
+          <i class="far fa-folder-open fa-2x mb-2 opacity-50"></i>
+          <div class="fw-bold" style="color: var(--text-main);">No workflows yet</div>
+          <div class="small">Create your first workflow to start defining case stages.</div>
+        </div>
+      {% endfor %}
+    </div>
   </div>
+
+</div>
 {% endblock %}

@@ -25,8 +25,8 @@ urlpatterns = [
     path('workflows/stage/create/<int:workflow_pk>/', views.stage_create_view, name='stage-create'),
 
     # --- Meeting Management ---
-    path('create-meeting/', views.create_meeting_view, name='create-meeting'),  # From dashboard
-    path('<int:case_pk>/create-meeting/', views.create_meeting_view, name='create-meeting'),
+    path('create-meeting/', views.create_meeting_view, name='create-meeting'),
+    path('<int:pk>/create-meeting/', views.create_meeting_view, name='create-meeting'),  # From case detail
     path('<int:meeting_pk>/edit-meeting/', views.edit_meeting_view, name='edit-meeting'),  # From case detail
 
     # --- NEW: Admin Template Management ---

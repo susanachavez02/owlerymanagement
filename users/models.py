@@ -12,7 +12,7 @@ class UserProfile(models.Model):
     firm_role = models.CharField(max_length=100, blank=True)
     
     # ADD THIS LINE:
-    profile_picture = models.ImageField(default='default_profile.png', upload_to='profile_pics', blank=True, null=True)
+    profile_picture = models.ImageField(upload_to="profile_pics/", blank=True, null=True)
 
     def __str__(self):
         return f'{self.user.username} Profile'

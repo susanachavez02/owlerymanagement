@@ -2,12 +2,81 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <h2>Upload New Template</h2>
-  <p>Upload a .docx or other template file and define its placeholder fields.</p>
-  
-  <form method="POST" enctype="multipart/form-data" novalidate>
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-success mt-3">Upload Template</button>
-  </form>
+<style>
+  .upload-shell{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .upload-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .upload-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.14));
+  }
+
+  .hint-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(148,163,184,0.10);
+    color: var(--text-muted);
+    font-size: .85rem;
+    font-weight: 600;
+  }
+
+  .form-actions{
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+    margin-top: 1.75rem;
+  }
+</style>
+
+<div class="container px-0" style="max-width: 900px;">
+  <div class="upload-shell card shadow-sm border-0">
+
+    <div class="upload-hero p-4 p-md-5">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <h2 class="fw-bold mb-2">Upload New Template</h2>
+          <p class="text-muted mb-0">
+            Upload a <strong>.docx</strong> (or other supported template file) and define its placeholder fields.
+          </p>
+
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <span class="hint-chip"><i class="fas fa-file-word"></i> Upload .docx</span>
+            <span class="hint-chip"><i class="fas fa-i-cursor"></i> Use placeholders</span>
+            <span class="hint-chip"><i class="fas fa-check-circle"></i> Save for reuse</span>
+          </div>
+        </div>
+
+        {# Optional: add a back button if you have a list page #}
+        {# <a href="{% url 'cases:template-list' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Back</a> #}
+      </div>
+    </div>
+
+    <div class="card-body p-4 p-md-5">
+      <form method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        {{ form|crispy }}
+
+        <div class="form-actions d-flex justify-content-end gap-2">
+          <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary-action px-4">
+            <i class="fas fa-upload me-2"></i>Upload Template
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
 {% endblock %}

@@ -23,6 +23,7 @@ urlpatterns = [
     # e.g., /users/set-password/a-long-uuid-key/
     path('set-password/<uuid:key>/', views.set_password_view, name='set-password'),
     path('user-edit/<int:pk>/', views.user_edit_view, name='user-edit'),
+    path("users/<int:pk>/avatar/", views.update_avatar, name="update-avatar"),
 
     # Public Pages
     path('features/', views.features_view, name='features'),

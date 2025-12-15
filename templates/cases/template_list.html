@@ -1,471 +1,624 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block content %}
+<style>
+  /* =========================
+     PAGE POLISH (theme-aware)
+     ========================= */
+  .tpl-shell{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .tpl-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .tpl-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.14));
+  }
+
+  .hint-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(148,163,184,0.10);
+    color: var(--text-muted);
+    font-size: .85rem;
+    font-weight: 600;
+  }
+
+  /* =========================
+     MODAL THEME ALIGNMENT
+     ========================= */
+  .modal-content{
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 16px;
+  }
+  .modal-header, .modal-footer{
+    border-color: var(--border-color) !important;
+  }
+  .modal-header.brand{
+    background: linear-gradient(135deg, rgba(59,130,246,0.16), rgba(196,162,76,0.12));
+  }
+  :root[data-theme="dark"] .btn-close { filter: invert(1); }
+
+  /* Left sidebar in create modal */
+  .editor-sidebar{
+    background: rgba(148,163,184,0.08);
+    border-right: 1px solid var(--border-color);
+  }
+
+  /* Top toolbar inside editor */
+  .editor-toolbar{
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  /* Preview zone */
+  .preview-zone{
+    background: rgba(148,163,184,0.08);
+  }
+  .preview-surface{
+    display: inline-block;
+    transform-origin: top center;
+    transition: transform 0.1s;
+  }
+
+  /* Make table header consistent */
+  .table thead th{
+    font-weight: 800;
+    font-size: .85rem;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: var(--text-muted) !important;
+  }
+
+  /* =========================
+     SHARED EDITOR STYLES
+     ========================= */
+  .pdf-page{
+    position: relative;
+    box-shadow: 0 10px 18px rgba(0,0,0,0.18);
+    margin-bottom: 20px;
+    background: white;
+    z-index: 1;
+    line-height: 0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .pdf-page img{ pointer-events: none; width: 100%; height: 100%; display: block; }
+
+  .field-wrapper{
+    position: absolute;
+    border: 1px solid #0d6efd;
+    background: rgba(13, 110, 253, 0.10);
+    box-sizing: border-box;
+    z-index: 10;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+  }
+  .field-wrapper.selected{
+    background: rgba(13, 110, 253, 0.25);
+    z-index: 20;
+    outline: 2px solid rgba(13,110,253,0.35);
+  }
+
+  .resize-handle{
+    position: absolute; width: 8px; height: 8px;
+    background: white; border: 1px solid #0d6efd;
+    display: none; z-index: 30;
+  }
+  .field-wrapper.selected .resize-handle{ display: block; }
+  .handle-nw { top: -4px; left: -4px; cursor: nw-resize; }
+  .handle-ne { top: -4px; right: -4px; cursor: ne-resize; }
+  .handle-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+  .handle-se { bottom: -4px; right: -4px; cursor: se-resize; }
+
+  .pdf-input{
+    width: 100%; height: 100%;
+    background: transparent; border: none; outline: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    font-weight: 800; font-size: 13px;
+    padding: 0 4px; box-sizing: border-box;
+    cursor: pointer; user-select: none;
+  }
+  input[type="checkbox"].pdf-input{ width: 100%; height: 100%; margin: 0; cursor: pointer; }
+</style>
 
 <div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="tpl-shell card shadow-sm border-0">
+
+    <div class="tpl-hero p-4 p-md-5">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-            <h2 class="mb-1">Contract Templates</h2>
-            <p class="text-muted">Manage your smart templates.</p>
+          <h2 class="fw-bold mb-2">Contract Templates</h2>
+          <p class="text-muted mb-0">Manage your smart templates.</p>
+
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <span class="hint-chip"><i class="fas fa-file-contract"></i> Build fillable PDFs</span>
+            <span class="hint-chip"><i class="fas fa-mouse-pointer"></i> Draw / resize fields</span>
+            <span class="hint-chip"><i class="fas fa-download"></i> Download anytime</span>
+          </div>
         </div>
-        <button id="addNewTemplateBtn" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i> Add New Template
+
+        <button id="addNewTemplateBtn" class="btn btn-primary-action">
+          <i class="fas fa-plus me-2"></i>Add New Template
         </button>
+      </div>
     </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="templateTable">
-                <thead class="table-light">
-                    <tr>
-                        <th>Name</th>
-                        <th>Last Updated</th>
-                        <th>Created By</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="templateTableBody">
-                    <tr><td colspan="4" class="text-center py-5">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="templateTable">
+          <thead class="bg-light">
+            <tr>
+              <th>Name</th>
+              <th>Last Updated</th>
+              <th>Created By</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="templateTableBody">
+            <tr><td colspan="4" class="text-center py-5 text-muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+
+  </div>
 </div>
 
+<!-- CREATE MODAL -->
 <div class="modal fade" id="addTemplateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content h-100">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Smart Template</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-0">
-                <div class="d-flex h-100">
-                    
-                    <div class="col-md-3 border-end p-3 bg-light overflow-auto" style="max-height: 80vh;">
-                        <form id="templateCreateForm">
-                            {% csrf_token %}
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">1. Upload Master PDF</label>
-                                <input class="form-control" type="file" id="pdf_converter" name="template_file" accept=".pdf">
-                                <div id="convert_loading" class="form-text text-primary mt-2" style="display:none;">
-                                    <i class="fas fa-spinner fa-spin me-1"></i> Analyzing document...
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">2. Template Name</label>
-                                <input type="text" class="form-control" id="newTemplateName" required placeholder="e.g. NDA Agreement">
-                            </div>
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content h-100">
 
-                            <div class="alert alert-info small">
-                                <strong>Instructions:</strong><br>
-                                1. Upload a PDF.<br>
-                                2. The system will auto-detect fields.<br>
-                                3. <strong>Draw</strong> missing fields, <strong>Resize</strong> to fit, or <strong>Delete</strong> mistakes.<br>
-                                4. Click Create when finished.
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="col-md-9 d-flex flex-column" style="height: 80vh;">
-                        
-                        <div class="p-2 border-bottom bg-white d-flex align-items-center gap-3 shadow-sm" style="z-index: 10;">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <input type="radio" class="btn-check" name="editor-tool" id="tool-text" autocomplete="off" checked>
-                                <label class="btn btn-outline-secondary" for="tool-text"><i class="fas fa-font me-1"></i> Text</label>
-
-                                <input type="radio" class="btn-check" name="editor-tool" id="tool-check" autocomplete="off">
-                                <label class="btn btn-outline-secondary" for="tool-check"><i class="fas fa-check-square me-1"></i> Check</label>
-                            </div>
-
-                            <button class="btn btn-sm btn-outline-danger" id="deleteFieldBtn" disabled title="Delete Selected (Del)">
-                                <i class="fas fa-trash-alt"></i> Remove
-                            </button>
-
-                            <div class="vr"></div>
-
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary" id="zoomOutBtn"><i class="fas fa-minus"></i></button>
-                                <span class="btn btn-outline-secondary disabled text-dark fw-bold" id="zoomDisplay" style="width:50px;">100%</span>
-                                <button class="btn btn-outline-secondary" id="zoomInBtn"><i class="fas fa-plus"></i></button>
-                            </div>
-                        </div>
-
-                        <div class="flex-grow-1 bg-secondary bg-opacity-10 overflow-auto p-4 text-center">
-                            <div id="preview_container" style="display: inline-block; transform-origin: top center; transition: transform 0.1s;">
-                                <div class="text-center text-muted mt-5">
-                                    <i class="fas fa-file-pdf fa-3x mb-3 opacity-50"></i>
-                                    <h5>Upload a PDF to verify & edit fields.</h5>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveNewTemplateBtn" disabled>Create Template</button>
-            </div>
+      <div class="modal-header brand">
+        <div>
+          <h5 class="modal-title fw-bold mb-0">Create Smart Template</h5>
+          <div class="text-muted small">Upload a PDF, verify detected fields, then create.</div>
         </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-0">
+        <div class="d-flex h-100">
+
+          <!-- SIDEBAR -->
+          <div class="col-md-3 editor-sidebar p-3 overflow-auto" style="max-height: 80vh;">
+            <form id="templateCreateForm">
+              {% csrf_token %}
+
+              <div class="mb-4">
+                <label class="form-label fw-bold">1. Upload Master PDF</label>
+                <input class="form-control" type="file" id="pdf_converter" name="template_file" accept=".pdf">
+                <div id="convert_loading" class="form-text text-primary mt-2" style="display:none;">
+                  <i class="fas fa-spinner fa-spin me-1"></i> Analyzing document...
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-bold">2. Template Name</label>
+                <input type="text" class="form-control" id="newTemplateName" required placeholder="e.g. NDA Agreement">
+              </div>
+
+              <div class="p-3 rounded border" style="background: rgba(59,130,246,0.10); border-color: var(--border-color) !important;">
+                <div class="fw-bold mb-2">Instructions</div>
+                <ol class="small text-muted mb-0 ps-3">
+                  <li>Upload a PDF</li>
+                  <li>Auto-detected fields will appear</li>
+                  <li>Draw missing fields, resize, or delete</li>
+                  <li>Click <strong>Create Template</strong></li>
+                </ol>
+              </div>
+            </form>
+          </div>
+
+          <!-- EDITOR -->
+          <div class="col-md-9 d-flex flex-column" style="height: 80vh;">
+
+            <div class="editor-toolbar p-2 d-flex align-items-center gap-3">
+              <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="editor-tool" id="tool-text" autocomplete="off" checked>
+                <label class="btn btn-outline-secondary" for="tool-text"><i class="fas fa-font me-1"></i>Text</label>
+
+                <input type="radio" class="btn-check" name="editor-tool" id="tool-check" autocomplete="off">
+                <label class="btn btn-outline-secondary" for="tool-check"><i class="fas fa-check-square me-1"></i>Check</label>
+              </div>
+
+              <button class="btn btn-sm btn-outline-danger" id="deleteFieldBtn" disabled title="Delete Selected (Del)">
+                <i class="fas fa-trash-alt me-1"></i>Remove
+              </button>
+
+              <div class="vr"></div>
+
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" id="zoomOutBtn" type="button"><i class="fas fa-minus"></i></button>
+                <span class="btn btn-outline-secondary disabled fw-bold" id="zoomDisplay" style="width:56px;">100%</span>
+                <button class="btn btn-outline-secondary" id="zoomInBtn" type="button"><i class="fas fa-plus"></i></button>
+              </div>
+
+              <span class="ms-auto text-muted small">
+                Tip: Click a field to select. Press <kbd>Del</kbd> to remove.
+              </span>
+            </div>
+
+            <div class="flex-grow-1 preview-zone overflow-auto p-4 text-center">
+              <div id="preview_container" class="preview-surface">
+                <div class="text-center text-muted mt-5">
+                  <i class="fas fa-file-pdf fa-3x mb-3 opacity-50"></i>
+                  <h5 class="mb-1">Upload a PDF to verify & edit fields</h5>
+                  <div class="small">Detected pages will render here.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary-action" id="saveNewTemplateBtn" disabled>Create Template</button>
+      </div>
     </div>
+  </div>
 </div>
 
+<!-- EDIT NAME MODAL -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Template Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="templateEditForm">
-                    <input type="hidden" id="editTemplateId">
-                    <div class="mb-3">
-                        <label class="form-label">Template Name</label>
-                        <input type="text" class="form-control" id="editTemplateName" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
-            </div>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header brand">
+        <div>
+          <h5 class="modal-title fw-bold mb-0">Edit Template Details</h5>
+          <div class="text-muted small">Rename your template.</div>
         </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="templateEditForm">
+          <input type="hidden" id="editTemplateId">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Template Name</label>
+            <input type="text" class="form-control" id="editTemplateName" required>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary-action" id="saveEditBtn">Save Changes</button>
+      </div>
+
     </div>
+  </div>
 </div>
 
 {% endblock content %}
 
-{% block extra_css %}
-<style>
-    /* SHARED EDITOR STYLES */
-    .pdf-page { 
-        position: relative; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2); 
-        margin-bottom: 20px; 
-        background: white;
-        z-index: 1;
-        line-height: 0; 
-    }
-    .pdf-page img { pointer-events: none; width: 100%; height: 100%; display: block; }
-    
-    .field-wrapper {
-        position: absolute;
-        border: 1px solid #0d6efd; /* Solid border for clarity in editor */
-        background: rgba(13, 110, 253, 0.1); 
-        box-sizing: border-box;
-        z-index: 10;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-    }
-    .field-wrapper.selected {
-        background: rgba(13, 110, 253, 0.3);
-        z-index: 20;
-        outline: 2px solid #004085;
-    }
-    
-    /* RESIZE HANDLES */
-    .resize-handle {
-        position: absolute; width: 8px; height: 8px;
-        background: white; border: 1px solid #0d6efd;
-        display: none; z-index: 30;
-    }
-    .field-wrapper.selected .resize-handle { display: block; }
-    .handle-nw { top: -4px; left: -4px; cursor: nw-resize; }
-    .handle-ne { top: -4px; right: -4px; cursor: ne-resize; }
-    .handle-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
-    .handle-se { bottom: -4px; right: -4px; cursor: se-resize; }
-
-    /* INPUTS */
-    .pdf-input {
-        width: 100%; height: 100%; background: transparent; border: none; outline: none;
-        font-family: 'Courier New', monospace; font-weight: bold; font-size: 13px;
-        padding: 0 4px; box-sizing: border-box; cursor: pointer; user-select: none;
-    }
-    input[type="checkbox"].pdf-input { width: 100%; height: 100%; margin: 0; cursor: pointer; }
-</style>
-{% endblock %}
-
 {% block extra_js %}
 <script>
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value; 
-    const tableBody = document.getElementById('templateTableBody');
-    const addModal = new bootstrap.Modal(document.getElementById('addTemplateModal'));
-    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const tableBody = document.getElementById('templateTableBody');
+  const addModal = new bootstrap.Modal(document.getElementById('addTemplateModal'));
+  const editModal = new bootstrap.Modal(document.getElementById('editModal'));
 
-    // EDITOR VARIABLES
-    let selectedField = null;
-    let currentZoom = 1.0;
-    const canvas = document.getElementById('preview_container');
-    const deleteBtn = document.getElementById('deleteFieldBtn');
+  // EDITOR VARIABLES
+  let selectedField = null;
+  let currentZoom = 1.0;
+  const canvas = document.getElementById('preview_container');
+  const deleteBtn = document.getElementById('deleteFieldBtn');
 
-    // --- 1. UPLOAD & ANALYZE ---
-    document.getElementById('pdf_converter').addEventListener('change', async function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+  // --- 1. UPLOAD & ANALYZE ---
+  document.getElementById('pdf_converter').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        // Reset UI
-        document.getElementById('convert_loading').style.display = 'block';
-        document.getElementById('saveNewTemplateBtn').disabled = true;
-        canvas.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div><p>Scanning Document...</p></div>';
-        currentZoom = 1.0; updateZoomUI();
+    document.getElementById('convert_loading').style.display = 'block';
+    document.getElementById('saveNewTemplateBtn').disabled = true;
+    canvas.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Scanning document...</p></div>';
+    currentZoom = 1.0; updateZoomUI();
 
-        if(!document.getElementById('newTemplateName').value) {
-            document.getElementById('newTemplateName').value = file.name.replace('.pdf', '');
-        }
-
-        const formData = new FormData();
-        formData.append('pdf_file', file);
-
-        try {
-            const response = await fetch('/cases/api/convert-pdf/', {
-                method: 'POST', body: formData, headers: { 'X-CSRFToken': csrftoken }
-            });
-            if (!response.ok) throw new Error('Analysis failed');
-            const data = await response.json();
-            
-            // RENDER PDF PAGES
-            let fullHtml = '';
-            data.pages.forEach(page => {
-                let pageHtml = `<div class="pdf-page" style="position: relative; width: ${page.width}px; height: ${page.height}px;">`;
-                pageHtml += `<img src="data:image/png;base64,${page.image}">`;
-                
-                // Fields
-                page.fields.forEach(field => {
-                    const isCheck = field.type === 'checkbox';
-                    const style = `position: absolute; left: ${field.left}%; top: ${field.top}%; width: ${field.width}%; height: ${field.height}%;`;
-                    
-                    pageHtml += `
-                        <div class="field-wrapper" style="${style}" data-type="${field.type}">
-                            <div class="resize-handle handle-nw"></div><div class="resize-handle handle-ne"></div>
-                            <div class="resize-handle handle-sw"></div><div class="resize-handle handle-se"></div>
-                            <input class="pdf-input" type="${isCheck ? 'checkbox' : 'text'}" readonly>
-                        </div>`;
-                });
-                pageHtml += `</div>`;
-                fullHtml += pageHtml;
-            });
-
-            canvas.innerHTML = fullHtml;
-            document.getElementById('saveNewTemplateBtn').disabled = false;
-
-        } catch (err) {
-            alert("Error: " + err.message);
-            canvas.innerHTML = '<div class="text-danger text-center mt-5">Failed to analyze PDF.</div>';
-        } finally {
-            document.getElementById('convert_loading').style.display = 'none';
-        }
-    });
-
-    // --- 2. EDITOR LOGIC (Draw, Select, Delete) ---
-    canvas.addEventListener('mousedown', function(e) {
-        if (e.target.classList.contains('resize-handle')) {
-            e.preventDefault(); e.stopPropagation(); startResize(e, e.target); return;
-        }
-        const wrapper = e.target.closest('.field-wrapper');
-        if (wrapper) {
-            e.preventDefault(); e.stopPropagation(); selectField(wrapper); return;
-        }
-        const page = e.target.closest('.pdf-page');
-        if (page) {
-            e.preventDefault(); if (selectedField) deselectField(); startDraw(e, page);
-        }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if((e.key === 'Delete' || e.key === 'Backspace') && selectedField) {
-            selectedField.remove(); deselectField();
-        }
-    });
-    deleteBtn.addEventListener('click', () => { if(selectedField) { selectedField.remove(); deselectField(); } });
-
-    function selectField(wrapper) {
-        if(selectedField && selectedField !== wrapper) selectedField.classList.remove('selected');
-        selectedField = wrapper; wrapper.classList.add('selected'); deleteBtn.disabled = false;
-    }
-    function deselectField() {
-        if(selectedField) { selectedField.classList.remove('selected'); selectedField = null; }
-        deleteBtn.disabled = true;
+    if(!document.getElementById('newTemplateName').value) {
+      document.getElementById('newTemplateName').value = file.name.replace('.pdf', '');
     }
 
-    function startDraw(e, page) {
-        const startX = e.clientX; const startY = e.clientY;
-        const pageRect = page.getBoundingClientRect();
-        const tempBox = document.createElement('div');
-        tempBox.style.position = 'fixed'; tempBox.style.border = '1px dashed blue';
-        tempBox.style.background = 'rgba(0,0,255,0.1)';
-        tempBox.style.left = startX+'px'; tempBox.style.top = startY+'px'; tempBox.style.zIndex = '9999';
-        document.body.appendChild(tempBox);
+    const formData = new FormData();
+    formData.append('pdf_file', file);
 
-        function onMove(ev) {
-            tempBox.style.width = Math.abs(ev.clientX - startX)+'px';
-            tempBox.style.height = Math.abs(ev.clientY - startY)+'px';
-            tempBox.style.left = Math.min(startX, ev.clientX)+'px';
-            tempBox.style.top = Math.min(startY, ev.clientY)+'px';
-        }
-        function onUp(ev) {
-            document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp);
-            document.body.removeChild(tempBox);
-            const rect = tempBox.getBoundingClientRect();
-            if(rect.width < 10 || rect.height < 10) return;
-            const l = ((rect.left - pageRect.left) / pageRect.width) * 100;
-            const t = ((rect.top - pageRect.top) / pageRect.height) * 100;
-            const w = (rect.width / pageRect.width) * 100;
-            const h = (rect.height / pageRect.height) * 100;
-            const type = document.getElementById('tool-check').checked ? 'checkbox' : 'text';
-            createField(page, l, t, w, h, type);
-        }
-        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
-    }
+    try {
+      const response = await fetch('/cases/api/convert-pdf/', {
+        method: 'POST', body: formData, headers: { 'X-CSRFToken': csrftoken }
+      });
+      if (!response.ok) throw new Error('Analysis failed');
+      const data = await response.json();
 
-    function createField(page, l, t, w, h, type) {
-        const wrapper = document.createElement('div'); wrapper.className = 'field-wrapper';
-        wrapper.style.left = l+'%'; wrapper.style.top = t+'%'; wrapper.style.width = w+'%'; wrapper.style.height = h+'%';
-        ['nw','ne','sw','se'].forEach(d => {
-            const h = document.createElement('div'); h.className = `resize-handle handle-${d}`; wrapper.appendChild(h);
+      let fullHtml = '';
+      data.pages.forEach(page => {
+        let pageHtml = `<div class="pdf-page" style="position: relative; width: ${page.width}px; height: ${page.height}px;">`;
+        pageHtml += `<img src="data:image/png;base64,${page.image}">`;
+
+        page.fields.forEach(field => {
+          const isCheck = field.type === 'checkbox';
+          const style = `position: absolute; left: ${field.left}%; top: ${field.top}%; width: ${field.width}%; height: ${field.height}%;`;
+
+          pageHtml += `
+            <div class="field-wrapper" style="${style}" data-type="${field.type}">
+              <div class="resize-handle handle-nw"></div><div class="resize-handle handle-ne"></div>
+              <div class="resize-handle handle-sw"></div><div class="resize-handle handle-se"></div>
+              <input class="pdf-input" type="${isCheck ? 'checkbox' : 'text'}" readonly>
+            </div>`;
         });
-        const input = document.createElement('input'); input.className = 'pdf-input';
-        input.type = (type === 'checkbox') ? 'checkbox' : 'text'; input.readOnly = true;
-        wrapper.appendChild(input); page.appendChild(wrapper); selectField(wrapper);
+
+        pageHtml += `</div>`;
+        fullHtml += pageHtml;
+      });
+
+      canvas.innerHTML = fullHtml;
+      document.getElementById('saveNewTemplateBtn').disabled = false;
+
+    } catch (err) {
+      alert("Error: " + err.message);
+      canvas.innerHTML = '<div class="text-danger text-center mt-5">Failed to analyze PDF.</div>';
+    } finally {
+      document.getElementById('convert_loading').style.display = 'none';
     }
+  });
 
-    function startResize(e, handle) {
-        const wrapper = handle.parentElement;
-        const pageRect = wrapper.closest('.pdf-page').getBoundingClientRect();
-        const startRect = wrapper.getBoundingClientRect();
-        const startX = e.clientX; const startY = e.clientY;
-        const isSE = handle.classList.contains('handle-se');
-        function onMove(ev) {
-            if(isSE) {
-                wrapper.style.width = (startRect.width + ev.clientX - startX)/pageRect.width*100 + '%';
-                wrapper.style.height = (startRect.height + ev.clientY - startY)/pageRect.height*100 + '%';
-            }
-        }
-        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
-        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+  // --- 2. EDITOR LOGIC (Draw, Select, Delete) ---
+  canvas.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('resize-handle')) {
+      e.preventDefault(); e.stopPropagation(); startResize(e, e.target); return;
     }
-
-    function updateZoomUI() {
-        canvas.style.transform = `scale(${currentZoom})`;
-        document.getElementById('zoomDisplay').textContent = Math.round(currentZoom * 100) + '%';
+    const wrapper = e.target.closest('.field-wrapper');
+    if (wrapper) {
+      e.preventDefault(); e.stopPropagation(); selectField(wrapper); return;
     }
-    document.getElementById('zoomInBtn').onclick = () => { if(currentZoom < 2.0) { currentZoom += 0.1; updateZoomUI(); }};
-    document.getElementById('zoomOutBtn').onclick = () => { if(currentZoom > 0.5) { currentZoom -= 0.1; updateZoomUI(); }};
+    const page = e.target.closest('.pdf-page');
+    if (page) {
+      e.preventDefault(); if (selectedField) deselectField(); startDraw(e, page);
+    }
+  });
 
+  document.addEventListener('keydown', function(e) {
+    if((e.key === 'Delete' || e.key === 'Backspace') && selectedField) {
+      selectedField.remove(); deselectField();
+    }
+  });
+  deleteBtn.addEventListener('click', () => { if(selectedField) { selectedField.remove(); deselectField(); } });
 
-    // --- 3. SAVE TEMPLATE ---
-    document.getElementById('saveNewTemplateBtn').addEventListener('click', async () => {
-        deselectField();
-        const contentHtml = canvas.innerHTML; 
-        const name = document.getElementById('newTemplateName').value;
-        const fileInput = document.getElementById('pdf_converter');
-        if (!fileInput.files[0]) return alert("Please upload a PDF first!");
-        
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('content', contentHtml);
-        formData.append('template_file', fileInput.files[0]); 
+  function selectField(wrapper) {
+    if(selectedField && selectedField !== wrapper) selectedField.classList.remove('selected');
+    selectedField = wrapper; wrapper.classList.add('selected'); deleteBtn.disabled = false;
+  }
+  function deselectField() {
+    if(selectedField) { selectedField.classList.remove('selected'); selectedField = null; }
+    deleteBtn.disabled = true;
+  }
 
-        try {
-            const res = await fetch('/cases/api/templates/', {
-                method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: formData
-            });
-            if(res.ok) {
-                addModal.hide(); alert("Smart Template Created!"); fetchTemplates(); 
-            } else {
-                const err = await res.json(); alert("Save failed: " + JSON.stringify(err));
-            }
-        } catch(e) { console.error(e); alert("An error occurred."); }
+  function startDraw(e, page) {
+    const startX = e.clientX; const startY = e.clientY;
+    const pageRect = page.getBoundingClientRect();
+    const tempBox = document.createElement('div');
+    tempBox.style.position = 'fixed';
+    tempBox.style.border = '1px dashed #0d6efd';
+    tempBox.style.background = 'rgba(13,110,253,0.08)';
+    tempBox.style.left = startX+'px';
+    tempBox.style.top = startY+'px';
+    tempBox.style.zIndex = '9999';
+    document.body.appendChild(tempBox);
+
+    function onMove(ev) {
+      tempBox.style.width = Math.abs(ev.clientX - startX)+'px';
+      tempBox.style.height = Math.abs(ev.clientY - startY)+'px';
+      tempBox.style.left = Math.min(startX, ev.clientX)+'px';
+      tempBox.style.top = Math.min(startY, ev.clientY)+'px';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+
+      const rect = tempBox.getBoundingClientRect();
+      tempBox.remove();
+
+      if(rect.width < 10 || rect.height < 10) return;
+
+      const l = ((rect.left - pageRect.left) / pageRect.width) * 100;
+      const t = ((rect.top - pageRect.top) / pageRect.height) * 100;
+      const w = (rect.width / pageRect.width) * 100;
+      const h = (rect.height / pageRect.height) * 100;
+      const type = document.getElementById('tool-check').checked ? 'checkbox' : 'text';
+      createField(page, l, t, w, h, type);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function createField(page, l, t, w, h, type) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'field-wrapper';
+    wrapper.style.left = l+'%';
+    wrapper.style.top = t+'%';
+    wrapper.style.width = w+'%';
+    wrapper.style.height = h+'%';
+    wrapper.dataset.type = type;
+
+    ['nw','ne','sw','se'].forEach(d => {
+      const hnd = document.createElement('div');
+      hnd.className = `resize-handle handle-${d}`;
+      wrapper.appendChild(hnd);
     });
 
-    // --- 4. FETCH LIST (UPDATED: RESTORED EDIT/DOWNLOAD BUTTONS) ---
-    function fetchTemplates() {
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-5">Loading...</td></tr>';
-        fetch('/cases/api/templates/')
-            .then(r => r.json())
-            .then(data => {
-                const list = Array.isArray(data) ? data : (data.results || []);
-                tableBody.innerHTML = '';
-                if (list.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No templates found.</td></tr>';
-                    return;
-                }
-                list.forEach(t => {
-                    const row = tableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${t.name}</td>
-                        <td>${new Date(t.updated_at).toLocaleDateString()}</td>
-                        <td>${t.created_by_username || 'System'}</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary me-2 edit-btn" data-id="${t.id}">Edit</button>
-                            <button class="btn btn-sm btn-outline-success me-2 download-btn" data-id="${t.id}">Download</button>
-                            <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}">Delete</button>
-                        </td>`;
-                });
-            })
-            .catch(err => console.error(err));
+    const input = document.createElement('input');
+    input.className = 'pdf-input';
+    input.type = (type === 'checkbox') ? 'checkbox' : 'text';
+    input.readOnly = true;
+    wrapper.appendChild(input);
+
+    page.appendChild(wrapper);
+    selectField(wrapper);
+  }
+
+  function startResize(e, handle) {
+    const wrapper = handle.parentElement;
+    const pageRect = wrapper.closest('.pdf-page').getBoundingClientRect();
+    const startRect = wrapper.getBoundingClientRect();
+    const startX = e.clientX; const startY = e.clientY;
+    const isSE = handle.classList.contains('handle-se');
+
+    function onMove(ev) {
+      if(isSE) {
+        wrapper.style.width = (startRect.width + ev.clientX - startX)/pageRect.width*100 + '%';
+        wrapper.style.height = (startRect.height + ev.clientY - startY)/pageRect.height*100 + '%';
+      }
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function updateZoomUI() {
+    canvas.style.transform = `scale(${currentZoom})`;
+    document.getElementById('zoomDisplay').textContent = Math.round(currentZoom * 100) + '%';
+  }
+  document.getElementById('zoomInBtn').onclick = () => { if(currentZoom < 2.0) { currentZoom += 0.1; updateZoomUI(); } };
+  document.getElementById('zoomOutBtn').onclick = () => { if(currentZoom > 0.5) { currentZoom -= 0.1; updateZoomUI(); } };
+
+  // --- 3. SAVE TEMPLATE ---
+  document.getElementById('saveNewTemplateBtn').addEventListener('click', async () => {
+    deselectField();
+    const contentHtml = canvas.innerHTML;
+    const name = document.getElementById('newTemplateName').value;
+    const fileInput = document.getElementById('pdf_converter');
+    if (!fileInput.files[0]) return alert("Please upload a PDF first!");
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('content', contentHtml);
+    formData.append('template_file', fileInput.files[0]);
+
+    try {
+      const res = await fetch('/cases/api/templates/', {
+        method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: formData
+      });
+      if(res.ok) {
+        addModal.hide(); alert("Smart Template Created!"); fetchTemplates();
+      } else {
+        const err = await res.json(); alert("Save failed: " + JSON.stringify(err));
+      }
+    } catch(e) { console.error(e); alert("An error occurred."); }
+  });
+
+  // --- 4. FETCH LIST ---
+  function fetchTemplates() {
+    tableBody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Loading...</td></tr>';
+    fetch('/cases/api/templates/')
+      .then(r => r.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.results || []);
+        tableBody.innerHTML = '';
+        if (list.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No templates found.</td></tr>';
+          return;
+        }
+        list.forEach(t => {
+          const row = tableBody.insertRow();
+          row.innerHTML = `
+            <td class="fw-semibold">${t.name}</td>
+            <td class="text-muted">${new Date(t.updated_at).toLocaleDateString()}</td>
+            <td class="text-muted">${t.created_by_username || 'System'}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary me-2 edit-btn" data-id="${t.id}"><i class="fas fa-pen me-1"></i>Edit</button>
+              <button class="btn btn-sm btn-outline-success me-2 download-btn" data-id="${t.id}"><i class="fas fa-download me-1"></i>Download</button>
+              <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${t.id}"><i class="fas fa-trash me-1"></i>Delete</button>
+            </td>`;
+        });
+      })
+      .catch(err => console.error(err));
+  }
+
+  // --- 5. TABLE ACTIONS ---
+  document.getElementById('templateTable').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+
+    if (btn.classList.contains('delete-btn')) {
+      if (!confirm("Delete this template?")) return;
+      try {
+        const res = await fetch(`/cases/api/templates/${id}/`, {
+          method: 'DELETE', headers: { 'X-CSRFToken': csrftoken }
+        });
+        if (res.ok) fetchTemplates();
+      } catch (err) { console.error(err); }
     }
 
-    // --- 5. TABLE ACTIONS (EDIT, DOWNLOAD, DELETE) ---
-    document.getElementById('templateTable').addEventListener('click', async (e) => {
-        const id = e.target.dataset.id;
-        
-        // DELETE
-        if (e.target.classList.contains('delete-btn')) {
-            if (!confirm("Delete this template?")) return;
-            try {
-                const res = await fetch(`/cases/api/templates/${id}/`, {
-                    method: 'DELETE', headers: { 'X-CSRFToken': csrftoken }
-                });
-                if (res.ok) fetchTemplates();
-            } catch (err) { console.error(err); }
-        }
-        
-        // DOWNLOAD (Restored)
-        if (e.target.classList.contains('download-btn')) {
-            window.location.href = `/cases/api/templates/${id}/download/`; 
-        }
+    if (btn.classList.contains('download-btn')) {
+      window.location.href = `/cases/api/templates/${id}/download/`;
+    }
 
-        // EDIT (Restored)
-        if (e.target.classList.contains('edit-btn')) {
-            try {
-                const res = await fetch(`/cases/api/templates/${id}/`);
-                const data = await res.json();
-                document.getElementById('editTemplateId').value = data.id;
-                document.getElementById('editTemplateName').value = data.name;
-                editModal.show();
-            } catch (err) { console.error(err); }
-        }
-    });
+    if (btn.classList.contains('edit-btn')) {
+      try {
+        const res = await fetch(`/cases/api/templates/${id}/`);
+        const data = await res.json();
+        document.getElementById('editTemplateId').value = data.id;
+        document.getElementById('editTemplateName').value = data.name;
+        editModal.show();
+      } catch (err) { console.error(err); }
+    }
+  });
 
-    // SAVE EDIT (Name Update)
-    document.getElementById('saveEditBtn').addEventListener('click', async () => {
-        const id = document.getElementById('editTemplateId').value;
-        const name = document.getElementById('editTemplateName').value;
+  // SAVE EDIT
+  document.getElementById('saveEditBtn').addEventListener('click', async () => {
+    const id = document.getElementById('editTemplateId').value;
+    const name = document.getElementById('editTemplateName').value;
 
-        try {
-            const res = await fetch(`/cases/api/templates/${id}/`, {
-                method: 'PATCH', 
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
-                body: JSON.stringify({ name: name })
-            });
-            if(res.ok) {
-                editModal.hide(); alert("Changes saved!"); fetchTemplates();
-            } else {
-                alert("Update failed.");
-            }
-        } catch(e) { console.error(e); }
-    });
+    try {
+      const res = await fetch(`/cases/api/templates/${id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+        body: JSON.stringify({ name: name })
+      });
+      if(res.ok) {
+        editModal.hide(); alert("Changes saved!"); fetchTemplates();
+      } else {
+        alert("Update failed.");
+      }
+    } catch(e) { console.error(e); }
+  });
 
-    // INIT
-    document.getElementById('addNewTemplateBtn').onclick = () => {
-        document.getElementById('templateCreateForm').reset();
-        canvas.innerHTML = '<div class="text-center mt-5"><i class="fas fa-file-pdf fa-3x mb-3 text-muted"></i><h5>Upload a PDF</h5></div>';
-        addModal.show();
-    };
+  // INIT
+  document.getElementById('addNewTemplateBtn').onclick = () => {
+    document.getElementById('templateCreateForm').reset();
+    canvas.innerHTML = `
+      <div class="text-center mt-5 text-muted">
+        <i class="fas fa-file-pdf fa-3x mb-3 opacity-50"></i>
+        <h5 class="mb-1">Upload a PDF</h5>
+        <div class="small">Detected pages will render here.</div>
+      </div>`;
+    document.getElementById('saveNewTemplateBtn').disabled = true;
+    document.getElementById('deleteFieldBtn').disabled = true;
+    addModal.show();
+  };
 
-    fetchTemplates();
+  fetchTemplates();
 </script>
 {% endblock %}

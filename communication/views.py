@@ -10,6 +10,7 @@ from cases.models import Case, CaseAssignment # Need to import Case/Assignment
 from cases.models import Case
 from users.models import Role
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from cases.decorators import user_is_assigned_to_case
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
@@ -17,54 +18,45 @@ from django.shortcuts import render, redirect
 # --- View 1: Case Messaging Thread ---
 
 @login_required
-@user_is_assigned_to_case 
+@user_is_assigned_to_case
 def case_messaging_view(request, case_pk):
     case = get_object_or_404(Case, pk=case_pk)
-        
-    # --- Handle New Message POST ---
-    if request.method == 'POST':
+
+    if request.method == "POST":
         form = NewMessageForm(request.POST)
         if form.is_valid():
-            # Create the message in memory
             msg = form.save(commit=False)
             msg.case = case
             msg.sender = request.user
-            
-            # 🛠️ FIX: Explicitly set the timestamp to 'now'
             msg.sent_at = timezone.now()
-            
-            # --- Find the Recipient ---
+
             other_users = case.assignments.exclude(user=request.user)
-            
-            if other_users.exists():
-                msg.recipient = other_users.first().user
-            else:
-                msg.recipient = request.user 
-            
+            msg.recipient = other_users.first().user if other_users.exists() else request.user
+
             msg.save()
             messages.success(request, "Message sent.")
-            return redirect('communication:case-messaging', case_pk=case.pk)
-    # --- Handle GET Request ---
-    # Create a blank form
+
+            next_url = request.POST.get("next") or request.GET.get("next")
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
+
+            return redirect("cases:case-detail", pk=case.pk)
+
+    # GET fallback (you can keep this page, but you won’t be forced into it anymore)
     form = NewMessageForm()
-    
-    # Get all messages for this case where the user is either the sender OR recipient
-    # This is so the user only sees their own conversations
-    messages_thread = Message.objects.filter(
-        case=case
-    ).filter(
+    messages_thread = Message.objects.filter(case=case).filter(
         Q(sender=request.user) | Q(recipient=request.user)
-    ).order_by('sent_at') # Show oldest first
-    
-    context = {
-        'case': case,
-        'messages_thread': messages_thread,
-        'form': form,
-    }
-    
-    return render(request, 'communication/case_messaging.html', context)
+    ).order_by("sent_at")
 
-
+    return render(request, "communication/case_messaging.html", {
+        "case": case,
+        "messages_thread": messages_thread,
+        "form": form,
+    })
 
 @login_required # Good practice to ensure user is logged in
 def send_case_notification(request, case_id):

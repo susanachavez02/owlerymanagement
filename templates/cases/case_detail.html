@@ -3,330 +3,536 @@
 
 {% block content %}
 <style>
-    /* --- DARK HORIZONTAL NAV (Updated for Contrast) --- */
-    .dark-nav-card {
-        background-color: #1e293b; /* Match Card BG (Lighter than Body) */
-        border: 1px solid #334155; /* Distinct Border */
-        color: #fff;
-        border-radius: 12px;
-        padding: 15px 20px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Stronger Shadow */
-    }
+  /* ---------- Case Detail Shell ---------- */
+  .case-topbar{
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 10px 24px rgba(2,6,23,.10);
+  }
 
-    /* Nav Pills Styling */
-    .dark-nav-pills .nav-link {
-        color: #94a3b8; /* Muted text */
-        font-weight: 500;
-        padding: 10px 18px;
-        border-radius: 6px;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        margin-right: 5px;
-    }
+  .case-pill .nav-link{
+    color: var(--text-muted) !important;
+    font-weight: 600;
+    padding: .55rem .9rem;
+    border-radius: 10px;
+    transition: background .15s ease, color .15s ease;
+    display:flex; align-items:center;
+    gap:.5rem;
+  }
+  .case-pill .nav-link:hover{ background: rgba(148,163,184,.10); color: var(--text-main) !important; }
+  .case-pill .nav-link.active{
+    background: rgba(59,130,246,.18);
+    color: var(--text-main) !important;
+    border: 1px solid rgba(59,130,246,.35);
+  }
+  .case-badge{
+    background: rgba(148,163,184,.18);
+    color: var(--text-main);
+    font-size: .72rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+  }
 
-    .dark-nav-pills .nav-link:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #fff;
-    }
+  .metric-card{
+    border: 1px solid var(--border-color) !important;
+    border-radius: 14px;
+    background: var(--bg-card);
+  }
+  .metric-ico{
+    width: 46px; height: 46px; border-radius: 12px;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(148,163,184,.12);
+    border: 1px solid var(--border-color);
+  }
 
-    .dark-nav-pills .nav-link.active {
-        background-color: #3b82f6; /* Bright Blue */
-        color: #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
+  /* ---------- Scoped “light class” fixes for this page only ----------
+     Do NOT globally nuke bg-white/bg-light; it makes content look blank.
+  */
+  #case-detail .bg-white{ background-color: var(--bg-card) !important; }
+  #case-detail .bg-light{ background-color: rgba(148,163,184,.06) !important; }
+  #case-detail .text-dark{ color: var(--text-main) !important; }
+  #case-detail .border{ border-color: var(--border-color) !important; }
 
-    .dark-nav-pills .nav-link i {
-        margin-right: 8px;
-    }
+  /* ---------- Chat ---------- */
+  .chat-shell{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+  .chat-header{
+    background: rgba(148,163,184,.06);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .chat-body{
+    background: rgba(148,163,184,.04);
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  .chat-body::-webkit-scrollbar{ width: 8px; }
+  .chat-body::-webkit-scrollbar-thumb{ background: rgba(148,163,184,.25); border-radius: 999px; }
+  .chat-body::-webkit-scrollbar-track{ background: transparent; }
 
-    .nav-badge {
-        background: rgba(255, 255, 255, 0.2);
-        color: #fff;
-        font-size: 0.7rem;
-        padding: 1px 6px;
-        border-radius: 4px;
-        margin-left: 8px;
-    }
-    
-    /* Content Animations */
-    .tab-pane { animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  .bubble{
+    max-width: 78%;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 16px rgba(2,6,23,.08);
+    line-height: 1.25;
+  }
+  .bubble-me{
+    background: rgba(59,130,246,.18);
+    color: var(--text-main);
+    border-color: rgba(59,130,246,.35);
+    border-bottom-right-radius: 6px;
+  }
+  .bubble-them{
+    background: rgba(148,163,184,.06);
+    color: var(--text-main);
+    border-bottom-left-radius: 6px;
+  }
+
+  .avatar-circle{
+    width: 32px; height: 32px; border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight: 800; font-size: 12px;
+    background: rgba(148,163,184,.15);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+  }
+
+  .chat-footer{
+    background: rgba(148,163,184,.06);
+    border-top: 1px solid var(--border-color);
+  }
+  .chat-input{
+    background: rgba(148,163,184,.10) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    border-radius: 999px !important;
+  }
+  .chat-input::placeholder{ color: var(--text-muted) !important; opacity: .9; }
 </style>
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4" id="case-detail">
 
-    <div class="dark-nav-card d-flex flex-wrap align-items-center justify-content-between">
-        
-        <div class="d-flex align-items-center me-4 mb-2 mb-lg-0">
-            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px; font-weight:bold;">
-                {{ case.id }}
-            </div>
-            <div>
-                <h5 class="fw-bold mb-0 text-white">{{ case.case_title }}</h5>
-                <div class="small text-muted">
-                    <span class="text-success">● {{ case.current_stage.name }}</span> 
-                    <span class="mx-2">|</span> 
-                    Created {{ case.created_at|date:"M d" }}
-                </div>
-            </div>
+  <!-- ================= TOP BAR ================= -->
+  <div class="case-topbar d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+
+    <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center justify-content-center"
+           style="width:46px;height:46px;border-radius:14px;background:rgba(59,130,246,.18);border:1px solid rgba(59,130,246,.35);color:var(--text-main);font-weight:900;">
+        {{ case.id }}
+      </div>
+
+      <div>
+        <div class="fw-bold" style="font-size:1.05rem; color: var(--text-main);">
+          {{ case.case_title }}
         </div>
 
-        <ul class="nav nav-pills dark-nav-pills" id="pills-tab" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-overview">
-                    <i class="fas fa-home"></i> Overview
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-documents">
-                    <i class="fas fa-folder-open"></i> Docs <span class="nav-badge">{{ documents.count }}</span>
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-meetings">
-                    <i class="fas fa-calendar-alt"></i> Meetings
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-team">
-                    <i class="fas fa-users"></i> Team
-                </button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-messages">
-                    <i class="fas fa-comment-dots"></i> Chat
-                </button>
-            </li>
-        </ul>
+        <div class="small" style="color: var(--text-muted);">
+          {% if case.current_stage %}
+            <span style="color:#22c55e;">●</span> {{ case.current_stage.name }}
+          {% else %}
+            <span style="color: var(--text-muted);">● New</span>
+          {% endif %}
+          <span class="mx-2">|</span>
+          Created {{ case.created_at|date:"M d" }}
+        </div>
+      </div>
+    </div>
+
+    <ul class="nav nav-pills case-pill" id="pills-tab" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-overview" type="button">
+          <i class="fas fa-home"></i> Overview
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-documents" type="button">
+          <i class="fas fa-folder-open"></i> Docs <span class="case-badge">{{ documents.count }}</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-meetings" type="button">
+          <i class="fas fa-calendar-alt"></i> Meetings
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-team" type="button">
+          <i class="fas fa-users"></i> Team
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-messages" type="button">
+          <i class="fas fa-comment-dots"></i> Chat
+        </button>
+      </li>
+    </ul>
+
+  </div>
+
+  <!-- ================= TABS ================= -->
+  <div class="tab-content" id="nav-tabContent">
+
+    <!-- ============ OVERVIEW ============ -->
+    <div class="tab-pane fade show active" id="tab-overview">
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="metric-card p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+              <div class="metric-ico" style="color: var(--primary);">
+                <i class="fas fa-layer-group fa-lg"></i>
+              </div>
+              <div>
+                <div class="text-uppercase fw-bold" style="font-size:.72rem;color:var(--text-muted);">Stage</div>
+                <div class="fw-bold" style="font-size:1.15rem;color:var(--text-main);">
+                  {% if case.current_stage %}{{ case.current_stage.name }}{% else %}New{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="metric-card p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+              <div class="metric-ico" style="color:#22c55e;">
+                <i class="fas fa-file-contract fa-lg"></i>
+              </div>
+              <div>
+                <div class="text-uppercase fw-bold" style="font-size:.72rem;color:var(--text-muted);">Documents</div>
+                <div class="fw-bold" style="font-size:1.15rem;color:var(--text-main);">{{ documents.count }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="metric-card p-3 h-100">
+            <div class="d-flex align-items-center gap-3">
+              <div class="metric-ico" style="color:#f59e0b;">
+                <i class="fas fa-clock fa-lg"></i>
+              </div>
+              <div>
+                <div class="text-uppercase fw-bold" style="font-size:.72rem;color:var(--text-muted);">Next Event</div>
+                <div class="fw-bold" style="font-size:1.05rem;color:var(--text-main);">
+                  {% if meetings.first %}{{ meetings.first.scheduled_time|date:"M d" }}{% else %}None{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm" style="border:1px solid var(--border-color); border-radius: 14px; background: var(--bg-card);">
+        <div class="card-header py-3 chat-header">
+          <h6 class="fw-bold mb-0" style="color: var(--text-main);">
+            <i class="fas fa-paper-plane me-2" style="color: var(--text-muted);"></i>
+            Quick Email Notification
+          </h6>
+        </div>
+
+        <div class="card-body">
+          <form action="{% url 'communication:send_case_notification' case_id=case.id %}" method="POST">
+            {% csrf_token %}
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="small fw-bold mb-1" style="color: var(--text-muted);">Recipient</label>
+                <input type="email" class="form-control" placeholder="client@example.com" name="recipient_email" required>
+              </div>
+              <div class="col-md-6">
+                <label class="small fw-bold mb-1" style="color: var(--text-muted);">Subject</label>
+                <input type="text" class="form-control" placeholder="Subject..." name="subject" required>
+              </div>
+              <div class="col-12">
+                <label class="small fw-bold mb-1" style="color: var(--text-muted);">Message</label>
+                <textarea class="form-control" rows="3" placeholder="Type your message here..." name="message" required></textarea>
+              </div>
+            </div>
+
+            <div class="text-end mt-3">
+              <button type="submit" class="btn btn-gold px-4 fw-bold">
+                <i class="fas fa-paper-plane me-2"></i> Send Email
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
 
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="tab-content" id="nav-tabContent">
-                
-                <div class="tab-pane fade show active" id="tab-overview">
-                    
-                    <div class="row mb-4">
-                        <div class="col-md-4">
-                            <div class="card border-0 shadow-sm h-100 p-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-light p-3 rounded me-3 text-primary"><i class="fas fa-layer-group fa-lg"></i></div>
-                                    <div><small class="text-uppercase text-muted fw-bold">Stage</small><h4 class="mb-0 fw-bold">{{ case.current_stage.name }}</h4></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card border-0 shadow-sm h-100 p-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-light p-3 rounded me-3 text-success"><i class="fas fa-file-contract fa-lg"></i></div>
-                                    <div><small class="text-uppercase text-muted fw-bold">Documents</small><h4 class="mb-0 fw-bold">{{ documents.count }}</h4></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card border-0 shadow-sm h-100 p-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-light p-3 rounded me-3 text-warning"><i class="fas fa-clock fa-lg"></i></div>
-                                    <div>
-                                        <small class="text-uppercase text-muted fw-bold">Next Event</small>
-                                        <h5 class="mb-0 fw-bold">
-                                            {% if meetings.first %}{{ meetings.first.scheduled_time|date:"M d" }}{% else %}None{% endif %}
-                                        </h5>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- ============ DOCUMENTS ============ -->
+    <div class="tab-pane fade" id="tab-documents">
+      <div class="card border-0 shadow-sm" style="border:1px solid var(--border-color); border-radius: 14px; background: var(--bg-card);">
+        <div class="card-body">
 
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white py-3">
-                             <h6 class="fw-bold mb-0"><i class="fas fa-paper-plane me-2 text-muted"></i>Quick Email Notification</h6>
-                        </div>
-                        <div class="card-body bg-light">
-                             <form action="{% url 'communication:send_case_notification' case_id=case.id %}" method="POST">
-                                {% csrf_token %}
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="small text-white opacity-75 mb-1">Recipient</label>
-                                        <input type="email" class="form-control border-0 shadow-sm" placeholder="client@example.com" name="recipient_email" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="small text-white opacity-75 mb-1">Subject</label>
-                                        <input type="text" class="form-control border-0 shadow-sm" placeholder="Subject..." name="subject" required>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <textarea class="form-control border-0 shadow-sm" rows="3" placeholder="Type your message here..." name="message" required></textarea>
-                                </div>
-                                <div class="text-end">
-                                    <button type="submit" class="btn btn-gold px-4 fw-bold">
-                                        <i class="fas fa-paper-plane me-2"></i> Send Email
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <h5 class="fw-bold mb-0" style="color: var(--text-main);">Case Files</h5>
 
-                <div class="tab-pane fade" id="tab-documents">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h5 class="fw-bold mb-0">Case Files</h5>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#uploadCollapse">
-                                        <i class="fas fa-upload me-2"></i>Upload New
-                                    </button>
-                                    {% if is_admin_user or 'Attorney' in user_roles %}
-                                    <a href="{% url 'cases:generate-document' case_pk=case.pk %}" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-magic me-2"></i>Generate Contract
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#uploadCollapse">
+                <i class="fas fa-upload me-2"></i>Upload New
+              </button>
 
-                            <div class="collapse mb-4" id="uploadCollapse">
-                                <div class="card card-body bg-light border-dashed">
-                                    <form method="POST" enctype="multipart/form-data">
-                                        {% csrf_token %}
-                                        <div class="row align-items-end">
-                                            <div class="col-md-9">{{ upload_form|crispy }}</div>
-                                            <div class="col-md-3">
-                                                <button type="submit" name="upload_document" class="btn btn-success w-100">Upload</button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-
-                            {% if documents %}
-                                <div class="list-group list-group-flush border rounded">
-                                    {% for doc in documents %}
-                                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-light p-2 rounded text-danger me-3"><i class="fas fa-file-pdf fa-lg"></i></div>
-                                            <div>
-                                                <a href="{% url 'cases:document-view' doc_pk=doc.pk %}" target="_blank" class="fw-bold text-dark text-decoration-none">{{ doc.title }}</a>
-                                                <div class="small text-muted mt-1">
-                                                    By {{ doc.uploaded_by.username }} • {{ doc.uploaded_at|date:"M d, Y" }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            {% if is_admin_user or 'Attorney' in user_roles %}
-                                                <a href="{% url 'cases:signature-request' doc_pk=doc.pk %}" class="btn btn-warning btn-sm me-1 text-white"><i class="fas fa-file-signature"></i></a>
-                                            {% endif %}
-                                            <a href="{{ doc.file.url }}" class="btn btn-light btn-sm border" download><i class="fas fa-download"></i></a>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="text-center py-5 bg-light rounded"><h6 class="text-muted">No documents yet.</h6></div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="tab-pane fade" id="tab-meetings">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="fw-bold mb-4">Schedule</h5>
-                             {% if meetings %}
-                                <div class="list-group list-group-flush">
-                                {% for meeting in meetings %}
-                                    <div class="list-group-item p-3 border rounded mb-2">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <div>
-                                                <h6 class="mb-1 fw-bold">{{ meeting.title }}</h6>
-                                                <small class="text-muted"><i class="far fa-clock me-1"></i> {{ meeting.scheduled_time|date:"M d, Y @ h:i A" }}</small>
-                                            </div>
-                                            <span class="badge bg-light text-dark align-self-center">{{ meeting.duration_minutes }} min</span>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-muted text-center py-4">No meetings scheduled.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="tab-pane fade" id="tab-team">
-                    <div class="row">
-                         {% for assignment in assignments %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body d-flex align-items-center">
-                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                        {{ assignment.user.username|make_list|first|upper }}
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-bold">{{ assignment.user.get_full_name|default:assignment.user.username }}</h6>
-                                        <small class="text-muted">{{ assignment.user.roles.all|join:", " }}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="tab-pane fade" id="tab-messages">
-                    <div class="card border-0 shadow-sm" style="height: 600px;">
-                        
-                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
-                            <h5 class="fw-bold mb-0">Case Discussion</h5>
-                            <span class="badge bg-light text-dark">{{ case_messages.count|default:"0" }} Messages</span>
-                        </div>
-
-                        <div class="card-body bg-light overflow-auto d-flex flex-column" style="flex: 1;">
-                            {% if case_messages %}
-                                {% for msg in case_messages %}
-                                <div class="d-flex mb-3 {% if msg.sender == request.user %}justify-content-end{% endif %}">
-                                    {% if msg.sender != request.user %}
-                                    <div class="me-2">
-                                        <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                            {{ msg.sender.username|make_list|first|upper }}
-                                        </div>
-                                    </div>
-                                    {% endif %}
-
-                                    <div class="p-3 rounded-3 shadow-sm text-start" 
-                                         style="max-width: 75%; {% if msg.sender == request.user %}background-color: #3b82f6; color: white; border-bottom-right-radius: 2px !important;{% else %}background-color: white; color: #1e293b; border-bottom-left-radius: 2px !important;{% endif %}">
-                                        <div class="small fw-bold mb-1 opacity-75">{{ msg.sender.get_full_name|default:msg.sender.username }}</div>
-                                        <div class="mb-1">{{ msg.content|linebreaksbr }}</div>
-                                        <div class="text-end" style="font-size: 0.7rem; opacity: 0.7;">{{ msg.timestamp|date:"M d, H:i" }}</div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="text-center my-auto opacity-50">
-                                    <i class="far fa-comments fa-3x mb-3"></i>
-                                    <p>No messages yet.</p>
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="card-footer bg-white p-3 border-top">
-                            <form method="POST" action="{% url 'communication:case-messaging' case_pk=case.pk %}">
-                                {% csrf_token %}
-                                <div class="input-group">
-                                    <input type="text" name="message" class="form-control border-0 bg-light" placeholder="Type a message..." required>
-                                    <button class="btn btn-primary px-4" type="submit"><i class="fas fa-paper-plane"></i></button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
+              {% if is_admin_user or 'Attorney' in user_roles %}
+                <a href="{% url 'cases:generate-document' case_pk=case.pk %}" class="btn btn-primary btn-sm">
+                  <i class="fas fa-magic me-2"></i>Generate Contract
+                </a>
+              {% endif %}
             </div>
+          </div>
+
+          <div class="collapse mb-4" id="uploadCollapse">
+            <div class="card card-body" style="border:1px dashed var(--border-color); border-radius:14px; background: rgba(148,163,184,.06);">
+              <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row align-items-end g-3">
+                  <div class="col-md-9">{{ upload_form|crispy }}</div>
+                  <div class="col-md-3">
+                    <button type="submit" name="upload_document" class="btn btn-success w-100">Upload</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {% if documents %}
+            <div class="list-group list-group-flush border rounded" style="border-color: var(--border-color) !important;">
+              {% for doc in documents %}
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3"
+                     style="background: transparent; border-color: var(--border-color) !important;">
+                  <div class="d-flex align-items-center">
+                    <div class="p-2 rounded me-3" style="background: rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); color:#ef4444;">
+                      <i class="fas fa-file-pdf fa-lg"></i>
+                    </div>
+
+                    <div>
+                      <a href="{% url 'cases:document-view' doc_pk=doc.pk %}" target="_blank"
+                         class="fw-bold text-decoration-none" style="color: var(--text-main);">
+                        {{ doc.title }}
+                      </a>
+                      <div class="small mt-1" style="color: var(--text-muted);">
+                        By {{ doc.uploaded_by.username }} • {{ doc.uploaded_at|date:"M d, Y" }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    {% if is_admin_user or 'Attorney' in user_roles %}
+                      <a href="{% url 'cases:signature-request' doc_pk=doc.pk %}" class="btn btn-warning btn-sm text-white">
+                        <i class="fas fa-file-signature"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{{ doc.file.url }}" class="btn btn-light btn-sm border" download>
+                      <i class="fas fa-download"></i>
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5 rounded" style="background: rgba(148,163,184,.06); border: 1px dashed var(--border-color);">
+              <h6 class="mb-0" style="color: var(--text-muted);">No documents yet.</h6>
+            </div>
+          {% endif %}
+
         </div>
+      </div>
     </div>
+
+    <!-- ============ MEETINGS ============ -->
+    <div class="tab-pane fade" id="tab-meetings">
+      <div class="card border-0 shadow-sm" style="border:1px solid var(--border-color); border-radius: 14px; background: var(--bg-card);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+            <h5 class="fw-bold mb-0" style="color: var(--text-main);">Schedule</h5>
+            {% if is_admin_user or 'Attorney' in user_roles %}
+              <a class="btn btn-primary btn-sm" href="{% url 'cases:create-meeting' %}">
+                <i class="fas fa-plus me-2"></i>Schedule Meeting
+              </a>
+            {% endif %}
+          </div>
+
+          {% if meetings %}
+            <div class="list-group list-group-flush">
+              {% for meeting in meetings %}
+                <div class="list-group-item p-3 border rounded mb-2"
+                     style="background: rgba(148,163,184,.05); border-color: var(--border-color) !important;">
+                  <div class="d-flex w-100 justify-content-between align-items-start gap-2">
+                    <div>
+                      <h6 class="mb-1 fw-bold" style="color: var(--text-main);">{{ meeting.title }}</h6>
+                      <small style="color: var(--text-muted);">
+                        <i class="far fa-clock me-1"></i>
+                        {{ meeting.scheduled_time|date:"M d, Y @ h:i A" }}
+                      </small>
+                    </div>
+                    <span class="badge" style="background: rgba(148,163,184,.12); color: var(--text-main); border:1px solid var(--border-color);">
+                      {{ meeting.duration_minutes }} min
+                    </span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-center py-4 mb-0" style="color: var(--text-muted);">No meetings scheduled.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TEAM ============ -->
+    <div class="tab-pane fade" id="tab-team">
+      <div class="row g-3">
+        {% for assignment in assignments %}
+          <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100" style="border:1px solid var(--border-color); border-radius: 14px; background: var(--bg-card);">
+              <div class="card-body d-flex align-items-center gap-3">
+                <div class="avatar-circle" title="{{ assignment.user.username }}">
+                  {{ assignment.user.username|make_list|first|upper }}
+                </div>
+                <div>
+                  <div class="fw-bold" style="color: var(--text-main);">
+                    {{ assignment.user.get_full_name|default:assignment.user.username }}
+                  </div>
+                  <div class="small" style="color: var(--text-muted);">
+                    {% if assignment.user.roles.all %}
+                      {% for r in assignment.user.roles.all %}
+                        {{ r.name }}{% if not forloop.last %}, {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      No role
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-12">
+            <div class="text-center py-5 rounded" style="background: rgba(148,163,184,.06); border: 1px dashed var(--border-color);">
+              <h6 class="mb-0" style="color: var(--text-muted);">No team assignments found.</h6>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ============ CHAT (INTEGRATED) ============ -->
+    <div class="tab-pane fade" id="tab-messages">
+
+      <div class="chat-shell shadow-sm">
+
+        <div class="chat-header p-3 d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold" style="color: var(--text-main);">Case Discussion</div>
+            <div class="small" style="color: var(--text-muted);">Messages are visible to case participants.</div>
+          </div>
+          <span class="badge" style="background: rgba(148,163,184,.12); color: var(--text-main); border:1px solid var(--border-color);">
+            {{ messages_thread|length }} Messages
+          </span>
+        </div>
+
+        <div class="chat-body p-3" id="chat-history">
+          {% if messages_thread %}
+            {% for msg in messages_thread %}
+              <div class="d-flex mb-3 {% if msg.sender == request.user %}justify-content-end{% else %}justify-content-start{% endif %}">
+                {% if msg.sender != request.user %}
+                  <div class="me-2">
+                    <div class="avatar-circle">
+                      {{ msg.sender.username|make_list|first|upper }}
+                    </div>
+                  </div>
+                {% endif %}
+
+                <div class="d-flex flex-column {% if msg.sender == request.user %}align-items-end{% else %}align-items-start{% endif %}">
+                  <div class="bubble {% if msg.sender == request.user %}bubble-me{% else %}bubble-them{% endif %}">
+                    <div class="small fw-bold mb-1" style="opacity:.85;">
+                      {{ msg.sender.get_full_name|default:msg.sender.username }}
+                    </div>
+                    <div style="white-space: pre-wrap;">{{ msg.body }}</div>
+                    <div class="text-end mt-2" style="font-size:.72rem; opacity:.7;">
+                      {{ msg.sent_at|date:"M d, g:i A" }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-5" style="color: var(--text-muted); opacity:.9;">
+              <i class="far fa-comments fa-3x mb-3"></i>
+              <div class="fw-bold mb-1" style="color: var(--text-main);">No messages yet</div>
+              <div class="small">Send a message to start the conversation.</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="chat-footer p-3">
+
+          {% if message_form and message_form.errors %}
+            <div class="alert alert-danger py-2 mb-2">
+              Please enter a valid message.
+            </div>
+          {% endif %}
+
+          <form method="POST"
+                action="{% url 'communication:case-messaging' case_pk=case.pk %}"
+                class="d-flex gap-2 align-items-center m-0">
+            {% csrf_token %}
+
+            <input type="hidden" name="next" value="{% url 'cases:case-detail' pk=case.pk %}#tab-messages">
+            <input type="hidden" name="subject" value="Chat Message">
+
+            {# Best: use the exact form field if it's called body #}
+            {% if message_form.body %}
+              <input type="text"
+                     name="{{ message_form.body.html_name }}"
+                     class="form-control chat-input"
+                     placeholder="Type a message..."
+                     required>
+            {% else %}
+              {# fallback: first visible field #}
+              {% with f=message_form.visible_fields.0 %}
+                <input type="text"
+                       name="{{ f.html_name }}"
+                       class="form-control chat-input"
+                       placeholder="Type a message..."
+                       required>
+              {% endwith %}
+            {% endif %}
+
+            <button class="btn btn-primary px-4" type="submit">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Keep the correct tab open after redirect with hash
+    if (window.location.hash) {
+      const trigger = document.querySelector(`[data-bs-target="${window.location.hash}"]`);
+      if (trigger && window.bootstrap) {
+        try { new bootstrap.Tab(trigger).show(); } catch(e) {}
+      }
+    }
+
+    // Auto-scroll chat to bottom
+    const chatHistory = document.getElementById("chat-history");
+    if (chatHistory) chatHistory.scrollTop = chatHistory.scrollHeight;
+  });
+</script>
 {% endblock %}

@@ -2,13 +2,82 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
-  <a href="{% url 'cases:workflow-detail' pk=workflow.pk %}">&larr; Back to Workflow</a>
-  <h2 class="mt-2">Add Stage to: {{ workflow.name }}</h2>
-  <p>Create a new stage and set its order in the sequence.</p>
-  
-  <form method="POST" novalidate>
-    {% csrf_token %}
-    {{ form|crispy }}
-    <button type="submit" class="btn btn-success mt-3">Save Stage</button>
-  </form>
+<style>
+  .stage-shell{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .stage-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.10));
+    border-bottom: 1px solid var(--border-color);
+  }
+  :root[data-theme="dark"] .stage-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.14), rgba(59,130,246,0.14));
+  }
+
+  .hint-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(148,163,184,0.10);
+    color: var(--text-muted);
+    font-size: .85rem;
+    font-weight: 600;
+  }
+
+  .form-actions{
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+    margin-top: 1.75rem;
+  }
+</style>
+
+<div class="container px-0" style="max-width: 900px;">
+  <div class="stage-shell card shadow-sm border-0">
+
+    <div class="stage-hero p-4 p-md-5">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <a href="{% url 'cases:workflow-detail' pk=workflow.pk %}" class="text-decoration-none d-inline-flex align-items-center gap-2">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Workflow</span>
+          </a>
+
+          <h2 class="fw-bold mb-2 mt-3">Add Stage</h2>
+          <p class="text-muted mb-0">
+            Workflow: <strong>{{ workflow.name }}</strong>
+          </p>
+
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <span class="hint-chip"><i class="fas fa-sort-numeric-down"></i> Set the stage order</span>
+            <span class="hint-chip"><i class="fas fa-stream"></i> Controls case progression</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-4 p-md-5">
+      <form method="POST" novalidate>
+        {% csrf_token %}
+
+        {{ form|crispy }}
+
+        <div class="form-actions d-flex justify-content-end gap-2">
+          <a href="{% url 'cases:workflow-detail' pk=workflow.pk %}" class="btn btn-outline-secondary px-4">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary-action px-4">
+            <i class="fas fa-save me-2"></i>Save Stage
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
 {% endblock %}

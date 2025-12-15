@@ -1,25 +1,98 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-      <a href="{% url 'cases:workflow-list' %}">&larr; Back to Workflows</a>
-      <h2 class="mt-2">Workflow: {{ workflow.name }}</h2>
-    </div>
-    <a href="{% url 'cases:stage-create' workflow_pk=workflow.pk %}" class="btn btn-primary">Add New Stage</a>
-  </div>
-  
-  <p>These are the stages for the <strong>{{ workflow.name }}</strong> workflow, in order.</p>
+<style>
+  .page-wrap{ max-width: 980px; }
 
-  <ol class="list-group list-group-numbered">
-    {% for stage in stages %}
-      <li class="list-group-item">
-        {{ stage.name }}
-      </li>
-    {% empty %}
-      <div class="alert alert-info" role="alert">
-        This workflow has no stages yet.
+  .wf-shell{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+
+  .wf-hero{
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(196,162,76,0.12), rgba(59,130,246,0.10));
+  }
+  :root[data-theme="dark"] .wf-hero{
+    background: linear-gradient(135deg, rgba(196,162,76,0.16), rgba(59,130,246,0.14));
+  }
+
+  .wf-sub{ color: var(--text-muted); margin: 0; }
+
+  .stage-list .list-group-item{
+    background: transparent !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+    padding: 14px 18px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .stage-name{
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .stage-meta{
+    color: var(--text-muted);
+    font-size: .85rem;
+    white-space: nowrap;
+  }
+
+  .empty-state{
+    padding: 32px 18px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+</style>
+
+<div class="container page-wrap py-3">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <a href="{% url 'cases:workflow-list' %}" class="text-decoration-none" style="color: var(--text-muted);">
+        <i class="fas fa-arrow-left me-2"></i>Back to Workflows
+      </a>
+      <h2 class="fw-bold mt-2 mb-1">Workflow: {{ workflow.name }}</h2>
+      <p class="wf-sub">Stages for <strong style="color: var(--text-main);">{{ workflow.name }}</strong>, in order.</p>
+    </div>
+
+    <a href="{% url 'cases:stage-create' workflow_pk=workflow.pk %}" class="btn btn-primary-action">
+      <i class="fas fa-plus me-2"></i>Add New Stage
+    </a>
+  </div>
+
+  <div class="wf-shell shadow-sm">
+    <div class="wf-hero">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fas fa-stream text-muted"></i>
+        <span class="fw-bold" style="color: var(--text-main);">Workflow Stages</span>
       </div>
-    {% endfor %}
-  </ol>
+      <div class="text-muted small mt-1">These stages drive your case progression and reporting.</div>
+    </div>
+
+    <div class="p-0">
+      <ol class="list-group list-group-numbered stage-list mb-0">
+        {% for stage in stages %}
+          <li class="list-group-item">
+            <span class="stage-name">{{ stage.name }}</span>
+            <span class="stage-meta">Order: {{ stage.order }}</span>
+          </li>
+        {% empty %}
+          <div class="empty-state">
+            <i class="far fa-folder-open fa-2x mb-2 opacity-50"></i>
+            <div class="fw-bold" style="color: var(--text-main);">No stages yet</div>
+            <div class="small">Add a stage to start building this workflow.</div>
+          </div>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+
+</div>
 {% endblock %}

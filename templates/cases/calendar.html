@@ -5,140 +5,181 @@
 
 {% block content %}
 <style>
-    /* --- FULLCALENDAR DARK THEME OVERRIDES --- */
-    #calendar {
-        background-color: var(--bg-card); /* Dark Card BG */
-        color: var(--text-main);
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-    }
+  /* =========================
+     FULLCALENDAR THEME-AWARE STYLES
+     Uses your base.html CSS variables:
+     --bg-body --bg-card --bg-input --text-main --text-muted --border-color --primary
+     ========================= */
 
-    /* Toolbar Title */
-    .fc .fc-toolbar-title {
-        color: var(--text-main);
-        font-weight: 700;
-    }
+  #calendar {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm, 0 4px 10px rgba(2, 6, 23, 0.08));
+  }
 
-    /* --- THE FIX: HEADERS & GRID --- */
-    
-    /* Force Header Backgrounds to be Dark (Fixes the white bar) */
-    .fc-theme-standard th, 
-    .fc-scrollgrid-section-header > *,
-    .fc-col-header-cell {
-        background-color: var(--bg-card) !important; /* Matches Card */
-        border-color: var(--border-color) !important;
-        color: var(--text-main) !important;
-    }
+  /* Toolbar Title */
+  .fc .fc-toolbar-title {
+    color: var(--text-main);
+    font-weight: 700;
+  }
 
-    /* Fix the Header Text Color (e.g. "Saturday") */
-    .fc-col-header-cell-cushion {
-        color: var(--text-main) !important; /* White text */
-        text-decoration: none !important;
-        padding: 10px 0;
-        font-weight: 600;
-    }
-    .fc-col-header-cell-cushion:hover {
-        color: var(--primary) !important;
-    }
-    
-    /* Top Left Corner (Time Grid Axis) */
-    .fc-timegrid-axis-cushion,
-    .fc-timegrid-axis {
-        background-color: var(--bg-card) !important;
-        color: var(--text-muted) !important;
-    }
+  /* Header backgrounds + borders */
+  .fc-theme-standard th,
+  .fc-scrollgrid-section-header > *,
+  .fc-col-header-cell {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
 
-    /* Borders for the whole grid */
-    .fc-theme-standard td, 
-    .fc-theme-standard .fc-scrollgrid,
-    .fc-scrollgrid-section > * {
-        border-color: var(--border-color) !important;
-    }
+  /* Header text (Sun/Mon/...) */
+  .fc-col-header-cell-cushion {
+    color: var(--text-main) !important;
+    text-decoration: none !important;
+    padding: 10px 0;
+    font-weight: 600;
+  }
+  .fc-col-header-cell-cushion:hover {
+    color: var(--primary) !important;
+  }
 
-    /* Time Axis (Left Side 12am, 1am...) */
-    .fc .fc-timegrid-slot-label-cushion {
-        color: var(--text-muted);
-    }
-    .fc .fc-timegrid-slot {
-        border-bottom: 1px solid var(--border-color); /* Subtle lines */
-    }
+  /* Grid borders */
+  .fc-theme-standard td,
+  .fc-theme-standard .fc-scrollgrid,
+  .fc-scrollgrid-section > * {
+    border-color: var(--border-color) !important;
+  }
 
-    /* Day Numbers (in Month View) */
-    .fc .fc-daygrid-day-number {
-        color: var(--text-main);
-        text-decoration: none;
-        padding: 8px;
-    }
+  /* Month view day numbers */
+  .fc .fc-daygrid-day-number {
+    color: var(--text-main) !important;
+    text-decoration: none;
+    padding: 8px;
+  }
 
-    /* Buttons (Today, Prev, Next) */
-    .fc .fc-button-primary {
-        background-color: var(--bg-input);
-        border-color: var(--border-color);
-        color: var(--text-main);
-        font-weight: 500;
-        text-transform: capitalize;
-        transition: all 0.2s;
-    }
-    .fc .fc-button-primary:hover {
-        background-color: var(--primary);
-        border-color: var(--primary);
-        color: white;
-    }
-    .fc .fc-button-primary:disabled {
-        background-color: var(--bg-body);
-        border-color: var(--border-color);
-        opacity: 0.6;
-    }
+  /* Day cell backgrounds (ensure readability in both themes) */
+  .fc .fc-daygrid-day,
+  .fc .fc-timegrid-col {
+    background-color: transparent;
+  }
 
-    /* Active View Button (Month/Week/Day) */
-    .fc .fc-button-primary:not(:disabled).fc-button-active {
-        background-color: var(--primary);
-        border-color: var(--primary);
-        color: white;
-    }
+  /* Timegrid axis + labels */
+  .fc-timegrid-axis-cushion,
+  .fc-timegrid-axis {
+    background-color: var(--bg-card) !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border-color) !important;
+  }
 
-    /* Events */
-    .fc-event {
-        cursor: pointer;
-        border: none;
-        padding: 2px 4px;
-        font-size: 0.85rem;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    /* Today Highlight */
-    .fc .fc-day-today {
-        background-color: rgba(59, 130, 246, 0.08) !important; /* Very subtle blue tint */
-    }
+  .fc .fc-timegrid-slot-label-cushion {
+    color: var(--text-muted) !important;
+  }
+
+  .fc .fc-timegrid-slot {
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  /* "Today" highlight: slightly different for dark vs light */
+  :root[data-theme="light"] .fc .fc-day-today {
+    background-color: rgba(59, 130, 246, 0.08) !important;
+  }
+  :root[data-theme="dark"] .fc .fc-day-today {
+    background-color: rgba(59, 130, 246, 0.14) !important;
+  }
+
+  /* Buttons (Prev/Next/Today + view buttons) */
+  .fc .fc-button-primary {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+    font-weight: 600;
+    text-transform: capitalize;
+    transition: all 0.2s;
+  }
+
+  .fc .fc-button-primary:hover {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #ffffff !important;
+  }
+
+  .fc .fc-button-primary:disabled {
+    background-color: var(--bg-body) !important;
+    border-color: var(--border-color) !important;
+    opacity: 0.7;
+  }
+
+  .fc .fc-button-primary:not(:disabled).fc-button-active {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #ffffff !important;
+  }
+
+  /* Events */
+  .fc-event {
+    cursor: pointer;
+    border: none !important;
+    padding: 2px 4px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+
+  /* Popover (more-events / event detail popovers) */
+  .fc .fc-popover {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
+  .fc .fc-popover-header {
+    background-color: var(--bg-card) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
+
+  /* Links inside calendar should follow theme */
+  .fc a {
+    color: var(--text-main);
+  }
 </style>
 
-{# --- Calendar Section --- #}
 <section class="mb-5">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="page-title fw-bold">Calendar</h2>
-            <div>
-                <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary me-2 text-white border-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-                </a>
-                <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">
-                    <i class="fas fa-plus me-2"></i>Schedule Meeting
-                </a>
-            </div>
-        </div>
-
-        <div id="calendar"></div>
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="page-title fw-bold mb-0">Calendar</h2>
+      <div class="d-flex gap-2">
+        {# Remove text-white so it adapts in light mode #}
+        <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">
+          <i class="fas fa-plus me-2"></i>Schedule Meeting
+        </a>
+      </div>
     </div>
+
+    <div id="calendar"></div>
+  </div>
 </section>
 
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+  let calendar; // keep reference so we can update on theme toggle
+
+  function getCssVar(name, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  function buildCalendarOptions() {
+    const primary = getCssVar('--primary', '#3b82f6');
+    const textMain = getCssVar('--text-main', '#0f172a');
+
+    // If you ever want dynamic text color based on theme, you can compute it here.
+    return {
       initialView: 'dayGridMonth',
       themeSystem: 'standard',
       headerToolbar: {
@@ -146,20 +187,41 @@
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,timeGridDay'
       },
-      events: '/cases/api/calendar-events/', // Your events API endpoint
-      eventColor: '#3b82f6', // Default event color (Primary Blue)
+      events: '/cases/api/calendar-events/',
+      eventColor: primary,
       eventTextColor: '#ffffff',
       height: 'auto',
-      
-      // Navigate to event on click
       eventClick: function(info) {
         if (info.event.url) {
-            window.location.href = info.event.url;
-            info.jsEvent.preventDefault();
+          window.location.href = info.event.url;
+          info.jsEvent.preventDefault();
+        }
+      }
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, buildCalendarOptions());
+    calendar.render();
+
+    // Re-apply event colors etc. when theme changes (no refresh required).
+    // We watch the <html data-theme="..."> attribute your base.html toggles.
+    const observer = new MutationObserver(function(mutations) {
+      for (const m of mutations) {
+        if (m.type === 'attributes' && m.attributeName === 'data-theme') {
+          // Update options that depend on CSS variables
+          const opts = buildCalendarOptions();
+          calendar.setOption('eventColor', opts.eventColor);
+          calendar.setOption('eventTextColor', opts.eventTextColor);
+
+          // Force rerender so the UI picks up new CSS vars immediately
+          calendar.render();
         }
       }
     });
-    calendar.render();
+
+    observer.observe(document.documentElement, { attributes: true });
   });
 </script>
 {% endblock %}
