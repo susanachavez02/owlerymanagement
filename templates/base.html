@@ -145,9 +145,6 @@
             color: var(--text-muted) !important;
         }
 
-        /* IMPORTANT:
-           You previously forced .text-dark to white for dark mode.
-           That breaks semantics in light mode. We make it variable-based. */
         .text-dark { color: var(--text-main) !important; }
 
         a { color: var(--primary); text-decoration: none; }
@@ -313,34 +310,40 @@
                     {% endif %}
                 </ul>
 
+                <!-- RIGHT SIDE NAV (UPDATED: theme toggle moved to right of Welcome, name) -->
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-                    {# Theme toggle always visible #}
-                    <li class="nav-item me-2">
-                        <button id="themeToggle" type="button" class="btn btn-sm theme-toggle-btn">
-                            <i id="themeIcon" class="fas fa-moon me-1"></i>
-                            <span id="themeLabel">Dark</span>
-                        </button>
-                    </li>
+                  {% if request.user.is_authenticated %}
+                    <li class="nav-item">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="navbar-text small text-muted mb-0">
+                          Welcome, {{ user.username }}
+                        </span>
 
-                    {% if request.user.is_authenticated %}
-                        <li class="nav-item">
-                            <div class="d-flex align-items-center">
-                                <span class="navbar-text me-3 small text-muted">
-                                    Welcome, {{ user.username }}
-                                </span>
-                                <form action="{% url 'users:logout' %}" method="POST" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-secondary btn-sm" style="border-color: var(--border-color); color: var(--text-muted);">
-                                        Logout
-                                    </button>
-                                </form>
-                            </div>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="btn btn-outline-gold btn-sm" href="{% url 'users:login' %}">Login</a>
-                        </li>
-                    {% endif %}
+                        <button id="themeToggle" type="button" class="btn btn-sm theme-toggle-btn">
+                          <i id="themeIcon" class="fas fa-moon me-1"></i>
+                          <span id="themeLabel">Dark</span>
+                        </button>
+
+                        <form action="{% url 'users:logout' %}" method="POST" class="d-inline ms-1">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-outline-secondary btn-sm"
+                                  style="border-color: var(--border-color); color: var(--text-muted);">
+                            Logout
+                          </button>
+                        </form>
+                      </div>
+                    </li>
+                  {% else %}
+                    <li class="nav-item me-2">
+                      <button id="themeToggle" type="button" class="btn btn-sm theme-toggle-btn">
+                        <i id="themeIcon" class="fas fa-moon me-1"></i>
+                        <span id="themeLabel">Dark</span>
+                      </button>
+                    </li>
+                    <li class="nav-item">
+                      <a class="btn btn-outline-gold btn-sm" href="{% url 'users:login' %}">Login</a>
+                    </li>
+                  {% endif %}
                 </ul>
             </div>
         </div>
