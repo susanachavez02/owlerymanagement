@@ -37,6 +37,8 @@ class Case(models.Model):
     # --- ADD THESE TWO LINES ---
     workflow = models.ForeignKey(CaseWorkflow, on_delete=models.SET_NULL, null=True, blank=True, related_name='cases')
     current_stage = models.ForeignKey(CaseStage, on_delete=models.SET_NULL, null=True, blank=True, related_name='current_cases')
+    notes = models.TextField(blank=True, null=True)
+
 
     def __str__(self):
         return self.case_title

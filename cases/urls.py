@@ -57,6 +57,8 @@ urlpatterns = [
 
     # Case Directory
     path('cases/', views.case_directory_view, name='case-directory'),
+    path("cases/<int:pk>/edit/", views.CaseUpdateView.as_view(), name="case-update"),
+
     # 1. Initial access, no case_pk provided (shows empty form with dropdown)
     path('management/reassign/', views.case_reassign_management, name='case-reassign-list'),
     path('management/list/', views.user_management_view, name='user-management-list'),

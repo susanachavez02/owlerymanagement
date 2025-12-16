@@ -6,6 +6,7 @@ from .models import (
 from users.models import Role   # From the 'users' app
 
 class CaseCreateForm(forms.ModelForm):
+
     # We need to manually add fields to select the users
     
     # Find all users who have the 'Attorney' role
@@ -24,6 +25,15 @@ class CaseCreateForm(forms.ModelForm):
         model = Case
         # These are the fields from the Case model we want in the form
         fields = ['case_title', 'description', 'workflow']
+
+class CaseForm(forms.ModelForm):
+    class Meta:
+        model = Case
+        fields = ["case_title", "description", "notes", "current_stage"]  # adjust to your model
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 4}),
+            "notes": forms.Textarea(attrs={"rows": 4}),
+        }
 
 class DocumentUploadForm(forms.ModelForm):
     class Meta:

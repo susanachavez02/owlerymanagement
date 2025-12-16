@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.db import models
 from django import forms
+from .forms import CaseForm
 import io
 import base64
 import re
@@ -25,6 +26,11 @@ from users.models import UserProfile
 from .utils import generate_document_from_template
 from communication.models import Message
 from communication.forms import NewMessageForm
+from django.urls import reverse_lazy
+from django.views.generic.edit import UpdateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+
 
 # --- WeasyPrint Imports ---
 from weasyprint import HTML, CSS
@@ -1582,3 +1588,13 @@ def case_directory_view(request):
         'search_query': search_query, # Pass this back to keep the text in the box
     }
     return render(request, 'cases/case_directory.html', context)
+
+
+class CaseUpdateView(LoginRequiredMixin, UpdateView):
+    model = Case
+    form_class = CaseForm
+    template_name = "cases/case_form.html"  # create this template
+    pk_url_kwarg = "pk"
+
+    def get_success_url(self):
+        return reverse_lazy("cases:case-detail", kwargs={"pk": self.object.pk})

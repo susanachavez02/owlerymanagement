@@ -120,7 +120,6 @@
 
 <div class="container-fluid py-4" id="case-detail">
 
-  <!-- ================= TOP BAR ================= -->
   <div class="case-topbar d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
 
     <div class="d-flex align-items-center gap-3">
@@ -146,40 +145,43 @@
       </div>
     </div>
 
-    <ul class="nav nav-pills case-pill" id="pills-tab" role="tablist">
-      <li class="nav-item">
-        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-overview" type="button">
-          <i class="fas fa-home"></i> Overview
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-documents" type="button">
-          <i class="fas fa-folder-open"></i> Docs <span class="case-badge">{{ documents.count }}</span>
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-meetings" type="button">
-          <i class="fas fa-calendar-alt"></i> Meetings
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-team" type="button">
-          <i class="fas fa-users"></i> Team
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-messages" type="button">
-          <i class="fas fa-comment-dots"></i> Chat
-        </button>
-      </li>
-    </ul>
+    {# Tabs + Edit button (no new views required; link can be '#' or any existing route) #}
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <ul class="nav nav-pills case-pill m-0" id="pills-tab" role="tablist">
+        <li class="nav-item">
+          <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-overview" type="button">
+            <i class="fas fa-home"></i> Overview
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-documents" type="button">
+            <i class="fas fa-folder-open"></i> Docs <span class="case-badge">{{ documents.count }}</span>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-meetings" type="button">
+            <i class="fas fa-calendar-alt"></i> Meetings
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-team" type="button">
+            <i class="fas fa-users"></i> Team
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-messages" type="button">
+            <i class="fas fa-comment-dots"></i> Chat
+          </button>
+        </li>
+      </ul>
+
+  
+    </div>
 
   </div>
 
-  <!-- ================= TABS ================= -->
   <div class="tab-content" id="nav-tabContent">
 
-    <!-- ============ OVERVIEW ============ -->
     <div class="tab-pane fade show active" id="tab-overview">
 
       <div class="row g-3 mb-4">
@@ -229,9 +231,68 @@
           </div>
         </div>
       </div>
+
+      {# --------- NEW: Case Details (Description + Notes) --------- #}
+      <div class="card border-0 shadow-sm"
+           style="border:1px solid var(--border-color); border-radius: 14px; background: var(--bg-card);">
+        <div class="card-body">
+
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h5 class="fw-bold mb-0" style="color: var(--text-main);">Case Details</h5>
+            {% if is_admin_user or 'Attorney' in user_roles %}
+              <a href="{% url 'cases:case-update' pk=case.pk %}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-edit me-2"></i>Edit Case
+              </a>
+            {% endif %}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="p-3 rounded"
+                   style="background: rgba(148,163,184,.06); border: 1px solid var(--border-color);">
+                <div class="text-uppercase fw-bold mb-2" style="font-size:.72rem; color: var(--text-muted);">
+                  Description
+                </div>
+
+                {# Uses whatever your model already has; change field name if needed #}
+                <div style="color: var(--text-main); white-space: pre-wrap;">
+                  {% if case.description %}
+                    {{ case.description }}
+                  {% elif case.case_description %}
+                    {{ case.case_description }}
+                  {% else %}
+                    <span style="color: var(--text-muted);">No description added.</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="p-3 rounded"
+                   style="background: rgba(148,163,184,.06); border: 1px solid var(--border-color);">
+                <div class="text-uppercase fw-bold mb-2" style="font-size:.72rem; color: var(--text-muted);">
+                  Case Notes
+                </div>
+
+                {# Uses whatever your model already has; change field name if needed #}
+                <div style="color: var(--text-main); white-space: pre-wrap;">
+                  {% if case.notes %}
+                    {{ case.notes }}
+                  {% elif case.case_notes %}
+                    {{ case.case_notes }}
+                  {% else %}
+                    <span style="color: var(--text-muted);">No notes added.</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
 
-    <!-- ============ DOCUMENTS ============ -->
     <div class="tab-pane fade" id="tab-documents">
       <div class="card border-0 shadow-sm" style="border:1px solid var(--border-color); border-radius: 14px; background: var(--bg-card);">
         <div class="card-body">
@@ -292,8 +353,9 @@
                     <a href="{{ doc.file.url }}" class="btn btn-light btn-sm border" download>
                       <i class="fas fa-download"></i>
                     </a>
+                    {% endif %}
                   </div>
-                  {% endif %}
+                  
                 </div>
               {% endfor %}
             </div>
@@ -307,7 +369,6 @@
       </div>
     </div>
 
-    <!-- ============ MEETINGS ============ -->
     <div class="tab-pane fade" id="tab-meetings">
       <div class="card border-0 shadow-sm" style="border:1px solid var(--border-color); border-radius: 14px; background: var(--bg-card);">
         <div class="card-body">
@@ -347,7 +408,6 @@
       </div>
     </div>
 
-    <!-- ============ TEAM ============ -->
     <div class="tab-pane fade" id="tab-team">
       <div class="row g-3">
         {% for assignment in assignments %}
@@ -384,7 +444,6 @@
       </div>
     </div>
 
-    <!-- ============ CHAT (INTEGRATED) ============ -->
     <div class="tab-pane fade" id="tab-messages">
 
       <div class="chat-shell shadow-sm">
@@ -449,7 +508,6 @@
             <input type="hidden" name="next" value="{% url 'cases:case-detail' pk=case.pk %}#tab-messages">
             <input type="hidden" name="subject" value="Chat Message">
 
-            {# Best: use the exact form field if it's called body #}
             {% if message_form.body %}
               <input type="text"
                      name="{{ message_form.body.html_name }}"
@@ -457,7 +515,6 @@
                      placeholder="Type a message..."
                      required>
             {% else %}
-              {# fallback: first visible field #}
               {% with f=message_form.visible_fields.0 %}
                 <input type="text"
                        name="{{ f.html_name }}"
