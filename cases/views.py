@@ -1032,10 +1032,40 @@ def calendar_events_api(request):
     user = request.user
     events = []
     
+    # --- GET FILTER PARAMETERS ---
+    search_query = request.GET.get('q', '')  # Search by title
+    case_id = request.GET.get('case_id', '')  # Filter by case
+    meeting_type = request.GET.get('type', '')  # Filter by type
+    scope = request.GET.get('scope', '')  # Filter by participants (mine only)
+    
     # Get all meetings the user is involved in (either as organizer or participant)
     meetings = Meeting.objects.filter(
         participants=user
-    ).select_related('case', 'organizer').values('id', 'title', 'scheduled_time', 'duration_minutes', 'meeting_type', 
+    ).select_related('case', 'organizer')
+    
+    # --- APPLY FILTERS ---
+    # Filter by case if case_id is provided
+    if case_id:
+        meetings = meetings.filter(case_id=case_id)
+    
+    # Filter by meeting type if type is provided
+    if meeting_type:
+        meetings = meetings.filter(meeting_type=meeting_type)
+    
+    # Filter by search query (searches title, description, and case title)
+    if search_query:
+        meetings = meetings.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(case__case_title__icontains=search_query)
+        )
+    
+    # If scope is 'mine', only show meetings organized by the current user
+    if scope == 'mine':
+        meetings = meetings.filter(organizer=user)
+    
+    # Get the values we need
+    meetings = meetings.values('id', 'title', 'scheduled_time', 'duration_minutes', 'meeting_type', 
         'description', 'case__case_title', 'case__pk', 'organizer__username', 
         'organizer__first_name', 'organizer__last_name')
     
@@ -1054,7 +1084,7 @@ def calendar_events_api(request):
             organizer_name = meeting['organizer__username']
 
         events.append({
-            'id': f'meeting-{meeting["id"]}',
+            'id': str(meeting['id']),
             'title': f"📞 {meeting['title']}",
             'start': meeting['scheduled_time'].isoformat(),
             'end': end_time.isoformat(),
@@ -1065,7 +1095,7 @@ def calendar_events_api(request):
                 'meetingId': meeting['id'],
                 'caseTitle': meeting['case__case_title'],
                 'caseId': meeting['case__pk'],
-                'meetingType': meeting['meeting_type'],
+                'meetingType': meeting_obj.get_meeting_type_display(),
                 'description': meeting['description'] or 'No description provided',
                 'duration': meeting['duration_minutes'],
                 'organizer': organizer_name,
@@ -1185,7 +1215,20 @@ def edit_meeting_view(request, meeting_pk):
     return render(request, 'cases/edit_meeting.html', context)
 
 def calendar_view(request):
-    return render(request, 'cases/calendar.html', {})
+    user = request.user
+    
+    # Get cases the user is assigned to (or all cases if admin)
+    is_admin = request.user.roles.filter(name='Admin').exists()
+    
+    if is_admin:
+        cases = Case.objects.all().order_by('case_title')
+    else:
+        cases = Case.objects.filter(assignments__user=user).distinct().order_by('case_title')
+    
+    context = {
+        'cases': cases
+    }
+    return render(request, 'cases/calendar.html', context)
 
 # --- List and Create Templates (GET /api/templates/, POST /api/templates/) ---
 class ContractTemplateListCreateView(generics.ListCreateAPIView):
