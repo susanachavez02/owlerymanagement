@@ -305,7 +305,7 @@
                     </td>
 
                     <td class="text-end pe-4">
-                      <a href="{% url 'cases:case_detail' case.pk %}"
+                      <a href="{% url 'cases:case-detail' case.pk %}"
                          class="btn btn-sm btn-primary">
                         View
                       </a>
@@ -335,7 +335,7 @@
               <h6 class="stat-k mb-3">Quick Actions</h6>
 
               <div class="d-grid gap-2">
-                <a href="{% url 'cases:create_case' %}" class="action-btn">
+                <a href="{% url 'cases:case-create' %}" class="action-btn">
                   <i class="fas fa-plus me-2" style="color: var(--primary);"></i> Create New Case
                 </a>
 
@@ -348,7 +348,7 @@
                   <i class="fas fa-file-contract me-2" style="color: var(--text-muted);"></i> Manage Templates
                 </a>
 
-                <a href="{% url 'users:management_list' %}" class="action-btn">
+                <a href="{% url 'cases:user-management-list' %}" class="action-btn">
                   <i class="fas fa-users-cog me-2" style="color: var(--text-muted);"></i> Manage Users
                 </a>
 
