@@ -183,9 +183,11 @@
         <a href="{% url 'users:dashboard' %}" class="btn btn-outline-secondary">
           <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
         </a>
-        <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">
-          <i class="fas fa-plus me-2"></i>Schedule Meeting
-        </a>
+        {% if is_admin_user or 'Attorney' in user_roles %}
+          <a href="{% url 'cases:create-meeting' %}" class="btn btn-primary-action">
+            <i class="fas fa-plus me-2"></i>Schedule Meeting
+          </a>
+        {% endif %}
       </div>
     </div>
 
