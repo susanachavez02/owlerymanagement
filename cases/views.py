@@ -177,27 +177,29 @@ def case_dashboard_view(request):
         cases_list = cases_list.filter(assignments__user=request.user)
 
     # --- CHART DATA CALCULATION ---
-    # Group active cases by their stage name and count them
     stage_data = cases_list.values('current_stage__name').annotate(count=Count('id'))
-    
-    # Prepare lists for Chart.js (Handle cases with no stage as 'New')
     stage_labels = [item['current_stage__name'] if item['current_stage__name'] else 'New' for item in stage_data]
     stage_counts = [item['count'] for item in stage_data]
-    # ------------------------------
 
     active_count = cases_list.count()
+    # Check if SignatureRequest exists to avoid errors if not imported
     pending_count = SignatureRequest.objects.filter(status='pending').count() if 'SignatureRequest' in globals() else 0
 
-    # 4. Fetch Consultation Requests
+    # 4. Fetch Consultation Requests (UPDATED)
+    # Now fetching both 'Pending' AND 'Scheduled' so they don't disappear after scheduling
     consultations = []
     
     if is_attorney:
-        consultations = ConsultationRequest.objects.filter(attorney=request.user, status='Pending').order_by('-created_at')
+        consultations = ConsultationRequest.objects.filter(
+            attorney=request.user, 
+            status__in=['Pending', 'Scheduled']  # <--- CHANGED THIS LINE
+        ).order_by('-created_at')
     elif is_admin_user:
-        consultations = ConsultationRequest.objects.filter(status='Pending').order_by('-created_at')
+        consultations = ConsultationRequest.objects.filter(
+            status__in=['Pending', 'Scheduled']  # <--- CHANGED THIS LINE
+        ).order_by('-created_at')
 
     # --- NEW: Fetch Recent Activity ---
-    # Get the last 5 stage changes across all cases
     recent_activity = CaseStageLog.objects.all().select_related('case', 'stage').order_by('-timestamp_entered')[:5]
 
     context = {
@@ -208,10 +210,9 @@ def case_dashboard_view(request):
         'consultations': consultations,
         'stage_labels': json.dumps(stage_labels), 
         'stage_counts': json.dumps(stage_counts),
-        'recent_activity': recent_activity, # <--- PASS TO TEMPLATE
+        'recent_activity': recent_activity,
     }
     
-    # Ensure this points to your new template file
     return render(request, 'cases/admin_dashboard.html', context)
 
 # --- View 2: Case Create (Admin) ---
@@ -1421,19 +1422,58 @@ def request_consultation_view(request):
 
     return render(request, 'cases/consultation_form.html', {'form': form})
 
-# --- 2. Attorney Actions ---
 @login_required
 def update_consultation_status(request, pk, status):
     consultation = get_object_or_404(ConsultationRequest, pk=pk)
     
-    # Security check: Ensure current user is the assigned attorney or an admin
+    # 1. Security Check
+    # Ensure current user is the assigned attorney OR a superuser
     if request.user != consultation.attorney and not request.user.is_superuser:
-        messages.error(request, "You cannot manage this request.")
+        messages.error(request, "You do not have permission to manage this request.")
         return redirect('cases:case-dashboard')
 
-    consultation.status = status
-    consultation.save()
-    messages.success(request, f"Request marked as {status}.")
+    # 2. Handle "DENY" Action
+    if status == 'denied':
+        consultation.delete()
+        messages.info(request, "Consultation request has been denied and removed.")
+        return redirect('cases:case-dashboard')
+
+    # 3. Handle "ACCEPT" Action
+    elif status == 'accepted':
+        # Check if a user with this email already exists
+        existing_user = User.objects.filter(email=consultation.email).first()
+
+        if existing_user:
+            # OPTION A: User exists -> Create Case immediately
+            new_case = Case.objects.create(
+                client=existing_user,
+                title=f"Case: {consultation.service_needed}",
+                description=f"Originated from consultation request.\n\nDetails: {consultation.description}",
+                status='Open',
+                attorney=request.user 
+            )
+            
+            # Archive the consultation request
+            consultation.status = 'Converted'
+            consultation.save()
+            
+            messages.success(request, f"Request accepted! New case created for {existing_user.username}.")
+            # Redirect to the new case
+            return redirect('cases:case_detail', pk=new_case.pk)
+            
+        else:
+            # OPTION B: No user found -> Flag for Admin
+            consultation.status = 'Needs Account' 
+            consultation.save()
+            messages.warning(request, "Client account not found. Request forwarded to Admin for creation.")
+            return redirect('cases:case-dashboard')
+
+    # 4. Handle other statuses (rarely used now)
+    else:
+        consultation.status = status
+        consultation.save()
+        messages.success(request, f"Request status updated to {status}.")
+    
     return redirect('cases:case-dashboard')
 
 # --- 2. Schedule & Email Action ---

@@ -86,10 +86,14 @@
             <ul class="mb-0">
               <li>Use a valid email address.</li>
               <li>Use a username that is unique and not already taken.</li>
-              </div>
+              </ul>
+      </div>
+
       <form method="POST" novalidate>
         {% csrf_token %}
         {{ form|crispy }}
+        
+        <input type="hidden" name="consultation_id" value="{{ consultation_id }}">
 
         <div class="d-flex justify-content-end mt-4">
           <button type="submit" class="btn btn-submit">

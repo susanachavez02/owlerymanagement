@@ -10,8 +10,10 @@ django-crispy-forms==2.4
 django-widget-tweaks==1.5.0
 djangorestframework==3.16.1
 fonttools==4.60.1
+gunicorn==23.0.0
 idna==3.11
 lxml==6.0.2
+packaging==25.0
 pillow==12.0.0
 psycopg2-binary==2.9.11
 pycparser==2.23
@@ -30,3 +32,4 @@ urllib3==2.5.0
 weasyprint==66.0
 webencodings==0.5.1
 zopfli==0.4.0
+whitenoise

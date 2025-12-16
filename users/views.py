@@ -16,6 +16,10 @@ from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
 
+# Helper to ensure only admins access this
+def is_admin(user):
+    return user.roles.filter(name='Admin').exists() or user.is_superuser
+
 # --- NEW: Homepage View ---
 def homepage_view(request):
     # If user is already logged in, send them to their dashboard
@@ -25,11 +29,63 @@ def homepage_view(request):
     # Otherwise, show the public homepage
     return render(request, 'users/landing_page.html')
 
-# This is a "test function" to check if a user is an admin
-def is_admin(user):
-    return user.is_authenticated and user.roles.filter(name='Admin').exists()
 
 # --- View 1: Admin Create Key ---
+@login_required
+def update_consultation_status(request, pk, status):
+    consultation = get_object_or_404(ConsultationRequest, pk=pk)
+    
+    # 1. Security Check
+    # Ensure current user is the assigned attorney OR a superuser
+    if request.user != consultation.attorney and not request.user.is_superuser:
+        messages.error(request, "You do not have permission to manage this request.")
+        return redirect('cases:case-dashboard')
+
+    # 2. Handle "DENY" Action
+    if status == 'denied':
+        consultation.delete()
+        messages.info(request, "Consultation request has been denied and removed.")
+        return redirect('cases:case-dashboard')
+
+    # 3. Handle "ACCEPT" Action
+    elif status == 'accepted':
+        # Check if a user with this email already exists
+        existing_user = User.objects.filter(email=consultation.email).first()
+
+        if existing_user:
+            # OPTION A: User exists -> Create Case immediately
+            new_case = Case.objects.create(
+                client=existing_user,
+                title=f"Case: {consultation.service_needed}",
+                description=f"Originated from consultation request.\n\nDetails: {consultation.description}",
+                status='Open',
+                attorney=request.user 
+            )
+            
+            # Archive the consultation request
+            consultation.status = 'Converted'
+            consultation.save()
+            
+            messages.success(request, f"Request accepted! New case created for {existing_user.username}.")
+            # Redirect to the new case
+            return redirect('cases:case_detail', pk=new_case.pk)
+            
+        else:
+            # OPTION B: No user found -> Flag for Admin
+            consultation.status = 'Needs Account' 
+            consultation.save()
+            messages.warning(request, "Client account not found. Request forwarded to Admin for creation.")
+            return redirect('cases:case-dashboard')
+
+    # 4. Handle other statuses (rarely used now)
+    else:
+        consultation.status = status
+        consultation.save()
+        messages.success(request, f"Request status updated to {status}.")
+    
+    return redirect('cases:case-dashboard')
+
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -245,10 +301,8 @@ def toggle_user_active_view(request, user_pk):
 def admin_reset_password_view(request, user_pk):
     user_to_reset = get_object_or_404(User, pk=user_pk)
     
-    # We will re-use your OnboardingKey system
-    
-    # 1. Delete any old, unused keys for this user
-    OnboardingKey.objects.filter(user_to_be_assigned=user_to_reset, is_used=False).delete()
+    # 1. Delete ANY old key for this user (used or unused) to avoid Unique Constraint error
+    OnboardingKey.objects.filter(user_to_be_assigned=user_to_reset).delete()
     
     # 2. Create a new key that expires in 24 hours
     key_instance = OnboardingKey.objects.create(
