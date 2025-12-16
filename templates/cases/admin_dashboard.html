@@ -145,8 +145,6 @@
     padding: 10px 12px;
     text-align: left;
     transition: transform .12s ease, background .12s ease, border-color .12s ease;
-    text-decoration: none;
-    display: block;
   }
   .action-btn:hover {
     transform: translateY(-1px);
@@ -164,32 +162,10 @@
     padding: 6px 10px;
     border-radius: 999px;
   }
-  
-  /* Status specific badges */
-  .badge-scheduled {
-      background: rgba(56, 189, 248, 0.12);
-      color: #0ea5e9;
-      border-color: rgba(56, 189, 248, 0.3);
-  }
-  .badge-needs-account {
-      background: rgba(245, 158, 11, 0.12);
-      color: #f59e0b;
-      border-color: rgba(245, 158, 11, 0.3);
-  }
 
   /* Fix bootstrap light/white clashes */
   .bg-light, .bg-white { background-color: transparent !important; }
   .text-secondary { color: var(--text-muted) !important; }
-  
-  /* Button overrides for dark mode contrast */
-  .btn-outline-info { color: #0ea5e9; border-color: #0ea5e9; }
-  .btn-outline-info:hover { background-color: #0ea5e9; color: white; }
-  
-  .btn-outline-success { color: #22c55e; border-color: #22c55e; }
-  .btn-outline-success:hover { background-color: #22c55e; color: white; }
-  
-  .btn-outline-danger { color: #ef4444; border-color: #ef4444; }
-  .btn-outline-danger:hover { background-color: #ef4444; color: white; }
 </style>
 
 <div class="container-fluid py-4">
@@ -205,8 +181,10 @@
     <div class="p-4 p-md-5">
       <div class="row g-4">
 
+        <!-- ================= LEFT ================= -->
         <div class="col-lg-8">
 
+          <!-- Stats -->
           <div class="row g-3 mb-1">
             <div class="col-md-6">
               <div class="card card-soft h-100">
@@ -237,6 +215,7 @@
             </div>
           </div>
 
+          <!-- Chart -->
           <div class="card card-soft mt-4">
             <div class="card-header" style="background: rgba(148,163,184,.06); border-bottom: 1px solid var(--border-color);">
               <div>
@@ -249,6 +228,7 @@
             </div>
           </div>
 
+          <!-- Active Cases List -->
           <div class="card card-soft mt-4">
             <div class="card-header d-flex justify-content-between align-items-center"
                  style="background: rgba(148,163,184,.06); border-bottom: 1px solid var(--border-color);">
@@ -275,7 +255,7 @@
                   <tr>
                     <td class="ps-4">
                       <a href="{% url 'cases:case-detail' case.pk %}" class="case-link">
-                        {{ case.title }}
+                        {{ case.case_title }}
                       </a>
                     </td>
 
@@ -306,9 +286,21 @@
 
                     <td class="text-end pe-4">
                       <a href="{% url 'cases:case-detail' case.pk %}"
-                         class="btn btn-sm btn-primary">
+                         class="btn btn-sm btn-primary-action">
                         View
                       </a>
+
+                      {% if is_admin_user %}
+                      <form action="{% url 'cases:case-delete' case.pk %}"
+                            method="POST"
+                            class="d-inline"
+                            onsubmit="return confirm('Are you sure you want to delete this case?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </form>
+                      {% endif %}
                     </td>
                   </tr>
 
@@ -328,6 +320,7 @@
 
         </div>
 
+        <!-- ================= RIGHT ================= -->
         <div class="col-lg-4">
 
           <div class="card card-soft mb-4">
@@ -339,20 +332,20 @@
                   <i class="fas fa-plus me-2" style="color: var(--primary);"></i> Create New Case
                 </a>
 
-                <a href="#" class="action-btn">
+                <a href="{% url 'cases:create-meeting' %}" class="action-btn">
                   <i class="far fa-calendar-plus me-2" style="color:#22c55e;"></i> Schedule Meeting
                 </a>
 
                 {% if is_admin_user %}
-                <a href="#" class="action-btn">
+                <a href="{% url 'cases:template-list' %}" class="action-btn">
                   <i class="fas fa-file-contract me-2" style="color: var(--text-muted);"></i> Manage Templates
                 </a>
 
-                <a href="{% url 'cases:user-management-list' %}" class="action-btn">
+                <a href="{% url 'user-list' %}" class="action-btn">
                   <i class="fas fa-users-cog me-2" style="color: var(--text-muted);"></i> Manage Users
                 </a>
 
-                <a href="#" class="action-btn">
+                <a href="{% url 'cases:workflow-list' %}" class="action-btn">
                   <i class="fas fa-project-diagram me-2" style="color: var(--text-muted);"></i> Manage Workflows
                 </a>
                 {% endif %}
@@ -360,13 +353,14 @@
             </div>
           </div>
 
+          {% if consultations %}
           <div class="card card-soft mb-4">
             <div class="card-header d-flex justify-content-between align-items-center"
-                 style="background: rgba(239,68,68,.1); border-bottom: 1px solid var(--border-color);">
-              <div class="fw-bold text-danger">
-                <i class="fas fa-envelope-open-text me-2"></i> Requests
+                 style="background: rgba(245,158,11,.12); border-bottom: 1px solid var(--border-color);">
+              <div class="fw-bold" style="color: var(--text-main);">
+                <i class="fas fa-bell me-2"></i> Requests
               </div>
-              <span class="badge bg-danger rounded-pill">{{ consultations|length }}</span>
+              <span class="badge-soft">{{ consultations.count }}</span>
             </div>
 
             <div class="card-body p-0">
@@ -374,7 +368,6 @@
                 {% for req in consultations %}
                 <li class="list-group-item border-0 p-3"
                     style="background: transparent; border-bottom: 1px solid var(--border-color) !important;">
-                  
                   <div class="d-flex justify-content-between align-items-start mb-1">
                     <div class="fw-bold small" style="color: var(--text-main);">{{ req.name }}</div>
                     <small style="color: var(--text-muted);">{{ req.created_at|date:"M d" }}</small>
@@ -384,35 +377,16 @@
                     {{ req.service_needed|truncatewords:6 }}
                   </p>
 
-                  {% if req.status == 'Scheduled' %}
-                      <div class="badge-soft badge-scheduled mb-2 w-100 text-center">Meeting Scheduled</div>
-                  {% elif req.status == 'Needs Account' %}
-                      <div class="badge-soft badge-needs-account mb-2 w-100 text-center">Needs Account</div>
-                  {% endif %}
-
-                  {% if req.status == 'Pending' or req.status == 'Scheduled' %}
-                      <div class="btn-group w-100 btn-group-sm" role="group">
-                          <a href="{% url 'cases:schedule_consultation' req.pk %}" class="btn btn-outline-info">Schedule</a>
-                          <a href="{% url 'cases:update_status' req.pk 'accepted' %}" class="btn btn-outline-success">Accept</a>
-                          <a href="{% url 'cases:update_status' req.pk 'denied' %}" class="btn btn-outline-danger">Deny</a>
-                      </div>
-                  
-                  {% elif req.status == 'Needs Account' and is_admin_user %}
-                      <a href="{% url 'users:create_user' %}?email={{ req.email }}&first_name={{ req.name }}&consultation_id={{ req.id }}" 
-                         class="btn btn-sm btn-warning w-100 fw-bold">
-                         <i class="fas fa-user-plus me-1"></i> Create Account
-                      </a>
-                  {% endif %}
-
-                </li>
-                {% empty %}
-                <li class="list-group-item text-center border-0 py-4" style="background: transparent;">
-                  <small style="color: var(--text-muted);">No pending requests.</small>
+                  <a href="{% url 'cases:consultation-detail' pk=req.pk %}"
+                     class="btn btn-sm btn-outline-secondary w-100">
+                    View &amp; Schedule
+                  </a>
                 </li>
                 {% endfor %}
               </ul>
             </div>
           </div>
+          {% endif %}
 
           {% if is_admin_user %}
           <div class="card card-soft mb-4">
@@ -432,7 +406,7 @@
                     </div>
                     <div class="flex-grow-1">
                       <div class="small" style="color: var(--text-main);">
-                        <strong>{{ activity.case.title }}</strong> &rarr; {{ activity.stage.name }}
+                        <strong>{{ activity.case.case_title }}</strong> &rarr; {{ activity.stage.name }}
                       </div>
                       <div class="small" style="color: var(--text-muted); font-size: .75rem;">
                         {{ activity.timestamp_entered|timesince }} ago

@@ -289,14 +289,11 @@
 
                   <div class="d-flex gap-2">
                     {% if is_admin_user or 'Attorney' in user_roles %}
-                      <a href="{% url 'cases:signature-request' doc_pk=doc.pk %}" class="btn btn-warning btn-sm text-white">
-                        <i class="fas fa-file-signature"></i>
-                      </a>
-                    {% endif %}
                     <a href="{{ doc.file.url }}" class="btn btn-light btn-sm border" download>
                       <i class="fas fa-download"></i>
                     </a>
                   </div>
+                  {% endif %}
                 </div>
               {% endfor %}
             </div>
